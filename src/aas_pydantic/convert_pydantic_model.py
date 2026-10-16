@@ -195,7 +195,8 @@ def _make_basyx_reference(ref: aas_model.Reference) -> model.Reference:
         for k in ref.key
     )
     if isinstance(ref, aas_model.ModelReference) or ref.type_ == "ModelReference":
-        return model.ModelReference(key=basyx_keys, type_="")
+        target_type = getattr(model, ref.key[-1].type_, model.Referable) if ref.key else model.Referable
+        return model.ModelReference(key=basyx_keys, type_=target_type)
     return model.ExternalReference(key=basyx_keys)
 
 

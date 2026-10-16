@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import copy
 import itertools
 from types import UnionType as _UnionType
 from typing import Annotated, Any, Dict, List, Optional, TypeVar, Union, Literal
@@ -111,7 +110,7 @@ class AAS(Identifiable):
         if isinstance(data, BaseModel):
             data = data.model_dump()
         for field_name, field_info in cls.model_fields.items():
-            if field_name in data:
+            if field_name in data or not field_info.is_required():
                 continue
             if typing.get_origin(field_info.annotation) == Union and type(
                 None
@@ -316,13 +315,17 @@ def _serialize_element_containers(model: BaseModel, handler) -> Any:
             args = typing.get_args(ann)
             if len(args) == 2 and args[0] is str:
                 inner = _resolve_annotation(args[1])
-                if isinstance(inner, type) and issubclass(inner, SubmodelElement):
+                if (
+                    isinstance(inner, type) and issubclass(inner, SubmodelElement)
+                ) or _concrete_element_targets(inner):
                     data[fname] = _dump_container(getattr(model, fname))
         elif origin in (list, tuple, set):
             args = typing.get_args(ann)
             if args:
                 inner = _resolve_annotation(args[0])
-                if isinstance(inner, type) and issubclass(inner, SubmodelElement):
+                if (
+                    isinstance(inner, type) and issubclass(inner, SubmodelElement)
+                ) or _concrete_element_targets(inner):
                     data[fname] = _dump_container(getattr(model, fname))
     return data
 
@@ -968,11 +971,7 @@ def coerce_submodel_element(
     if mt:
         cls = _ELEMENT_CLASS_REGISTRY.get(mt) or _ELEMENT_TYPE_BY_MODELTYPE.get(mt)
         if cls is not None:
-            try:
-                return _build_element(cls, d)
-            except Exception as e:
-                if _is_unknown_field_error(e):
-                    raise
+            return _build_element(cls, d)
     sid = d.get("semantic_id")
     if isinstance(sid, str) and sid:
         cls = _resolve_semantic_id_cls(sid)
@@ -1027,24 +1026,14 @@ def _coerce_container_data(cls: Any, data: Any) -> Any:
         item_tp = _container_item_type(field_tp)
         val = data[key]
         if origin is dict or (item_tp is not None and isinstance(val, dict)):
-            default_children = field.default if field.default is not None else None
-            if isinstance(default_children, dict):
-                merged = dict(val)
-                for dk, dv in default_children.items():
-                    if dk not in merged:
-                        merged[dk] = copy.deepcopy(dv)
-                val = merged
+            # Explicit maps define their complete authored structure.
             data[key] = {
                 k: coerce_submodel_element(
                     v, id_short=k,
                     target_type=(
                         None  # dump children carry modelType → registry resolves
                         if isinstance(v, dict) and "modelType" in v
-                        else (
-                            type(default_children[k])
-                            if isinstance(default_children, dict) and k in default_children
-                            else item_tp
-                        )
+                        else item_tp
                     ),
                 )
                 for k, v in val.items()
@@ -1065,24 +1054,8 @@ def _coerce_container_data(cls: Any, data: Any) -> Any:
                 if len(args) == 1:
                     elem_tp = args[0]
             if isinstance(elem_tp, type) and issubclass(elem_tp, SubmodelElement):
-                # Preserve the field default's metadata (semanticId,
-                # supplemental sids, description, value_type, …) when the
-                # config overrides a named element field with a raw dict —
-                # a field typed with a generic leaf (e.g. ``forms.href:
-                # Property`` whose concept sid lives only on the field
-                # default) would otherwise lose it, and semanticId-based
-                # consumers (back-conversion, semantic extraction) rely on it.
-                # The field default is the deep-merge base; config values win;
-                # id_short stays the canonical field name (stamped below).
-                merged_val = val
-                if isinstance(val, dict):
-                    default = field.default
-                    if default is not None and isinstance(default, SubmodelElement):
-                        base = default.model_dump()
-                        base.pop("id_short", None)
-                        merged_val = {**base, **val}
                 data[key] = coerce_submodel_element(
-                    merged_val, id_short=key, target_type=elem_tp
+                    val, id_short=key, target_type=elem_tp
                 )
     return data
 
