@@ -38,7 +38,7 @@ from aas_pydantic.submodel_templates.asset_interfaces_mapping_configuration impo
     SourcesItem as Source, SinksItem as Sink, Sources, Sinks,
     Source as SourceReference, Sink as SinkReference,
     SourceId, SinkId,
-    DefaultPollingInterval,
+    DefaultPollingInterval, PollingInterval,
 )
 
 from aas_model.submodel_templates import (
@@ -46,7 +46,9 @@ from aas_model.submodel_templates import (
     DmpResponseSink, DmpResponseSinkReference, DmpResponseSinkId,
     DmpResponseSinks, DmpResponseSource, DmpResponseSourceReference,
     DmpResponseSourceId, DmpResponseSources, DmpExecutionSemantics,
-    DmpTriggerSourceIds, Transformation,
+    DmpTriggerSourceIds, DmpStatusSource, DmpStatusSourceReference,
+    DmpStatusSourceId, DmpStatusSources, DmpStatusTransformation,
+    DmpStatusTimeout, DmpResponseTransformation, Transformation,
 )
 from ._helpers import DEFAULT_SKILLS
 
@@ -133,11 +135,26 @@ def sink(name: str, ref: ModelReference) -> Sink:
 
 
 def response_source(source_id: str, ref: ModelReference) -> DmpResponseSource:
-    """Select a correlated reply element under its Lua-visible source id."""
+    """Select a response element under its Lua-visible source id: the
+    command's output, a property read once, or a status source's final value."""
     return DmpResponseSource(
         id_short=source_id,
         Source=DmpResponseSourceReference(value=ref),
         SourceId=DmpResponseSourceId(value=source_id),
+    )
+
+
+def status_source(source_id: str, ref: ModelReference, *,
+                  polling_interval: float | None = None) -> DmpStatusSource:
+    """A status property or event of the action's AID under its Lua-visible
+    source id. A ``polling_interval`` (seconds) reads a property at that rate;
+    without one, a property or event is subscribed when its form allows."""
+    return DmpStatusSource(
+        id_short=source_id,
+        Source=DmpStatusSourceReference(value=ref),
+        PollingInterval=(PollingInterval(value=str(polling_interval))
+                         if polling_interval is not None else None),
+        SourceId=DmpStatusSourceId(value=source_id),
     )
 
 
@@ -159,8 +176,13 @@ def mapping_configuration(
     response_sources: list[DmpResponseSource] | None = None,
     response_sinks: list[DmpResponseSink] | None = None,
     trigger_source_ids: list[str] | None = None,
+    status_sources: list[DmpStatusSource] | None = None,
+    status_transformation: str | None = None,
+    status_timeout: float | None = None,
+    response_transformation: str | None = None,
 ) -> AimcMappingConfiguration:
-    """One MappingConfiguration: AID sources, AAS sinks and the Lua mapping."""
+    """One MappingConfiguration: AID sources, AAS sinks and the Lua mapping.
+    The status and response arguments apply to operation mappings."""
     kwargs = dict(
         id_short=id_short,
         DefaultPollingInterval=DefaultPollingInterval(value="0.0"),
@@ -172,6 +194,14 @@ def mapping_configuration(
         kwargs["ResponseSources"] = DmpResponseSources(value=response_sources)
     if response_sinks is not None:
         kwargs["ResponseSinks"] = DmpResponseSinks(value=response_sinks)
+    if status_sources is not None:
+        kwargs["StatusSources"] = DmpStatusSources(value=status_sources)
+    if status_transformation is not None:
+        kwargs["StatusTransformation"] = DmpStatusTransformation(value=status_transformation)
+    if status_timeout is not None:
+        kwargs["StatusTimeout"] = DmpStatusTimeout(value=str(status_timeout))
+    if response_transformation is not None:
+        kwargs["ResponseTransformation"] = DmpResponseTransformation(value=response_transformation)
     if trigger_source_ids is not None:
         kwargs["ExecutionSemantics"] = DmpExecutionSemantics(
             TriggerSourceIds=DmpTriggerSourceIds(

@@ -131,9 +131,10 @@ def test_aimc_execution_semantics_round_trip_and_authors_source_ids():
         trigger_source_ids=["invoke", "position"],
     )
     semantics = mapping.ExecutionSemantics
-    assert semantics.semantic_id.endswith("/MappingConfiguration/ExecutionSemantics")
+    from aas_model.constants import AIMC_EXECUTION_SEMANTICS, AIMC_TRIGGER_SOURCE_IDS
+    assert semantics.semantic_id == AIMC_EXECUTION_SEMANTICS
     trigger_ids = semantics.TriggerSourceIds
-    assert trigger_ids.semantic_id.endswith("/ExecutionSemantics/TriggerSourceIds")
+    assert trigger_ids.semantic_id == AIMC_TRIGGER_SOURCE_IDS
     assert trigger_ids.type_value_list_element == "Property"
     assert trigger_ids.value_type_list_element == "xs:string"
     assert [item.value for item in trigger_ids.value] == ["invoke", "position"]

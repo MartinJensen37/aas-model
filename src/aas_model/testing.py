@@ -22,7 +22,7 @@ from aas_pydantic.submodel_templates.asset_interfaces_description import (
 from aas_model.submodel_templates.aid import (
     DmpAssetInterfacesDescription, MqttInterface, MqttInteractionMetadata,
     MqttProperties, MqttProperty, MqttForm, MqttActions, MqttAction,
-    MqttResponseForm,
+    MqttResponseForm, MqttEvent, MqttEvents, DmpEventData,
     DmpForm, DmpGenericInteractionMetadata, DmpHttpInterface,
     DmpModbusInterface, DmpBacnetInterface, DmpOpcuaInterface, OpcuaForm,
     MqttActionForm,
@@ -98,8 +98,26 @@ def mqtt_action(name: str, href: str, *, synchronous: bool = False,
     )
 
 
+def mqtt_event(name: str, href: str, data_schema: dict | None = None, *,
+               qos: int = 1) -> MqttEvent:
+    """An MQTT event affordance published on ``href``; ``data_schema`` is the
+    JSON Schema of each notification."""
+    from aas_model.json_schema_aid import datapoint_from_schema
+    return MqttEvent(
+        title=Title(value=name),
+        data=(datapoint_from_schema(data_schema, key="data", cls=DmpEventData)
+              if data_schema is not None else None),
+        forms=MqttForm(href=Href(value=href), op=_prop("subscribeevent"),
+                       mqv_retain=_prop("false"), mqv_qos=_prop(str(qos)),
+                       mqv_control_packet=_prop("subscribe")),
+    )
+
+
 def mqtt_interface(base: str, *, properties=None, actions=None, events=None) -> MqttInterface:
-    meta = MqttInteractionMetadata()
+    """``events`` maps a name to an href or to ``(href, data_schema)``."""
+    meta = MqttInteractionMetadata(events=MqttEvents(property_name={
+        n: mqtt_event(n, *(v if isinstance(v, tuple) else (v,))) for n, v in events.items()
+    }) if events else None)
     props = {}
     for n, v in (properties or {}).items():
         if isinstance(v, tuple):

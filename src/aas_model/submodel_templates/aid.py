@@ -92,6 +92,7 @@ from aas_pydantic.submodel_templates.asset_interfaces_description import (
     property_name as _BaseProperty,
     property_name_json_schema as _BaseDataSchema,
     actions as _BaseActions,
+    events as _BaseEvents,
     properties as _BaseProperties,
     InteractionMetadata as _BaseInteractionMetadata,
     InterfaceTemplateForMQTT as _BaseMqttInterface,
@@ -124,7 +125,7 @@ from aas_model.constants import (
     AID_MQTT_RESPONSE_FORM, AID_MQTT_RETAIN, AID_MQTT_CONTROL_PACKET,
     AID_MQTT_QOS, AID_MQTT_REQUEST_REPLY, AID_MQTT_RESPONSE_TOPIC,
     AID_SYNCHRONOUS, AID_WOT_SAFE, AID_WOT_IDEMPOTENT,
-    AID_ACTION_INPUT, AID_ACTION_OUTPUT,
+    AID_ACTION_INPUT, AID_ACTION_OUTPUT, AID_EVENT_DATA, AID_EVENT_AFFORDANCE,
     AID_WOT_OPERATION_TYPE, AID_WOT_RESPONSE_FORM,
 )
 
@@ -198,11 +199,40 @@ class DmpActions(_BaseActions):
     property_name: Dict[str, DmpAction] = {}
 
 
+class DmpEventData(_BaseDataSchema):
+    """WoT ``data`` DataSchema of an event (td#hasNotificationSchema) — the
+    payload of each notification."""
+    semantic_id: str = AID_EVENT_DATA
+    description: str = "Data schema describing the payload of the event notification."
+
+
+class DmpEvent(SubmodelElementCollection):
+    """WoT EventAffordance, protocol-neutral (TD 1.1 §5.3.1.5): a
+    notification the asset pushes, e.g. that a triggered action has
+    finished. ``forms.op`` is ``subscribeevent``; ``data`` is the
+    notification schema. An event has no current value: a consumer only
+    sees notifications sent while it is subscribed. Deliberate WoT
+    omissions (no DMP consumer): ``subscription``, ``dataResponse``,
+    ``cancellation``."""
+    semantic_id: str = AID_EVENT_AFFORDANCE
+    description: str = "WoT EventAffordance: a notification pushed by the asset. The form declares where to subscribe; data describes the notification payload."
+    title: Optional[Title] = None
+    data: Optional[DmpEventData] = None
+    forms: DmpForm = DmpForm()
+
+
+class DmpEvents(_BaseEvents):
+    """Dynamic map of generic events (name → DmpEvent)."""
+    property_name: Dict[str, DmpEvent] = {}
+
+
 class DmpGenericInteractionMetadata(_BaseInteractionMetadata):
-    """Interaction metadata with the DMP action extension for generic
-    (non-MQTT) protocol interfaces."""
-    actions: DmpActions = DmpActions()
-    properties: _BaseProperties = _BaseProperties()
+    """Interaction metadata with the DMP action and event extensions for
+    generic (non-MQTT) protocol interfaces. ``events`` stays absent unless
+    authored, so interfaces without events serialize unchanged."""
+    actions: Optional[DmpActions] = None
+    properties: Optional[_BaseProperties] = None
+    events: Optional[DmpEvents] = None
 
 
 class DmpHttpInterface(_BaseHttpInterface):
@@ -256,10 +286,22 @@ class OpcuaProperties(_BaseProperties):
     property_name: Dict[str, OpcuaProperty] = {}
 
 
+class OpcuaEvent(DmpEvent):
+    """Generic event affordance + the shared OPC UA form (the href NodeId
+    names the event notifier)."""
+    forms: OpcuaForm = OpcuaForm()
+
+
+class OpcuaEvents(DmpEvents):
+    """Dynamic map of OPC UA events (name → OpcuaEvent)."""
+    property_name: Dict[str, OpcuaEvent] = {}
+
+
 class OpcuaInteractionMetadata(DmpGenericInteractionMetadata):
-    """Interaction metadata with OPC-UA-specialised actions/properties."""
-    actions: OpcuaActions = OpcuaActions()
-    properties: OpcuaProperties = OpcuaProperties()
+    """Interaction metadata with OPC-UA-specialised actions/properties/events."""
+    actions: Optional[OpcuaActions] = None
+    properties: Optional[OpcuaProperties] = None
+    events: Optional[OpcuaEvents] = None
 
 
 class OpcuaSecurityDefinitions(_BaseSecurityDefinitions):
@@ -497,10 +539,22 @@ class MqttProperties(_BaseProperties):
     property_name: Dict[str, MqttProperty] = {}
 
 
+class MqttEvent(DmpEvent):
+    """Generic event affordance + MQTT form: the event is published on the
+    form's topic (``op`` = ``subscribeevent``)."""
+    forms: MqttForm = MqttForm()
+
+
+class MqttEvents(DmpEvents):
+    """Dynamic map of MQTT events (name → MqttEvent)."""
+    property_name: Dict[str, MqttEvent] = {}
+
+
 class MqttInteractionMetadata(DmpGenericInteractionMetadata):
-    """Interaction metadata with MQTT-specialised actions/properties."""
-    actions: MqttActions = MqttActions()
-    properties: MqttProperties = MqttProperties()
+    """Interaction metadata with MQTT-specialised actions/properties/events."""
+    actions: Optional[MqttActions] = None
+    properties: Optional[MqttProperties] = None
+    events: Optional[MqttEvents] = None
 
 
 class MqttInterface(_BaseMqttInterface):

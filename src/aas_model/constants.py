@@ -55,34 +55,43 @@ AID_WOT_IDEMPOTENT = "https://www.w3.org/2019/wot/td#idempotent"
 # (w3.org — kept inline per the constants policy).  Shared by the MQTT and the
 # generic (Dmp) action DataSchemas.
 AID_ACTION_INPUT = "https://www.w3.org/2019/wot/td#hasInput"
+# WoT TD 1.1 §5.3.1.5 EventAffordance ``data``: the notification payload schema.
+AID_EVENT_DATA = "https://www.w3.org/2019/wot/td#hasNotificationSchema"
+AID_EVENT_AFFORDANCE = "https://www.w3.org/2019/wot/td#EventAffordance"
 AID_ACTION_OUTPUT = "https://www.w3.org/2019/wot/td#hasOutput"
 AID_WOT_OPERATION_TYPE = "https://www.w3.org/2019/wot/td#hasOperationType"
 AID_WOT_RESPONSE_FORM = "https://www.w3.org/2019/wot/hypermedia#response"
 
-# AIMC mapping extension (DMP v3, ADR-022): the OPTIONAL correlated-reply
-# direction of an operation mapping — mirrors the IDTA ``Transformation``
-# vocabulary member.  Authored on ``DmpMappingConfiguration``; when absent the
-# reply passes through unchanged.
-AIMC_RESPONSE_TRANSFORMATION = ("https://admin-shell.io/idta/"
-                                "AssetInterfacesMappingConfiguration/2/0/"
-                                "MappingConfiguration/ResponseTransformation")
+# ═══════════════════════════════════════════════════════════════════════════════
+# AIMC — DMP extensions of the IDTA MappingConfiguration
+# ═══════════════════════════════════════════════════════════════════════════════
+# IDTA AIMC 2.0 defines Sources, Sinks, Transformation and DefaultPollingInterval.
+# Everything an operation mapping adds lives in this project's namespace, so a
+# standard AIMC consumer can tell the additions apart (DMP PLAN P3). Per
+# invocation: command (IDTA Sources/Transformation/Sinks) → optional status
+# phase (Status*) → response phase (Response*).
 
-AIMC_RESPONSE_SOURCE = ("https://admin-shell.io/idta/"
-                        "AssetInterfacesMappingConfiguration/2/0/"
-                        "MappingConfiguration/ResponseSource")
-AIMC_RESPONSE_SOURCES = ("https://admin-shell.io/idta/"
-                         "AssetInterfacesMappingConfiguration/2/0/"
-                         "MappingConfiguration/ResponseSources")
-AIMC_RESPONSE_SINK = ("https://admin-shell.io/idta/"
-                       "AssetInterfacesMappingConfiguration/2/0/"
-                       "MappingConfiguration/ResponseSink")
-AIMC_RESPONSE_SINKS = ("https://admin-shell.io/idta/"
-                       "AssetInterfacesMappingConfiguration/2/0/"
-                       "MappingConfiguration/ResponseSinks")
+# Status phase: status properties/events of the action's AID, the Lua that
+# decides "running"/"done"/"failed", and how long to wait for it (seconds).
+AIMC_STATUS_SOURCES = f"{BASE_URL}/aimc/StatusSources/1/0"
+AIMC_STATUS_SOURCE = f"{BASE_URL}/aimc/StatusSource/1/0"
+AIMC_STATUS_SOURCE_REFERENCE = f"{BASE_URL}/aimc/StatusSource/Source/1/0"
+AIMC_STATUS_SOURCE_ID = f"{BASE_URL}/aimc/StatusSource/SourceId/1/0"
+AIMC_STATUS_TRANSFORMATION = f"{BASE_URL}/aimc/StatusTransformation/1/0"
+AIMC_STATUS_TIMEOUT = f"{BASE_URL}/aimc/StatusTimeout/1/0"
 
-AIMC_EXECUTION_SEMANTICS = ("https://admin-shell.io/idta/"
-                            "AssetInterfacesMappingConfiguration/2/0/"
-                            "MappingConfiguration/ExecutionSemantics")
-AIMC_TRIGGER_SOURCE_IDS = ("https://admin-shell.io/idta/"
-                           "AssetInterfacesMappingConfiguration/2/0/"
-                           "MappingConfiguration/ExecutionSemantics/TriggerSourceIds")
+# Response phase: the elements read once after the command (or status phase),
+# the Lua that builds the caller's reply, and the elements it writes.
+AIMC_RESPONSE_SOURCES = f"{BASE_URL}/aimc/ResponseSources/1/0"
+AIMC_RESPONSE_SOURCE = f"{BASE_URL}/aimc/ResponseSource/1/0"
+AIMC_RESPONSE_SOURCE_REFERENCE = f"{BASE_URL}/aimc/ResponseSource/Source/1/0"
+AIMC_RESPONSE_SOURCE_ID = f"{BASE_URL}/aimc/ResponseSource/SourceId/1/0"
+AIMC_RESPONSE_TRANSFORMATION = f"{BASE_URL}/aimc/ResponseTransformation/1/0"
+AIMC_RESPONSE_SINKS = f"{BASE_URL}/aimc/ResponseSinks/1/0"
+AIMC_RESPONSE_SINK = f"{BASE_URL}/aimc/ResponseSink/1/0"
+AIMC_RESPONSE_SINK_REFERENCE = f"{BASE_URL}/aimc/ResponseSink/Sink/1/0"
+AIMC_RESPONSE_SINK_ID = f"{BASE_URL}/aimc/ResponseSink/SinkId/1/0"
+
+# Which source updates execute an ordinary mapping.
+AIMC_EXECUTION_SEMANTICS = f"{BASE_URL}/aimc/ExecutionSemantics/1/0"
+AIMC_TRIGGER_SOURCE_IDS = f"{BASE_URL}/aimc/ExecutionSemantics/TriggerSourceIds/1/0"
