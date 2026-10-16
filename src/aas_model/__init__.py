@@ -25,6 +25,7 @@ from aas_model.resource_template import (  # noqa: F401
     Resource,
     ResourceTypeAAS,
     nameplate,
+    capability_description,
     asset_interfaces_description,
     asset_interfaces_mapping_configuration,
     control_component_instance,

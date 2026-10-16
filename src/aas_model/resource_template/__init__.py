@@ -2,7 +2,7 @@
 
 Partially-filled submodels (station-agnostic defaults) live in sibling
 modules: ``nameplate``, ``asset_interfaces_description``,
-``control_component_instance``, ``variables``,
+``control_component_instance``, ``capability_description``, ``variables``,
 ``parameters``. Each uses
 either our modified shared models (``aas_model.submodel_templates``) or the
 generated aas_pydantic templates as its base.
@@ -10,6 +10,7 @@ generated aas_pydantic templates as its base.
 
 from .asset import Resource, ResourceTypeAAS
 from .nameplate import nameplate
+from .capability_description import capability_description
 from .asset_interfaces_description import (
     asset_interfaces_description, mqtt_action, mqtt_property,
 )
@@ -33,6 +34,7 @@ __all__ = [
     "Resource",
     "ResourceTypeAAS",
     "nameplate",
+    "capability_description",
     "asset_interfaces_description",
     "mqtt_action",
     "mqtt_property",

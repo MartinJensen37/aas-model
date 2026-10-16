@@ -11,6 +11,7 @@ Each submodel's station-agnostic defaults live in its own module under
     nameplate                    — generated IDTA Nameplate + year/country
     asset_interfaces_description — MQTT-extended AID + Halt/Occupy/Release + StationState
     control_component_instance   — extended CCI + Halt/Occupy/Release skills + MQTT endpoint
+    capability_description       — IDTA Capability Description for station-authored capabilities
     variables                    — custom Variables + PackMLState/OccupationState
     parameters                   — custom Parameters + Location
 
@@ -45,6 +46,7 @@ from aas_model.resource_template.asset_interfaces_mapping_configuration import a
 from aas_model.resource_template.control_component_instance import (
     ResourceControlComponentInstance, control_component_instance,
 )
+from aas_model.resource_template.capability_description import capability_description
 from aas_model.resource_template.variables import variables
 from aas_model.resource_template.parameters import ResourceParameters, resource_parameters
 from aas_model.invocation_authoring import finalize_invocation_addresses
@@ -97,6 +99,11 @@ class Resource(AAS):
         default_factory=control_component_instance,
     )
 
+    # ── Capability Description (included unless explicitly omitted) ──────────
+    capability_description: Optional[CapabilityDescription] = Field(
+        default_factory=capability_description,
+    )
+
     # ── Variables ─────────────────────────────────────────────────────────
     variables: Variables = Field(default_factory=variables)
 
@@ -107,7 +114,6 @@ class Resource(AAS):
         default_factory=asset_interfaces_mapping_configuration,
     )
     # ── Optional submodels (no defaults — stations opt in) ────────────────
-    capability_description: Optional[CapabilityDescription] = None
     hierarchical_structures: Optional[HierarchicalStructures] = None
 
     def model_post_init(self, context: Any) -> None:

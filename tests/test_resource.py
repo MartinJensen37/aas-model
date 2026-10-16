@@ -10,11 +10,14 @@ from pydantic import ValidationError
 
 from aas_model import Resource, ResourceTypeAAS, build_from_model, inject_ids
 from aas_model.constants import BASE_URL
-from aas_model.resource_template import Position
+from aas_model.resource_template import Position, capability_description
 from aas_model.resource_instances.stopperingModule import syntegon_stoppering
 from aas_model.submodel_templates.control_component_instance import ExtendedSkill, SkillOperation
 from aas_model.submodel_templates.variables import VariableProp
-from aas_pydantic import Property, Submodel
+from aas_pydantic import Capability, Property, Submodel
+from aas_pydantic.submodel_templates.capability_description import (
+    CapabilityContainer, CapabilityDescription, CapabilitySet,
+)
 from aas_pydantic.convert_util import strip_temp_id_short_attributes
 
 
@@ -91,6 +94,7 @@ def test_complete_resource_json_round_trip(factory):
     assert restored.parameters.parameter["Location"].y.parameter.value == 456.5
     assert restored.parameters.parameter["Location"].yaw.parameter.value == 90.0
     assert isinstance(restored.variables.variable["PackMLState"], VariableProp)
+    assert isinstance(restored.capability_description, CapabilityDescription)
     halt = restored.control_component_instance.Skills.Skill["Halt"]
     assert isinstance(halt, ExtendedSkill)
     assert isinstance(halt.operation, SkillOperation)
@@ -111,9 +115,10 @@ def test_build_from_model_resolves_references_without_mutating_resource():
 
     assert resource.model_dump_json() == before
     assert shell.id == f"{BASE_URL}/aas/{resource.id_short}"
-    assert len(shell.submodel) == 6
+    assert len(shell.submodel) == 7
     assert all(reference.resolve(store) is not None for reference in shell.submodel)
     submodels = {obj.id_short: obj for obj in store if isinstance(obj, model.Submodel)}
+    assert "CapabilityDescription" in submodels
     cci = submodels["ControlComponentInstance"]
     skills = next(element for element in cci.submodel_element if element.id_short == "Skills")
     stoppering = next(element for element in skills.value if element.id_short == "Stoppering")
@@ -231,7 +236,49 @@ def test_build_from_model_does_not_revalidate_or_serialize_the_model(monkeypatch
     monkeypatch.setattr(Resource, "model_validate", unexpected_validation)
     monkeypatch.setattr(Resource, "model_dump", unexpected_validation)
 
-    assert len(build_from_model(resource)) == 7
+    assert len(build_from_model(resource)) == 8
+
+
+def test_resource_capability_description_defaults_are_independent():
+    first = Resource(id_short="First")
+    second = Resource(id_short="Second")
+    first.capability_description.CapabilitySet["Processing"] = CapabilitySet(id_short="Processing")
+
+    assert second.capability_description.CapabilitySet == {}
+    assert capability_description().id_short == "CapabilityDescription"
+
+
+def test_authored_capability_survives_json_and_aas_construction():
+    capabilities = capability_description()
+    capabilities.CapabilitySet["Processing"] = CapabilitySet(
+        id_short="Processing",
+        CapabilityContainer={"Stoppering": CapabilityContainer(
+            id_short="Stoppering",
+            Capability=Capability(id_short="Capability", semantic_id="urn:test:capability:stoppering"),
+        )},
+    )
+    resource = Resource(id_short="CapableResource", capability_description=capabilities)
+    encoded = resource.model_dump_json()
+    restored = Resource.model_validate_json(encoded)
+    store = build_from_model(restored)
+    submodel = store.get_item(f"{BASE_URL}/aas/CapableResource/submodels/CapabilityDescription")
+
+    assert restored.model_dump(mode="json") == json.loads(encoded)
+    assert isinstance(restored.capability_description.CapabilitySet["Processing"], CapabilitySet)
+    processing = next(iter(submodel.submodel_element))
+    container = next(iter(processing.value))
+    capability = next(child for child in container.value if isinstance(child, model.Capability))
+    assert capability.semantic_id.key[0].value == "urn:test:capability:stoppering"
+    assert resource.model_dump_json() == encoded
+
+
+def test_resource_can_explicitly_omit_capability_description():
+    resource = Resource(id_short="WithoutCapabilities", capability_description=None)
+    restored = Resource.model_validate_json(resource.model_dump_json())
+    store = build_from_model(restored)
+
+    assert restored.capability_description is None
+    assert all(obj.id_short != "CapabilityDescription" for obj in store)
 
 
 def test_build_preserves_explicit_identifiers_outside_the_default_namespace():
