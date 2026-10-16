@@ -83,8 +83,22 @@ AIMC_RESPONSE_TRANSFORMATION = ("https://admin-shell.io/idta/"
                                 "AssetInterfacesMappingConfiguration/2/0/"
                                 "MappingConfiguration/ResponseTransformation")
 
-# Property write-delegation (``writeDelegation`` ConceptQualifier, DMP v3):
-# configs author the qualifier directly — the convention is documented in
-# resource_template/property_delegation.py (external-caller documentation
-# only; the DMP wires its write-through routes from it).
+AIMC_RESPONSE_SOURCE = ("https://admin-shell.io/idta/"
+                        "AssetInterfacesMappingConfiguration/2/0/"
+                        "MappingConfiguration/ResponseSource")
+AIMC_RESPONSE_SOURCES = ("https://admin-shell.io/idta/"
+                         "AssetInterfacesMappingConfiguration/2/0/"
+                         "MappingConfiguration/ResponseSources")
+AIMC_RESPONSE_SINK = ("https://admin-shell.io/idta/"
+                       "AssetInterfacesMappingConfiguration/2/0/"
+                       "MappingConfiguration/ResponseSink")
+AIMC_RESPONSE_SINKS = ("https://admin-shell.io/idta/"
+                       "AssetInterfacesMappingConfiguration/2/0/"
+                       "MappingConfiguration/ResponseSinks")
 
+AIMC_EXECUTION_SEMANTICS = ("https://admin-shell.io/idta/"
+                            "AssetInterfacesMappingConfiguration/2/0/"
+                            "MappingConfiguration/ExecutionSemantics")
+AIMC_TRIGGER_SOURCE_IDS = ("https://admin-shell.io/idta/"
+                           "AssetInterfacesMappingConfiguration/2/0/"
+                           "MappingConfiguration/ExecutionSemantics/TriggerSourceIds")

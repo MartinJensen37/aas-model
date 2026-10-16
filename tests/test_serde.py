@@ -49,6 +49,134 @@ def test_round_trip_preserves_semantic_id():
     )
 
 
+def test_aimc_response_sources_and_sinks_round_trip():
+    from aas_model.resource_template.asset_interfaces_mapping_configuration import (
+        mapping_configuration, response_sink, response_source, source, sink,
+    )
+    from aas_model.testing import aimc_ref
+    from aas_model.resource_template import ResourceTypeAAS
+    from aas_model.submodel_templates import AimcMappingConfigurations
+    from aas_model.constants import BASE_URL
+    from aas_pydantic.convert_pydantic_model import convert_model_to_aas
+    from aas_pydantic.convert_util import strip_temp_id_short_attributes
+    from basyx.aas.adapter.json import json_serialization
+
+    action_output = aimc_ref(
+        "{aas_id}/submodels/AssetInterfacesDescription", "interface_mqtt",
+        "InteractionMetadata", "actions", "Halt", "output", "State")
+    operation = aimc_ref(
+        "{aas_id}/submodels/ControlComponentInstance", "Skills", "Halt",
+        "operation")
+    variables = aimc_ref("{aas_id}/submodels/Variables", "PackMLState")
+    mapping = mapping_configuration(
+        id_short="Halt",
+        sources=[source("Halt", operation)],
+        sinks=[sink("Halt", aimc_ref(
+            "{aas_id}/submodels/AssetInterfacesDescription", "interface_mqtt",
+            "InteractionMetadata", "actions", "Halt"))],
+        transformation="function aimc_main(sources) return sources end",
+        response_sources=[response_source("DeviceState", action_output)],
+        response_sinks=[response_sink("PackMLState", variables)],
+    )
+    aimc = Aimc(id_short="AIMC", MappingConfigurations=AimcMappingConfigurations(
+        value=[mapping]))
+    asset = ResourceTypeAAS(
+        id_short="RoundTrip", id=f"{BASE_URL}/aas/RoundTrip", asset_type="RoundTrip",
+        asset_interfaces_mapping_configuration=aimc)
+    store = convert_model_to_aas(asset)
+    strip_temp_id_short_attributes(store)
+    doc = json.loads(json_serialization.object_store_to_json(store))
+    serialized = next(s for s in doc["submodels"] if s.get("idShort") == "AIMC")
+    back = parse_submodel_dict(serialized, Aimc)
+
+    response_mapping = back.MappingConfigurations.value[0]
+    assert response_mapping.ResponseSources.value[0].SourceId.value == "DeviceState"
+    assert response_mapping.ResponseSources.value[0].Source.value.key[-1].value == "State"
+    assert response_mapping.ResponseSinks.value[0].SinkId.value == "PackMLState"
+    assert response_mapping.ResponseSinks.value[0].Sink.value.key[-1].value == "PackMLState"
+
+
+def test_aimc_response_endpoints_are_optional():
+    from aas_model.testing import aimc_mapping
+    from aas_pydantic.submodel_templates.asset_interfaces_mapping_configuration import (
+        SourcesItem as Source, SinksItem as Sink, Source as SourceReference,
+        Sink as SinkReference, SourceId, SinkId,
+    )
+    from aas_pydantic import ModelReference, Key
+
+    mapping = aimc_mapping(
+        sources=[Source(Source=SourceReference(value=ModelReference(key=(
+            Key(type_="Submodel", value="urn:source"),))), SourceId=SourceId(value="s"))],
+        sinks=[Sink(Sink=SinkReference(value=ModelReference(key=(
+            Key(type_="Submodel", value="urn:sink"),))), SinkId=SinkId(value="t"))],
+    )
+    assert mapping.ResponseSources is None
+    assert mapping.ResponseSinks is None
+    assert mapping.ExecutionSemantics is None
+
+
+def test_aimc_execution_semantics_round_trip_and_authors_source_ids():
+    from aas_model.testing import aimc_mapping
+    from aas_pydantic.submodel_templates.asset_interfaces_mapping_configuration import (
+        SourcesItem as Source, SinksItem as Sink, Source as SourceReference,
+        Sink as SinkReference, SourceId, SinkId,
+    )
+    from aas_pydantic import ModelReference, Key
+
+    mapping = aimc_mapping(
+        sources=[Source(Source=SourceReference(value=ModelReference(key=(
+            Key(type_="Submodel", value="urn:source"),))), SourceId=SourceId(value="invoke"))],
+        sinks=[Sink(Sink=SinkReference(value=ModelReference(key=(
+            Key(type_="Submodel", value="urn:sink"),))), SinkId=SinkId(value="target"))],
+        trigger_source_ids=["invoke", "position"],
+    )
+    semantics = mapping.ExecutionSemantics
+    assert semantics.semantic_id.endswith("/MappingConfiguration/ExecutionSemantics")
+    trigger_ids = semantics.TriggerSourceIds
+    assert trigger_ids.semantic_id.endswith("/ExecutionSemantics/TriggerSourceIds")
+    assert trigger_ids.type_value_list_element == "Property"
+    assert trigger_ids.value_type_list_element == "xs:string"
+    assert [item.value for item in trigger_ids.value] == ["invoke", "position"]
+
+    from aas_model.constants import BASE_URL
+    from aas_model.resource_template import ResourceTypeAAS
+    from aas_model.submodel_templates import Aimc, AimcMappingConfigurations
+    from aas_pydantic.convert_pydantic_model import convert_model_to_aas
+    from aas_pydantic.convert_util import strip_temp_id_short_attributes
+    from basyx.aas.adapter.json import json_serialization
+
+    aimc = Aimc(id_short="AIMC", MappingConfigurations=AimcMappingConfigurations(
+        value=[mapping]))
+    asset = ResourceTypeAAS(
+        id_short="ExecutionSemanticsRoundTrip",
+        id=f"{BASE_URL}/aas/ExecutionSemanticsRoundTrip",
+        asset_type="ExecutionSemanticsRoundTrip",
+        asset_interfaces_mapping_configuration=aimc,
+    )
+    store = convert_model_to_aas(asset)
+    strip_temp_id_short_attributes(store)
+    doc = json.loads(json_serialization.object_store_to_json(store))
+    serialized = next(s for s in doc["submodels"] if s.get("idShort") == "AIMC")
+    restored = parse_submodel_dict(serialized, Aimc)
+    restored_ids = restored.MappingConfigurations.value[0].ExecutionSemantics.TriggerSourceIds
+    assert [item.value for item in restored_ids.value] == ["invoke", "position"]
+
+
+def test_resource_mapping_configuration_accepts_trigger_source_ids():
+    from aas_model.resource_template.asset_interfaces_mapping_configuration import (
+        mapping_configuration, source, sink, operation_ref, _variable_ref,
+    )
+
+    mapping = mapping_configuration(
+        id_short="Triggered",
+        sources=[source("invoke", operation_ref("Start"))],
+        sinks=[sink("result", _variable_ref("PackMLState"))],
+        transformation="function aimc_main(sources) return sources end",
+        trigger_source_ids=["invoke"],
+    )
+    assert [item.value for item in mapping.ExecutionSemantics.TriggerSourceIds.value] == ["invoke"]
+
+
 def test_protocol_specific_endpoint_and_form_terms_round_trip():
     """The generated IDTA template defines per-protocol vocabulary (modv_*,
     uav_*, opcua schemes) but wires none of it into the generic

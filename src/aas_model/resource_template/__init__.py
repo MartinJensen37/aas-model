@@ -20,6 +20,8 @@ from .asset_interfaces_mapping_configuration import (
     asset_interfaces_mapping_configuration,
     skill_operation_mapping_configuration,
     operation_ref,
+    response_sink,
+    response_source,
     variables_mapping_configuration,
 )
 from .variables import variables, variable
@@ -41,6 +43,8 @@ __all__ = [
     "asset_interfaces_mapping_configuration",
     "skill_operation_mapping_configuration",
     "operation_ref",
+    "response_source",
+    "response_sink",
     "variables_mapping_configuration",
     "write_delegation_qualifier",
     "variables",

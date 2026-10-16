@@ -23,6 +23,10 @@ from __future__ import annotations
 
 from typing import ClassVar, List, Optional
 
+from aas_pydantic import (
+    Property, ReferenceElement, SubmodelElementCollection, SubmodelElementList,
+)
+
 from aas_pydantic.submodel_templates.asset_interfaces_mapping_configuration import (
     AssetInterfacesMappingConfiguration as _BaseAimc,
     MappingConfigurationsItem as _BaseMappingConfiguration,
@@ -30,7 +34,19 @@ from aas_pydantic.submodel_templates.asset_interfaces_mapping_configuration impo
     Blob,
 )
 
-from aas_model.constants import AIMC_RESPONSE_TRANSFORMATION
+from aas_model.constants import (
+    AIMC_RESPONSE_SINK,
+    AIMC_RESPONSE_SINKS,
+    AIMC_RESPONSE_SOURCE,
+    AIMC_RESPONSE_SOURCES,
+    AIMC_RESPONSE_TRANSFORMATION,
+    AIMC_EXECUTION_SEMANTICS,
+    AIMC_TRIGGER_SOURCE_IDS,
+)
+from aas_pydantic.submodel_templates.asset_interfaces_mapping_configuration import (
+    SinkId as _SinkId,
+    SourceId as _SourceId,
+)
 
 
 class DmpResponseTransformation(Blob):
@@ -42,9 +58,73 @@ class DmpResponseTransformation(Blob):
     content_type: str = "text/plain"
 
 
+class DmpResponseSourceReference(ReferenceElement):
+    semantic_id: str = f"{AIMC_RESPONSE_SOURCE}/Source"
+    description: str = "Reference to a SubmodelElement used as a correlated response source."
+
+
+class DmpResponseSourceId(_SourceId):
+    semantic_id: str = f"{AIMC_RESPONSE_SOURCE}/SourceId"
+
+
+class DmpResponseSource(SubmodelElementCollection):
+    semantic_id: str = AIMC_RESPONSE_SOURCE
+    description: str = "A correlated response source reference and its transformation identifier."
+    Source: DmpResponseSourceReference
+    SourceId: DmpResponseSourceId
+
+
+class DmpResponseSources(SubmodelElementList):
+    semantic_id: str = AIMC_RESPONSE_SOURCES
+    description: str = "Response sources selected for the correlated response transformation."
+    item_type: ClassVar = DmpResponseSource
+    value: List[DmpResponseSource] = []
+
+
+class DmpResponseSinkReference(ReferenceElement):
+    semantic_id: str = f"{AIMC_RESPONSE_SINK}/Sink"
+    description: str = "Reference to a SubmodelElement used as a correlated response sink."
+
+
+class DmpResponseSinkId(_SinkId):
+    semantic_id: str = f"{AIMC_RESPONSE_SINK}/SinkId"
+
+
+class DmpResponseSink(SubmodelElementCollection):
+    semantic_id: str = AIMC_RESPONSE_SINK
+    description: str = "A correlated response sink reference and its transformation identifier."
+    Sink: DmpResponseSinkReference
+    SinkId: DmpResponseSinkId
+
+
+class DmpResponseSinks(SubmodelElementList):
+    semantic_id: str = AIMC_RESPONSE_SINKS
+    description: str = "Response sinks written from the correlated response transformation."
+    item_type: ClassVar = DmpResponseSink
+    value: List[DmpResponseSink] = []
+
+
+class DmpTriggerSourceIds(SubmodelElementList):
+    semantic_id: str = AIMC_TRIGGER_SOURCE_IDS
+    description: str = "SourceIds whose contributions trigger mapping execution."
+    item_type: ClassVar = Property
+    type_value_list_element: Optional[str] = "Property"
+    value_type_list_element: Optional[str] = "xs:string"
+    value: List[Property] = []
+
+
+class DmpExecutionSemantics(SubmodelElementCollection):
+    semantic_id: str = AIMC_EXECUTION_SEMANTICS
+    description: str = "Optional execution selection for a MappingConfiguration."
+    TriggerSourceIds: DmpTriggerSourceIds
+
+
 class DmpMappingConfiguration(_BaseMappingConfiguration):
-    """IDTA MappingConfiguration + the optional response-direction blob."""
+    """IDTA MappingConfiguration + optional correlated response mapping."""
     ResponseTransformation: Optional[DmpResponseTransformation] = None
+    ResponseSources: Optional[DmpResponseSources] = None
+    ResponseSinks: Optional[DmpResponseSinks] = None
+    ExecutionSemantics: Optional[DmpExecutionSemantics] = None
 
 
 class DmpMappingConfigurations(_BaseMappingConfigurations):

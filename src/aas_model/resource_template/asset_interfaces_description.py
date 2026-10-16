@@ -21,13 +21,13 @@ from aas_model.json_schema_aid import datapoint_from_schema, load_schema, popula
 from aas_pydantic import Property
 from aas_model.submodel_templates.aid import (
     DmpAssetInterfacesDescription, DmpActionInput, DmpActionOutput,
-    MqttAction, MqttActionForm, MqttProperty, MqttResponseForm,
+    MqttAction, MqttProperty, MqttResponseForm,
 )
 from aas_pydantic.submodel_templates.asset_interfaces_description import (
     Key as AIDKey,
     Title as AIDTitle,
 )
-from ._helpers import put, DEFAULT_SKILLS
+from ._helpers import put
 
 # The StationState payload is described by ``stationState.schema.json`` — embed
 # its object-schema structure (State enum, ProcessQueue array, TimeStamp) into
@@ -69,17 +69,20 @@ def mqtt_action(
     not as a separate URL Property.
     """
     action = MqttAction()
-    action.title = AIDTitle(value=name)
+    action.title = AIDTitle(id_short="title", value=name)
     action.synchronous = Property(
-        semantic_id=AID_SYNCHRONOUS, value=str(synchronous).lower())
+        id_short="synchronous", semantic_id=AID_SYNCHRONOUS,
+        value=str(synchronous).lower())
     if input_schema is not None:
         action.input = datapoint_from_schema(
             input_schema, cls=DmpActionInput, schema_url=input_schema_url
         )
+        action.input.id_short = "input"
     if has_response and output_schema is not None:
         action.output = datapoint_from_schema(
             output_schema, cls=DmpActionOutput, schema_url=output_schema_url
         )
+        action.output.id_short = "output"
     forms = action.forms
     forms.href.value = f"/CMD/{name}"
     forms.op.value = "invokeaction"
@@ -92,49 +95,21 @@ def mqtt_action(
         # declared response topic (the requester publishes the command with
         # the response-topic + correlation-data properties).
         forms.mqv_request_reply = Property(
-            semantic_id=AID_MQTT_REQUEST_REPLY, value="true")
+            id_short="mqv_request_reply", semantic_id=AID_MQTT_REQUEST_REPLY, value="true")
         forms.mqv_response_topic = Property(
-            semantic_id=AID_MQTT_RESPONSE_TOPIC, value=f"/DATA/{name}")
+            id_short="mqv_response_topic", semantic_id=AID_MQTT_RESPONSE_TOPIC,
+            value=f"/DATA/{name}")
         # Build on the class defaults so the children keep their semanticIds
         # (href → hasTarget, content_type → forContentType, …) — constructing
         # bare ``Property(value=...)`` instances would strip them.
         resp = MqttResponseForm()
+        resp.id_short = "response"
         resp.href.value = f"/DATA/{name}"
         resp.contentType.value = "application/json"
         resp.mqv_control_packet.value = "publish"
         resp.mqv_retain.value = "false"
         forms.response = resp
     return action
-
-
-def ensure_aid_request_reply_terms(aid: "DmpAssetInterfacesDescription") -> None:
-    """Fill MQTT 5 request/reply terms for actions and writable properties
-    with a declared response form. Existing non-blank declarations are kept.
-
-    The DMP consumes these DECLARED facts — request/reply correlation is
-    derived from the interface description at DMP instantiation, never from
-    a payload convention."""
-    for iface in (aid.InterfaceTemplateForMQTT or {}).values():
-        im = getattr(iface, "InteractionMetadata", None)
-        actions = getattr(getattr(im, "actions", None), "property_name", None) or {}
-        properties = getattr(getattr(im, "properties", None), "property_name", None) or {}
-        for affordance in (*actions.values(), *properties.values()):
-            forms = getattr(affordance, "forms", None)
-            resp = getattr(forms, "response", None)
-            href = getattr(getattr(resp, "href", None), "value", None)
-            if not href:
-                continue
-            # an instance merge can leave the DECLARED term fields EMPTY
-            # ("" value) rather than absent — only a non-blank declaration
-            # is kept
-            rr = getattr(forms, "mqv_request_reply", None)
-            if rr is None or not (getattr(rr, "value", None) or "").strip():
-                forms.mqv_request_reply = Property(
-                    semantic_id=AID_MQTT_REQUEST_REPLY, value="true")
-            topic = getattr(forms, "mqv_response_topic", None)
-            if topic is None or not (getattr(topic, "value", None) or "").strip():
-                forms.mqv_response_topic = Property(
-                    semantic_id=AID_MQTT_RESPONSE_TOPIC, value=href)
 
 
 def mqtt_property(
@@ -151,8 +126,8 @@ def mqtt_property(
     The schema URL rides as a supplemental semantic id on the property itself.
     """
     prop = MqttProperty()
-    prop.key = AIDKey(value=name)
-    prop.title = AIDTitle(value=name)
+    prop.key = AIDKey(id_short="key", value=name)
+    prop.title = AIDTitle(id_short="title", value=name)
     forms = prop.forms
     forms.href.value = href
     forms.mqv_retain.value = str(retain).lower()
@@ -161,56 +136,6 @@ def mqtt_property(
     if schema is not None:
         populate_datapoint(prop, schema, schema_url=schema_url)
     return prop
-
-def _datapoint_schema_url(dp) -> str:
-    """The JSON Schema URL carried as a supplemental semantic id of *dp*, or
-    ``""`` when none is present."""
-    for sid in (dp.supplemental_semantic_ids or []):
-        if isinstance(sid, str) and "schema" in sid:
-            return sid
-    return ""
-
-
-def ensure_aid_datapoint_schemas(aid) -> None:
-    """Populate config-provided datapoint DataSchemas from their schema URL.
-
-    Config actions may declare ``input`` / ``output`` (and properties the
-    property itself) with just ``supplemental_semantic_ids`` naming the JSON
-    Schema URL — this fills their object-schema structure from that schema
-    (the same way ``mqtt_action``/``mqtt_property`` build the defaults), so a
-    config-only action like Stoppering gets the same embedded DataSchemas
-    without hand-writing the schema structure in the config.
-    """
-    for iface in (
-        iface
-        for family in ("InterfaceTemplateForMQTT", "InterfaceTemplateForOPCUA",
-                       "InterfaceTemplateForHTTP", "InterfaceTemplateForMODBUS",
-                       "InterfaceTemplateForBacnet",
-                       "InterfaceTemplateForIOLINK_OVER_PROFINET_REST")
-        for iface in (getattr(aid, family, None) or {}).values()
-    ):
-        if iface is None:
-            continue
-        imd = getattr(iface, "InteractionMetadata", None)
-        if imd is None:
-            continue
-        actions = getattr(getattr(imd, "actions", None), "property_name", None) or {}
-        for action in actions.values():
-            for fname in ("input", "output"):
-                dp = getattr(action, fname, None)
-                if dp is None or getattr(dp, "type", None) is not None:
-                    continue
-                url = _datapoint_schema_url(dp)
-                if url:
-                    populate_datapoint(dp, load_schema(url), schema_url=url)
-        props = getattr(getattr(imd, "properties", None), "property_name", None) or {}
-        for prop in props.values():
-            if getattr(prop, "type", None) is not None:
-                continue
-            url = _datapoint_schema_url(prop)
-            if url:
-                populate_datapoint(prop, load_schema(url), schema_url=url)
-
 
 def asset_interfaces_description() -> DmpAssetInterfacesDescription:
     """AssetInterfacesDescription with mandatory Resource actions/properties."""

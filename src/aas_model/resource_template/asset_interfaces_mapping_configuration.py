@@ -14,10 +14,11 @@ AIMC 2.1 MappingConfigurations:
   one-MC authoring): the SOURCE references the skill's Operation
   SubmodelElement in the CCI (``Skills/<name>/operation``), the SINK is the
   skill's NATIVE command affordance in the AID (``interface_mqtt`` action),
-  and the ``Transformation`` is the request blob that packs the caller's
-  operation invocation into the native command message. The reply blob is
-  optional and not authored — replies pass through untransformed. The
-  management node classifies these mappings as interactions from the
+    and the ``Transformation`` is the request blob that packs the caller's
+    operation invocation into the native command message. The reply blob and
+    explicit response endpoint lists are optional; absent endpoint lists retain
+    the existing correlated-reply behavior. The management node classifies
+    these mappings as interactions from the
   Operation-element source reference and derives the caller-facing REST
   surface by convention (``/operations/{aas_id_short}/{skill}``).
 
@@ -31,7 +32,7 @@ Named-field style: children are DIRECT named fields on the container (no
 from __future__ import annotations
 
 from aas_pydantic import (
-    Key, ModelReference, ReferenceElement,
+    Key, ModelReference, Property, ReferenceElement,
 )
 from aas_pydantic.submodel_templates.asset_interfaces_mapping_configuration import (
     SourcesItem as Source, SinksItem as Sink, Sources, Sinks,
@@ -42,7 +43,10 @@ from aas_pydantic.submodel_templates.asset_interfaces_mapping_configuration impo
 
 from aas_model.submodel_templates import (
     Aimc, AimcMappingConfiguration, AimcMappingConfigurations,
-    Transformation,
+    DmpResponseSink, DmpResponseSinkReference, DmpResponseSinkId,
+    DmpResponseSinks, DmpResponseSource, DmpResponseSourceReference,
+    DmpResponseSourceId, DmpResponseSources, DmpExecutionSemantics,
+    DmpTriggerSourceIds, Transformation,
 )
 from ._helpers import DEFAULT_SKILLS
 
@@ -72,7 +76,9 @@ VARIABLE_PATH = (
 
 def _property_ref(property_name: str) -> ModelReference:
     """Reference to an AID property (source) — e.g. .../properties/StationState."""
-    return ModelReference(key=AID_PROPERTY_PATH + (Key(type_="SubmodelElementCollection", value=property_name),))
+    return ModelReference(key=AID_PROPERTY_PATH + (
+        Key(type_="SubmodelElementCollection", value=property_name),
+    )).model_copy(deep=True)
 
 
 def _variable_ref(variable_name: str) -> ModelReference:
@@ -83,12 +89,16 @@ def _variable_ref(variable_name: str) -> ModelReference:
     submodel actually stores — the resolver verifies reference key types against
     the repository and rejects a mismatch.
     """
-    return ModelReference(key=VARIABLE_PATH + (Key(type_="Property", value=variable_name),))
+    return ModelReference(key=VARIABLE_PATH + (
+        Key(type_="Property", value=variable_name),
+    )).model_copy(deep=True)
 
 
 def _mqtt_action_ref(name: str) -> ModelReference:
     """Reference to a skill's native MQTT command affordance (interface_mqtt)."""
-    return ModelReference(key=AID_MQTT_ACTION_PATH + (Key(type_="SubmodelElementCollection", value=name),))
+    return ModelReference(key=AID_MQTT_ACTION_PATH + (
+        Key(type_="SubmodelElementCollection", value=name),
+    )).model_copy(deep=True)
 
 
 def operation_ref(name: str) -> ModelReference:
@@ -122,21 +132,51 @@ def sink(name: str, ref: ModelReference) -> Sink:
     )
 
 
+def response_source(source_id: str, ref: ModelReference) -> DmpResponseSource:
+    """Select a correlated reply element under its Lua-visible source id."""
+    return DmpResponseSource(
+        id_short=source_id,
+        Source=DmpResponseSourceReference(value=ref),
+        SourceId=DmpResponseSourceId(value=source_id),
+    )
+
+
+def response_sink(sink_id: str, ref: ModelReference) -> DmpResponseSink:
+    """Route one Lua result value to a correlated response destination."""
+    return DmpResponseSink(
+        id_short=sink_id,
+        Sink=DmpResponseSinkReference(value=ref),
+        SinkId=DmpResponseSinkId(value=sink_id),
+    )
+
+
 def mapping_configuration(
     *,
     id_short: str,
     sources: list[Source],
     sinks: list[Sink],
     transformation: str,
+    response_sources: list[DmpResponseSource] | None = None,
+    response_sinks: list[DmpResponseSink] | None = None,
+    trigger_source_ids: list[str] | None = None,
 ) -> AimcMappingConfiguration:
     """One MappingConfiguration: AID sources, AAS sinks and the Lua mapping."""
-    return AimcMappingConfiguration(
+    kwargs = dict(
         id_short=id_short,
         DefaultPollingInterval=DefaultPollingInterval(value="0.0"),
         Transformation=Transformation(value=transformation),
         Sources=Sources(value=sources),
         Sinks=Sinks(value=sinks),
     )
+    if response_sources is not None:
+        kwargs["ResponseSources"] = DmpResponseSources(value=response_sources)
+    if response_sinks is not None:
+        kwargs["ResponseSinks"] = DmpResponseSinks(value=response_sinks)
+    if trigger_source_ids is not None:
+        kwargs["ExecutionSemantics"] = DmpExecutionSemantics(
+            TriggerSourceIds=DmpTriggerSourceIds(
+                value=[Property(value=source_id) for source_id in trigger_source_ids]))
+    return AimcMappingConfiguration(**kwargs)
 
 
 _DEFAULT_TRANSFORMATION = """\

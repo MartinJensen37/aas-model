@@ -9,7 +9,7 @@ or an AIMC mapping — using the same ``aas_model`` classes the parsers consume
 
 from __future__ import annotations
 
-from aas_pydantic import Key, ModelReference, Property, Qualifier
+from aas_pydantic import Key, ModelReference, Property
 
 from aas_pydantic.submodel_templates.asset_interfaces_description import (
     Title, EndpointMetadata, security_t, securityDefinitions,
@@ -29,7 +29,8 @@ from aas_model.submodel_templates.aid import (
 )
 from aas_model.submodel_templates import (
     Aimc, AimcMappingConfiguration, AimcMappingConfigurations, Transformation,
-    DmpResponseTransformation,
+    DmpResponseSink, DmpResponseSinks, DmpResponseSource, DmpResponseSources,
+    DmpResponseTransformation, DmpExecutionSemantics, DmpTriggerSourceIds,
 )
 from aas_pydantic.submodel_templates.asset_interfaces_mapping_configuration import (
     SourcesItem as Source, Sources, SinksItem as Sink, Sinks, SourceId, SinkId,
@@ -102,8 +103,8 @@ def mqtt_interface(base: str, *, properties=None, actions=None, events=None) -> 
     props = {}
     for n, v in (properties or {}).items():
         if isinstance(v, tuple):
-            # (href, response[, op]) — a writable property declaring its
-            # correlated ack topic (W2 write delegation)
+            # (href, response[, op]) — a property form with explicit
+            # request/reply transport terms (legacy fixture convenience).
             props[n] = mqtt_property(n, v[0], response=v[1] if len(v) > 1 else None,
                                      op=v[2] if len(v) > 2 else None)
         else:
@@ -322,6 +323,9 @@ def aimc_mapping(*, sources: list[Source], sinks: list[Sink],
                  transformation: str | None = None,
                  transformation_semantic_id: str | None = None,
                  response_transformation: str | None = None,
+                 response_sources: list[DmpResponseSource] | None = None,
+                 response_sinks: list[DmpResponseSink] | None = None,
+                 trigger_source_ids: list[str] | None = None,
                  qualifiers: list | None = None,
                  default_polling_interval: float | None = None,
                  id_short: str = "mapping") -> AimcMappingConfiguration:
@@ -341,22 +345,17 @@ def aimc_mapping(*, sources: list[Source], sinks: list[Sink],
     if response_transformation is not None:
         kwargs["ResponseTransformation"] = DmpResponseTransformation(
             value=response_transformation.encode("utf-8"))
+    if response_sources is not None:
+        kwargs["ResponseSources"] = DmpResponseSources(value=response_sources)
+    if response_sinks is not None:
+        kwargs["ResponseSinks"] = DmpResponseSinks(value=response_sinks)
+    if trigger_source_ids is not None:
+        kwargs["ExecutionSemantics"] = DmpExecutionSemantics(
+            TriggerSourceIds=DmpTriggerSourceIds(
+                value=[Property(value=source_id) for source_id in trigger_source_ids]))
     if qualifiers is not None:
         kwargs["qualifiers"] = qualifiers
     return AimcMappingConfiguration(**kwargs)
-
-
-def write_delegation_qualifier(
-        path: str = "/properties/{aas_id_short}/Parameter") -> Qualifier:
-    """The ``writeDelegation`` ConceptQualifier of a W2 write-delegation
-    mapping; ``path`` is the derived caller surface (the ``{delegation_base}``
-    macro inside the value resolves at build time)."""
-    return Qualifier(
-        type_="writeDelegation",
-        value="{delegation_base}" + path if not path.startswith("{delegation_base}") else path,
-        value_type="xs:string",
-        kind="ConceptQualifier",
-    )
 
 
 def build_aimc(*mappings: AimcMappingConfiguration, id_short: str = "AIMC") -> Aimc:

@@ -187,7 +187,7 @@ class SchemaParser:
                     resolved[key].update(value)
                 elif key == "required" and key in resolved:
                     # Merge required lists
-                    resolved[key] = list(set(resolved[key] + value))
+                    resolved[key] = list(dict.fromkeys(resolved[key] + value))
                 else:
                     resolved[key] = value
         
@@ -227,7 +227,7 @@ class SchemaParser:
                 if key == "properties":
                     result[key] = {**result[key], **value}
                 elif key == "required":
-                    result[key] = list(set(result[key] + value))
+                    result[key] = list(dict.fromkeys(result[key] + value))
                 elif isinstance(value, dict) and isinstance(result[key], dict):
                     result[key] = self._merge_schemas(result[key], value)
                 else:

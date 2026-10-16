@@ -1,21 +1,23 @@
 """Build AID object-schema datapoints from JSON Schemas (draft 2020-12).
 
 The IDTA AssetInterfacesDescription data schemas are a WoT-2.0-ized subset of
-JSON Schema:
+JSON Schema. Our template fork restores enumeration constraints documented by
+the AID 1.2 specification but omitted from its published JSON artifact:
 
 ============  ==========================================================
 JSON Schema   AID element (semanticId)
 ============  ==========================================================
-``type``      ``value.type`` (rdf-syntax-ns#type)
-``title``     ``value.title`` (td#title)
-``const``     ``value.const`` (json-schema#const)
-``enum``      ``value.enum`` SML (json-schema#enum)
-``default``   ``value.default`` (json-schema#default)
-``minimum``/``maximum``        ``value.min_max`` Range (minMaxRange)
-``minLength``/``maxLength``    ``value.lengthRange`` Range (lengthRange)
-``minItems``/``maxItems``      ``value.itemsRange`` Range (itemsRange)
-``items``     ``value.items`` SMC (json-schema#items)
-``properties``                 ``value.properties`` → ``property_name`` map
+``type``      ``type`` (rdf-syntax-ns#type)
+``title``     ``title`` (td#title)
+``const``     ``const`` (json-schema#const)
+``enum``      ``enum`` SML (json-schema#enum)
+``default``   ``default`` (json-schema#default)
+``minimum``/``maximum``        ``min_max`` Range (minMaxRange)
+``minLength``/``maxLength``    ``lengthRange`` Range (lengthRange)
+``minItems``/``maxItems``      ``itemsRange`` Range (itemsRange)
+``items``     ``items`` SMC (json-schema#items)
+``properties``                 ``properties`` → ``property_name`` map
+``required``                   ``RequiredProperties`` qualifier on each object
 ============  ==========================================================
 
 This module turns a plain (already-dereferenced) JSON Schema dict into the
@@ -32,20 +34,22 @@ Named-field style: datapoint children are DIRECT named fields on the
 container (``dp.type``, ``dp.forms``, … — no ``value`` wrapper).
 
 Limitations (mirroring the IDTA template): the ``items`` schema is leaf-only
-(no nested objects/arrays inside an array), there is no ``required`` marker,
-and ``anyOf``/``oneOf`` unions are approximated by the dereferencer (first
-branch).
+(no nested objects/arrays inside an array), and ``anyOf``/``oneOf`` unions are
+approximated by the dereferencer (first branch).
 """
 
 from __future__ import annotations
 
+import hashlib
 import json
+import math
+import re
 import typing
 from typing import Any, Dict, Optional, Type
 
 from pydantic import BaseModel
 
-from aas_pydantic import Property, Range
+from aas_pydantic import Property, Qualifier, Range
 
 from aas_pydantic.submodel_templates.asset_interfaces_description import (
     enum as _Enum,
@@ -66,6 +70,20 @@ _TYPE_MAP = {
     "array": "array",
     "null": "null",
 }
+
+_REQUIRED_SEMANTIC_ID = "https://www.w3.org/2019/wot/json-schema#required"
+
+
+def _set_required(dp: Any, names: list[str]) -> None:
+    """Keep unrelated qualifiers while replacing this object's required list."""
+    dp.qualifiers = [q for q in dp.qualifiers if q.type_ != "RequiredProperties"] + [
+        Qualifier(
+            type_="RequiredProperties",
+            value_type="xs:string",
+            value=json.dumps(names, separators=(",", ":")),
+            semantic_id=_REQUIRED_SEMANTIC_ID,
+        )
+    ]
 
 
 def _to_str(value: Any) -> str:
@@ -103,6 +121,46 @@ def _set_range(range_el: Any, lo: Any, hi: Any) -> None:
         range_el.min = lo
     if hi is not None:
         range_el.max = hi
+
+
+def _validate_integer_bounds(schema: Dict[str, Any]) -> None:
+    """Reject bounds that the IDTA integer Range cannot mirror losslessly."""
+    if _infer_type(schema) != "integer":
+        return
+    for name in ("minimum", "maximum"):
+        bound = schema.get(name)
+        fractional_float = (
+            isinstance(bound, float)
+            and (not math.isfinite(bound) or not bound.is_integer())
+        )
+        if bound is not None and (
+            not isinstance(bound, (int, float))
+            or isinstance(bound, bool)
+            or fractional_float
+        ):
+            raise ValueError(
+                f"JSON Schema integer {name}={bound!r} is fractional or invalid; "
+                "the AID integer min/max Range cannot represent it without "
+                "changing the schema semantics"
+            )
+
+
+def _const_value_type(datatype: str) -> str:
+    return {
+        "string": "xs:string",
+        "boolean": "xs:boolean",
+        "integer": "xs:int",
+        "number": "xs:double",
+    }.get(datatype, "xs:string")
+
+
+def _member_id_short(key: str) -> str:
+    """Return the key unchanged when valid, otherwise a deterministic AAS alias."""
+    if len(key) <= 128 and re.fullmatch(
+        r"[A-Za-z](?:[A-Za-z0-9_-]*[A-Za-z0-9_])?", key
+    ):
+        return key
+    return "member_" + hashlib.sha256(key.encode("utf-8")).hexdigest()
 
 
 def _set_range_if_bounds(container: Any, name: str, lo: Any, hi: Any) -> None:
@@ -168,6 +226,7 @@ def _child(container: Any, name: str, cls: Type[Any]) -> Any:
     if v is None:
         target = _field_model_type(container, name)
         v = (target or cls)()
+        v.id_short = name
         setattr(container, name, v)
     return v
 
@@ -202,11 +261,15 @@ def _fill_items(items: Any, schema: Dict[str, Any]) -> None:
     array are not representable and are skipped.  Direct named fields on the
     ``items`` SMC (``type``, ``title``, ``enum``, ``min_max``, …).
     """
-    _child(items, "type", Property).value = _infer_type(schema)
+    _validate_integer_bounds(schema)
+    datatype = _infer_type(schema)
+    _child(items, "type", Property).value = datatype
     if schema.get("title"):
         _child(items, "title", Property).value = _to_str(schema["title"])
     if "const" in schema:
-        _child(items, "const", Property).value = _to_str(schema["const"])
+        const = _child(items, "const", Property)
+        const.value = _to_str(schema["const"])
+        const.value_type = _const_value_type(datatype)
     if "default" in schema:
         _child(items, "default", Property).value = _to_str(schema["default"])
     if schema.get("unit"):
@@ -288,6 +351,7 @@ def populate_datapoint(
         dp.supplemental_semantic_ids = (dp.supplemental_semantic_ids or []) + [schema_url]
 
     datatype = _infer_type(schema)
+    _validate_integer_bounds(schema)
     _child(dp, "type", Property).value = datatype
 
     if schema.get("title"):
@@ -295,7 +359,9 @@ def populate_datapoint(
     if schema.get("description"):
         dp.description = _to_str(schema["description"])
     if "const" in schema:
-        _child(dp, "const", Property).value = _to_str(schema["const"])
+        const = _child(dp, "const", Property)
+        const.value = _to_str(schema["const"])
+        const.value_type = _const_value_type(datatype)
     if "default" in schema:
         _child(dp, "default", Property).value = _to_str(schema["default"])
     if schema.get("unit"):
@@ -337,12 +403,27 @@ def populate_datapoint(
         elif schema.get("prefixItems"):
             _fill_prefix_items(_child(dp, "items", _Items), schema["prefixItems"])
     elif datatype == "object":
+        _set_required(dp, schema.get("required", []))
         # recursive object-schema nesting (WoT 2.0 ``properties`` keyword)
-        props_map = _child(dp, "properties", _PropertiesSchema).property_name
-        for name, sub in (schema.get("properties") or {}).items():
-            props_map[name] = datapoint_from_schema(
-                sub, key=name, cls=_NestedPropertyName
-            )
+        if "properties" in schema:
+            props_map = _child(dp, "properties", _PropertiesSchema).property_name
+            reserved = {
+                name for name in schema["properties"]
+                if _member_id_short(name) == name
+            }
+            aliases = set()
+            for name, sub in schema["properties"].items():
+                alias = _member_id_short(name)
+                if alias != name:
+                    alias = f"{alias}_{len(aliases)}"
+                    while alias in reserved or alias in aliases:
+                        alias += "_"
+                aliases.add(alias)
+                child = datapoint_from_schema(
+                    sub, key=name, cls=_NestedPropertyName
+                )
+                child.id_short = alias
+                props_map[alias] = child
 
 
 def datapoint_from_schema(
@@ -381,6 +462,89 @@ def datapoint_from_schema(
         content_type=content_type, subprotocol=subprotocol,
     )
     return dp
+
+
+def _value_from_property(value: str, datatype: str) -> Any:
+    """Recover the JSON value encoded in an AAS Property (whose value is text)."""
+    if datatype == "string":
+        return value
+    if datatype == "null":
+        return None
+    if datatype == "boolean":
+        normalized = value.casefold()
+        if normalized in ("true", "false"):
+            return normalized == "true"
+    return json.loads(value)
+
+
+def _range_from_element(schema: Dict[str, Any], element: Any,
+                        lower: str, upper: str, *, integer: bool = False) -> None:
+    if element is None:
+        return
+    for name, bound in ((lower, element.min), (upper, element.max)):
+        if bound is not None:
+            schema[name] = int(bound) if integer else float(bound)
+
+
+def schema_from_datapoint(dp: Any) -> Dict[str, Any]:
+    """Reconstruct the supported JSON Schema keywords from an AID DataSchema.
+
+    Accepts a property/event payload, an action input/output, a nested object
+    member, or an array's leaf ``items`` element. Transport/form metadata and
+    schema URLs are not JSON Schema keywords and are intentionally excluded.
+    """
+    schema: Dict[str, Any] = {}
+    datatype_element = getattr(dp, "type", None)
+    datatype = datatype_element.value if datatype_element is not None else None
+    if datatype:
+        schema["type"] = datatype
+
+    title = getattr(dp, "title", None)
+    if title is not None:
+        schema["title"] = title.value
+    description = getattr(dp, "description", None)
+    # Template classes provide prose descriptions which aren't payload schemas.
+    if description and description != type(dp).model_fields["description"].default:
+        schema["description"] = description
+    for name in ("const", "default"):
+        element = getattr(dp, name, None)
+        if element is not None:
+            schema[name] = _value_from_property(element.value, datatype or "string")
+    unit = getattr(dp, "unit", None)
+    if unit is not None:
+        schema["unit"] = unit.value
+    enum = getattr(dp, "enum", None)
+    if enum is not None:
+        schema["enum"] = [
+            _value_from_property(element.value, datatype or "string")
+            for element in enum.value
+        ]
+
+    _range_from_element(schema, getattr(dp, "min_max", None),
+                        "minimum", "maximum", integer=datatype == "integer")
+    _range_from_element(schema, getattr(dp, "lengthRange", None),
+                        "minLength", "maxLength", integer=True)
+    _range_from_element(schema, getattr(dp, "itemsRange", None),
+                        "minItems", "maxItems", integer=True)
+
+    items = getattr(dp, "items", None)
+    if items is not None:
+        schema["items"] = schema_from_datapoint(items)
+    properties = getattr(dp, "properties", None)
+    if properties is not None:
+        schema["properties"] = {
+            (child.key.value if child.key is not None else name):
+                schema_from_datapoint(child)
+            for name, child in properties.property_name.items()
+        }
+    if datatype == "object":
+        required = next(
+            (q for q in getattr(dp, "qualifiers", [])
+             if q.type_ == "RequiredProperties"), None
+        )
+        if required is not None:
+            schema["required"] = json.loads(required.value)
+    return schema
 
 
 def load_schema(schema_url: str) -> Dict[str, Any]:

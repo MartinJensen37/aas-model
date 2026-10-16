@@ -69,14 +69,106 @@
         "title": "DefaultPollingInterval",
         "type": "object"
       },
+      "DmpExecutionSemantics": {
+        "additionalProperties": false,
+        "properties": {
+          "TriggerSourceIds": {
+            "$ref": "#/$defs/DmpTriggerSourceIds"
+          },
+          "description": {
+            "default": "Optional execution selection for a MappingConfiguration.",
+            "title": "Description",
+            "type": "string"
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Display Name"
+          },
+          "id_short": {
+            "default": "SubmodelElementCollection",
+            "title": "Id Short",
+            "type": "string"
+          },
+          "qualifiers": {
+            "default": [],
+            "items": {
+              "$ref": "#/$defs/Qualifier"
+            },
+            "title": "Qualifiers",
+            "type": "array"
+          },
+          "semantic_id": {
+            "default": "https://admin-shell.io/idta/AssetInterfacesMappingConfiguration/2/0/MappingConfiguration/ExecutionSemantics",
+            "title": "Semantic Id",
+            "type": "string"
+          },
+          "supplemental_semantic_ids": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Supplemental Semantic Ids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "TriggerSourceIds"
+        ],
+        "title": "DmpExecutionSemantics",
+        "type": "object"
+      },
       "DmpMappingConfiguration": {
         "additionalProperties": false,
-        "description": "IDTA MappingConfiguration + the optional response-direction blob.",
+        "description": "IDTA MappingConfiguration + optional correlated response mapping.",
         "properties": {
           "DefaultPollingInterval": {
             "anyOf": [
               {
                 "$ref": "#/$defs/DefaultPollingInterval"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "ExecutionSemantics": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/DmpExecutionSemantics"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "ResponseSinks": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/DmpResponseSinks"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "ResponseSources": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/DmpResponseSources"
               },
               {
                 "type": "null"
@@ -262,6 +354,586 @@
         "title": "DmpMappingConfigurations",
         "type": "object"
       },
+      "DmpResponseSink": {
+        "additionalProperties": false,
+        "properties": {
+          "Sink": {
+            "$ref": "#/$defs/DmpResponseSinkReference"
+          },
+          "SinkId": {
+            "$ref": "#/$defs/DmpResponseSinkId"
+          },
+          "description": {
+            "default": "A correlated response sink reference and its transformation identifier.",
+            "title": "Description",
+            "type": "string"
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Display Name"
+          },
+          "id_short": {
+            "default": "SubmodelElementCollection",
+            "title": "Id Short",
+            "type": "string"
+          },
+          "qualifiers": {
+            "default": [],
+            "items": {
+              "$ref": "#/$defs/Qualifier"
+            },
+            "title": "Qualifiers",
+            "type": "array"
+          },
+          "semantic_id": {
+            "default": "https://admin-shell.io/idta/AssetInterfacesMappingConfiguration/2/0/MappingConfiguration/ResponseSink",
+            "title": "Semantic Id",
+            "type": "string"
+          },
+          "supplemental_semantic_ids": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Supplemental Semantic Ids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "Sink",
+          "SinkId"
+        ],
+        "title": "DmpResponseSink",
+        "type": "object"
+      },
+      "DmpResponseSinkId": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "default": "This is a unique and non-empty identifier that facilitates data writing in the Lua transformation or establishes a relationship to a corresponding source when no transformation is given. It must only be unique with respect to the Sinks-list of the containing MappingConfiguration and not globally.",
+            "title": "Description",
+            "type": "string"
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Display Name"
+          },
+          "id_short": {
+            "default": "Property",
+            "title": "Id Short",
+            "type": "string"
+          },
+          "qualifiers": {
+            "default": [],
+            "items": {
+              "$ref": "#/$defs/Qualifier"
+            },
+            "title": "Qualifiers",
+            "type": "array"
+          },
+          "semantic_id": {
+            "default": "https://admin-shell.io/idta/AssetInterfacesMappingConfiguration/2/0/MappingConfiguration/ResponseSink/SinkId",
+            "title": "Semantic Id",
+            "type": "string"
+          },
+          "supplemental_semantic_ids": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Supplemental Semantic Ids",
+            "type": "array"
+          },
+          "value": {
+            "default": "",
+            "title": "Value",
+            "type": "string"
+          },
+          "value_id": {
+            "default": "",
+            "title": "Value Id",
+            "type": "string"
+          },
+          "value_type": {
+            "default": "xs:string",
+            "title": "Value Type",
+            "type": "string"
+          }
+        },
+        "title": "DmpResponseSinkId",
+        "type": "object"
+      },
+      "DmpResponseSinkReference": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "default": "Reference to a SubmodelElement used as a correlated response sink.",
+            "title": "Description",
+            "type": "string"
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Display Name"
+          },
+          "id_short": {
+            "default": "ReferenceElement",
+            "title": "Id Short",
+            "type": "string"
+          },
+          "qualifiers": {
+            "default": [],
+            "items": {
+              "$ref": "#/$defs/Qualifier"
+            },
+            "title": "Qualifiers",
+            "type": "array"
+          },
+          "semantic_id": {
+            "default": "https://admin-shell.io/idta/AssetInterfacesMappingConfiguration/2/0/MappingConfiguration/ResponseSink/Sink",
+            "title": "Semantic Id",
+            "type": "string"
+          },
+          "supplemental_semantic_ids": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Supplemental Semantic Ids",
+            "type": "array"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/Reference"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          }
+        },
+        "title": "DmpResponseSinkReference",
+        "type": "object"
+      },
+      "DmpResponseSinks": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "default": "Response sinks written from the correlated response transformation.",
+            "title": "Description",
+            "type": "string"
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Display Name"
+          },
+          "id_short": {
+            "default": "SubmodelElementList",
+            "title": "Id Short",
+            "type": "string"
+          },
+          "order_relevant": {
+            "default": true,
+            "title": "Order Relevant",
+            "type": "boolean"
+          },
+          "qualifiers": {
+            "default": [],
+            "items": {
+              "$ref": "#/$defs/Qualifier"
+            },
+            "title": "Qualifiers",
+            "type": "array"
+          },
+          "semantic_id": {
+            "default": "https://admin-shell.io/idta/AssetInterfacesMappingConfiguration/2/0/MappingConfiguration/ResponseSinks",
+            "title": "Semantic Id",
+            "type": "string"
+          },
+          "semantic_id_list_element": {
+            "default": "",
+            "title": "Semantic Id List Element",
+            "type": "string"
+          },
+          "supplemental_semantic_ids": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Supplemental Semantic Ids",
+            "type": "array"
+          },
+          "type_value_list_element": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Type Value List Element"
+          },
+          "value": {
+            "default": [],
+            "items": {
+              "$ref": "#/$defs/DmpResponseSink"
+            },
+            "title": "Value",
+            "type": "array"
+          },
+          "value_type_list_element": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Value Type List Element"
+          }
+        },
+        "title": "DmpResponseSinks",
+        "type": "object"
+      },
+      "DmpResponseSource": {
+        "additionalProperties": false,
+        "properties": {
+          "Source": {
+            "$ref": "#/$defs/DmpResponseSourceReference"
+          },
+          "SourceId": {
+            "$ref": "#/$defs/DmpResponseSourceId"
+          },
+          "description": {
+            "default": "A correlated response source reference and its transformation identifier.",
+            "title": "Description",
+            "type": "string"
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Display Name"
+          },
+          "id_short": {
+            "default": "SubmodelElementCollection",
+            "title": "Id Short",
+            "type": "string"
+          },
+          "qualifiers": {
+            "default": [],
+            "items": {
+              "$ref": "#/$defs/Qualifier"
+            },
+            "title": "Qualifiers",
+            "type": "array"
+          },
+          "semantic_id": {
+            "default": "https://admin-shell.io/idta/AssetInterfacesMappingConfiguration/2/0/MappingConfiguration/ResponseSource",
+            "title": "Semantic Id",
+            "type": "string"
+          },
+          "supplemental_semantic_ids": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Supplemental Semantic Ids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "Source",
+          "SourceId"
+        ],
+        "title": "DmpResponseSource",
+        "type": "object"
+      },
+      "DmpResponseSourceId": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "default": "This is a unique and non-empty identifier that facilitates data access in the Lua transformation or establishes a relationship to a corresponding sink when no transformation is given. It must only be unique with respect to the Sources-list of the parent MappingConfiguration and not globally.",
+            "title": "Description",
+            "type": "string"
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Display Name"
+          },
+          "id_short": {
+            "default": "Property",
+            "title": "Id Short",
+            "type": "string"
+          },
+          "qualifiers": {
+            "default": [],
+            "items": {
+              "$ref": "#/$defs/Qualifier"
+            },
+            "title": "Qualifiers",
+            "type": "array"
+          },
+          "semantic_id": {
+            "default": "https://admin-shell.io/idta/AssetInterfacesMappingConfiguration/2/0/MappingConfiguration/ResponseSource/SourceId",
+            "title": "Semantic Id",
+            "type": "string"
+          },
+          "supplemental_semantic_ids": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Supplemental Semantic Ids",
+            "type": "array"
+          },
+          "value": {
+            "default": "",
+            "title": "Value",
+            "type": "string"
+          },
+          "value_id": {
+            "default": "",
+            "title": "Value Id",
+            "type": "string"
+          },
+          "value_type": {
+            "default": "xs:string",
+            "title": "Value Type",
+            "type": "string"
+          }
+        },
+        "title": "DmpResponseSourceId",
+        "type": "object"
+      },
+      "DmpResponseSourceReference": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "default": "Reference to a SubmodelElement used as a correlated response source.",
+            "title": "Description",
+            "type": "string"
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Display Name"
+          },
+          "id_short": {
+            "default": "ReferenceElement",
+            "title": "Id Short",
+            "type": "string"
+          },
+          "qualifiers": {
+            "default": [],
+            "items": {
+              "$ref": "#/$defs/Qualifier"
+            },
+            "title": "Qualifiers",
+            "type": "array"
+          },
+          "semantic_id": {
+            "default": "https://admin-shell.io/idta/AssetInterfacesMappingConfiguration/2/0/MappingConfiguration/ResponseSource/Source",
+            "title": "Semantic Id",
+            "type": "string"
+          },
+          "supplemental_semantic_ids": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Supplemental Semantic Ids",
+            "type": "array"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/Reference"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          }
+        },
+        "title": "DmpResponseSourceReference",
+        "type": "object"
+      },
+      "DmpResponseSources": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "default": "Response sources selected for the correlated response transformation.",
+            "title": "Description",
+            "type": "string"
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Display Name"
+          },
+          "id_short": {
+            "default": "SubmodelElementList",
+            "title": "Id Short",
+            "type": "string"
+          },
+          "order_relevant": {
+            "default": true,
+            "title": "Order Relevant",
+            "type": "boolean"
+          },
+          "qualifiers": {
+            "default": [],
+            "items": {
+              "$ref": "#/$defs/Qualifier"
+            },
+            "title": "Qualifiers",
+            "type": "array"
+          },
+          "semantic_id": {
+            "default": "https://admin-shell.io/idta/AssetInterfacesMappingConfiguration/2/0/MappingConfiguration/ResponseSources",
+            "title": "Semantic Id",
+            "type": "string"
+          },
+          "semantic_id_list_element": {
+            "default": "",
+            "title": "Semantic Id List Element",
+            "type": "string"
+          },
+          "supplemental_semantic_ids": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Supplemental Semantic Ids",
+            "type": "array"
+          },
+          "type_value_list_element": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Type Value List Element"
+          },
+          "value": {
+            "default": [],
+            "items": {
+              "$ref": "#/$defs/DmpResponseSource"
+            },
+            "title": "Value",
+            "type": "array"
+          },
+          "value_type_list_element": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Value Type List Element"
+          }
+        },
+        "title": "DmpResponseSources",
+        "type": "object"
+      },
       "DmpResponseTransformation": {
         "additionalProperties": false,
         "description": "The correlated-REPLY transformation of an operation mapping: device\nresponse \u2192 caller-facing reply (same ``aimc_main(sources)`` Lua contract,\nkeyed by the action name).",
@@ -332,6 +1004,101 @@
           }
         },
         "title": "DmpResponseTransformation",
+        "type": "object"
+      },
+      "DmpTriggerSourceIds": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "default": "SourceIds whose contributions trigger mapping execution.",
+            "title": "Description",
+            "type": "string"
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Display Name"
+          },
+          "id_short": {
+            "default": "SubmodelElementList",
+            "title": "Id Short",
+            "type": "string"
+          },
+          "order_relevant": {
+            "default": true,
+            "title": "Order Relevant",
+            "type": "boolean"
+          },
+          "qualifiers": {
+            "default": [],
+            "items": {
+              "$ref": "#/$defs/Qualifier"
+            },
+            "title": "Qualifiers",
+            "type": "array"
+          },
+          "semantic_id": {
+            "default": "https://admin-shell.io/idta/AssetInterfacesMappingConfiguration/2/0/MappingConfiguration/ExecutionSemantics/TriggerSourceIds",
+            "title": "Semantic Id",
+            "type": "string"
+          },
+          "semantic_id_list_element": {
+            "default": "",
+            "title": "Semantic Id List Element",
+            "type": "string"
+          },
+          "supplemental_semantic_ids": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Supplemental Semantic Ids",
+            "type": "array"
+          },
+          "type_value_list_element": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": "Property",
+            "title": "Type Value List Element"
+          },
+          "value": {
+            "default": [],
+            "items": {
+              "$ref": "#/$defs/Property"
+            },
+            "title": "Value",
+            "type": "array"
+          },
+          "value_type_list_element": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": "xs:string",
+            "title": "Value Type List Element"
+          }
+        },
+        "title": "DmpTriggerSourceIds",
         "type": "object"
       },
       "Key": {
@@ -443,6 +1210,74 @@
           }
         },
         "title": "PollingInterval",
+        "type": "object"
+      },
+      "Property": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "default": "",
+            "title": "Description",
+            "type": "string"
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Display Name"
+          },
+          "id_short": {
+            "default": "Property",
+            "title": "Id Short",
+            "type": "string"
+          },
+          "qualifiers": {
+            "default": [],
+            "items": {
+              "$ref": "#/$defs/Qualifier"
+            },
+            "title": "Qualifiers",
+            "type": "array"
+          },
+          "semantic_id": {
+            "default": "",
+            "title": "Semantic Id",
+            "type": "string"
+          },
+          "supplemental_semantic_ids": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Supplemental Semantic Ids",
+            "type": "array"
+          },
+          "value": {
+            "default": "",
+            "title": "Value",
+            "type": "string"
+          },
+          "value_id": {
+            "default": "",
+            "title": "Value Id",
+            "type": "string"
+          },
+          "value_type": {
+            "default": "xs:string",
+            "title": "Value Type",
+            "type": "string"
+          }
+        },
+        "title": "Property",
         "type": "object"
       },
       "Qualifier": {
