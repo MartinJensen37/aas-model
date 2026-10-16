@@ -22,6 +22,7 @@ from aas_pydantic import (
 from aas_pydantic.submodel_templates.control_component_instance import (
     ControlComponentInstance, Type_instance,
 )
+from aas_model.constants import INVOCATION_ORIGIN
 
 from aas_model.submodel_templates.control_component_instance import (
     ExtendedSkill, ExtendedSkills, SkillOperation, OperationVariableProp,
@@ -50,12 +51,16 @@ _SKILL_PATH = (
 
 def native_action_ref(name: str) -> ModelReference:
     """Reference to the skill's native AID MQTT action (interface_mqtt)."""
-    return ModelReference(key=_NATIVE_ACTION_PATH + (Key(type_="SubmodelElementCollection", value=name),))
+    return ModelReference(key=_NATIVE_ACTION_PATH + (
+        Key(type_="SubmodelElementCollection", value=name),
+    )).model_copy(deep=True)
 
 
 def skill_ref(name: str) -> ModelReference:
     """Reference to the skill SMC inside this CCI submodel."""
-    return ModelReference(key=_SKILL_PATH + (Key(type_="SubmodelElementCollection", value=name),))
+    return ModelReference(key=_SKILL_PATH + (
+        Key(type_="SubmodelElementCollection", value=name),
+    )).model_copy(deep=True)
 
 
 def _operation_variable(
@@ -78,21 +83,19 @@ def skill_operation(
     The input/inoutput/output variables mirror the native MQTT action's
     command / commandResponse payloads (Uuid inout, State output) so
     the operation can also be rendered and manually invoked from the AAS Web
-    GUI.  The delegation endpoint uses the ``{delegation_base}`` /
-    ``{aas_id_short}`` macros (resolved by id_injector — ``delegation_base``
-    defaults to ``constants.DELEGATION_BASE`` and can be overridden per
-    resource config to point at that resource's DMP).
+    GUI. The invocation URL's identity segments are finalized by the authoring
+    builder using the shared origin and Java-compatible UTF-8 path encoding.
 
     ``Outcome`` (the FOND branch discriminator) is NOT a default output —
     only actions whose native response actually carries one declare it
     (the process skills; configs author it explicitly). Registration-style
     actions (Occupy/Release) and Halt answer ``State`` only.
     """
-    op = SkillOperation()
+    op = SkillOperation(id_short="operation")
     op.qualifiers = [
         Qualifier(
             type_="invocationDelegation",
-            value=f"{{delegation_base}}/operations/{{aas_id_short}}/{name}",
+            value=f"{INVOCATION_ORIGIN}/operations/{{aas_id_short}}/{{skill}}",
             value_type="xs:string",
             kind="ConceptQualifier",
         ),

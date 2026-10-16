@@ -26,7 +26,7 @@ from aas_pydantic.aas_model import (
 )
 from pydantic import BaseModel
 
-from aas_model.constants import BASE_URL, DELEGATION_BASE
+from aas_model.constants import BASE_URL
 
 # Placeholders injected by id_preprocessor before validation.
 _PLACEHOLDER_RE = re.compile(r"^elem\d+$")
@@ -54,96 +54,54 @@ def _is_aas_type(obj: Any) -> bool:
     return isinstance(obj, AAS) and hasattr(obj, "asset_type")
 
 
-def _resolve_delegation_base(
-    delegation_base: str, aas_id: str, aas_id_short: str,
-) -> str:
-    """Resolve the ``{dmp_host}`` / ``{aas_id_short}`` / ``{aas_id}`` macros
-    inside a (possibly per-resource) ``delegation_base`` value.
-
-    ``{dmp_host}`` expands to ``dmp-<aas_id_short>`` lowercased — the K8s
-    Service name convention (DNS-1123 names must be lowercase) the runtime
-    registration handler uses to deploy each asset's DMP."""
-    return (
-        delegation_base
-        .replace("{aas_id}", aas_id)
-        .replace("{aas_id_short}", aas_id_short)
-        .replace("{dmp_host}", f"dmp-{aas_id_short.lower()}")
-    )
+def _resolve_macros(value: str, aas_id: str, aas_id_short: str) -> str:
+    """Replace generic AAS identity macros in reference/property values."""
+    return value.replace("{aas_id}", aas_id).replace("{aas_id_short}", aas_id_short)
 
 
-def _resolve_macros(
-    value: str, aas_id: str, aas_id_short: str, delegation_base: str,
-) -> str:
-    """Replace every supported macro in a string value:
-    ``{aas_id}``, ``{aas_id_short}``, ``{dmp_host}`` and ``{delegation_base}``
-    (the latter with its own macros resolved first)."""
-    base = _resolve_delegation_base(delegation_base, aas_id, aas_id_short)
-    return (
-        value
-        .replace("{aas_id}", aas_id)
-        .replace("{aas_id_short}", aas_id_short)
-        .replace("{dmp_host}", f"dmp-{aas_id_short.lower()}")
-        .replace("{delegation_base}", base)
-    )
-
-
-def _resolve_self_references(
-    model: Any, aas_id: str, aas_id_short: str = "", delegation_base: str = "",
-) -> None:
-    """Replace the ``{aas_id}`` / ``{aas_id_short}`` / ``{dmp_host}`` /
-    ``{delegation_base}`` placeholders in Reference key values, Property
-    values and Qualifier values with their concrete values — so
-    self-referential references (e.g. a skill's interface_reference pointing
-    at this AAS's own AID submodel, a delegation endpoint
-    ``/operations/{aas_id_short}/<skill>``, or a REST interface base) always
-    track the AAS identity and its operation-delegation base without
-    per-station hardcoding."""
+def _resolve_self_references(model: Any, aas_id: str, aas_id_short: str = "") -> None:
+    """Resolve generic AAS identity macros without rewriting invocation URLs."""
     if isinstance(model, Reference):
         for k in model.key:
-            if k.value and any(m in k.value for m in ("{aas_id}", "{aas_id_short}", "{dmp_host}", "{delegation_base}")):
-                k.value = _resolve_macros(k.value, aas_id, aas_id_short, delegation_base)
+            if k.value and any(m in k.value for m in ("{aas_id}", "{aas_id_short}")):
+                k.value = _resolve_macros(k.value, aas_id, aas_id_short)
         return
     if isinstance(model, Qualifier):
-        if model.value and any(m in model.value for m in ("{aas_id}", "{aas_id_short}", "{dmp_host}", "{delegation_base}")):
-            model.value = _resolve_macros(model.value, aas_id, aas_id_short, delegation_base)
+        if model.type_ != "invocationDelegation" and model.value and any(m in model.value for m in ("{aas_id}", "{aas_id_short}")):
+            model.value = _resolve_macros(model.value, aas_id, aas_id_short)
         return
     if isinstance(model, Property):
-        if isinstance(model.value, str) and any(m in model.value for m in ("{aas_id}", "{aas_id_short}", "{dmp_host}", "{delegation_base}")):
-            model.value = _resolve_macros(model.value, aas_id, aas_id_short, delegation_base)
+        if isinstance(model.value, str) and any(m in model.value for m in ("{aas_id}", "{aas_id_short}")):
+            model.value = _resolve_macros(model.value, aas_id, aas_id_short)
         return
     if isinstance(model, ReferenceElement):
-        _resolve_self_references(model.value, aas_id, aas_id_short, delegation_base)
+        _resolve_self_references(model.value, aas_id, aas_id_short)
         return
     if isinstance(model, RelationshipElement):
-        _resolve_self_references(model.first, aas_id, aas_id_short, delegation_base)
-        _resolve_self_references(model.second, aas_id, aas_id_short, delegation_base)
+        _resolve_self_references(model.first, aas_id, aas_id_short)
+        _resolve_self_references(model.second, aas_id, aas_id_short)
         return
     if isinstance(model, BaseModel):
         for field_name in type(model).model_fields:
-            _resolve_self_references(getattr(model, field_name, None), aas_id, aas_id_short, delegation_base)
+            _resolve_self_references(getattr(model, field_name, None), aas_id, aas_id_short)
     elif isinstance(model, dict):
         for v in model.values():
-            _resolve_self_references(v, aas_id, aas_id_short, delegation_base)
+            _resolve_self_references(v, aas_id, aas_id_short)
     elif isinstance(model, (list, tuple)):
         for v in model:
-            _resolve_self_references(v, aas_id, aas_id_short, delegation_base)
+            _resolve_self_references(v, aas_id, aas_id_short)
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Public API
 # ═══════════════════════════════════════════════════════════════════════════════
 
-def inject_ids(model: Any, delegation_base: str = "") -> None:
+def inject_ids(model: Any) -> None:
     """
     Walk a validated Pydantic model instance and inject missing id/id_short.
 
     Mutates the model in place.  Safe to call after model_validate().
     Idempotent — already-set values are not overwritten.
-
-    ``delegation_base`` is the resource's operation-delegation (DMP) base URL
-    used to resolve the ``{{delegation_base}}`` macro in skill Operation
-    qualifiers and the AID REST interface; defaults to ``constants.
-    DELEGATION_BASE`` when empty.
 
     Handles:
         - AAS root: sets id from id_short if missing
@@ -153,10 +111,8 @@ def inject_ids(model: Any, delegation_base: str = "") -> None:
         - Leaf elements: id_short from field name
         - specific_asset_ids: copies serial_number/location
     """
-    if not delegation_base:
-        delegation_base = DELEGATION_BASE
     if isinstance(model, AAS):
-        _inject_aas(model, delegation_base=delegation_base)
+        _inject_aas(model)
     elif isinstance(model, Submodel):
         _inject_submodel(model, parent_aas_id="")
     elif isinstance(model, SubmodelElementCollection):
@@ -167,9 +123,9 @@ def inject_ids(model: Any, delegation_base: str = "") -> None:
 # Internal walkers
 # ═══════════════════════════════════════════════════════════════════════════════
 
-def _inject_aas(aas: AAS, delegation_base: str = "") -> None:
+def _inject_aas(aas: AAS) -> None:
     """Inject ids into AAS root and all submodels."""
-    if not aas.id or not aas.id.startswith(BASE_URL):
+    if not aas.id or aas.id == aas.id_short:
         if aas.id_short:
             aas.id = f"{BASE_URL}/aas/{aas.id_short}"
     aas_id = aas.id
@@ -179,9 +135,8 @@ def _inject_aas(aas: AAS, delegation_base: str = "") -> None:
 
     # Resolve self-referential reference placeholders now that the AAS id is
     # known (e.g. a variable's interface_reference → this AAS's own AID
-    # submodel, written as ``{aas_id}/submodels/...``, or a delegation
-    # endpoint ``/operations/{aas_id_short}/<skill>``).
-    _resolve_self_references(aas, aas_id, aas.id_short, delegation_base)
+    # submodel, written as ``{aas_id}/submodels/...``).
+    _resolve_self_references(aas, aas_id, aas.id_short)
 
     # Walk all submodel fields
     for field_name, field_info in type(aas).model_fields.items():
@@ -215,7 +170,7 @@ def _inject_submodel(
     if field_name and _should_rename_id_short(sm, field_name):
         sm.id_short = field_name
     # Set id from parent
-    if (not sm.id or not sm.id.startswith(BASE_URL)) and parent_aas_id:
+    if (not sm.id or sm.id == sm.id_short) and parent_aas_id:
         sm.id = f"{parent_aas_id}/submodels/{sm.id_short}"
 
     submodel_id = sm.id

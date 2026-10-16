@@ -20,25 +20,9 @@ SCHEMA_BASE = "https://aausmartproductionlab.github.io/AP2030-UNS/MQTTSchemas"
 BROKER = "mqtt://192.168.0.104:1883"
 SITE = "NN/Nybrovej/InnoLab"
 
-# Operation delegation — base URL of the per-asset DMP (Data Mapping
-# Processor) REST endpoints.  BaSyx invokes the per-skill Operation's
-# ``invocationDelegation`` qualifier (and property ``writeDelegation``) at
-# ``{DELEGATION_BASE}/operations/{aas_id_short}/{skill}`` resp.
-# ``/properties/{aas_id_short}/{property}``; the AID REST interface describes
-# these generated endpoints.
-#
-# The default derives the DMP hostname from the asset id_short — unique per
-# asset — so no per-resource configuration is needed and the runtime
-# registration handler can create the K8s Service under the same name:
-# ``dmp-<aas_id_short>`` lowercased (K8s Service/DNS-1123 names must be
-# lowercase).  Macros resolved by the id_injector:
-#   {dmp_host}       → ``dmp-<aas_id_short lowercased>``
-#   {aas_id_short}   → the AAS id_short
-#   {delegation_base}→ this value with the macros above resolved
-# Override per resource via the top-level ``delegation_base`` config key,
-# e.g. an Ingress/LoadBalancer URL, or a cross-namespace FQDN:
-# ``http://{dmp_host}.robotics.svc.cluster.local:8080``.
-DELEGATION_BASE = "http://{dmp_host}:8080"
+# Shared invocation service origin. Resource-specific identity belongs in
+# authored URL path segments, never in a per-resource host/config setting.
+INVOCATION_ORIGIN = "http://dmp:8080"
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Ontology

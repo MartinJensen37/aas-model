@@ -74,10 +74,8 @@ class Coordinate(ParameterItem):
         The container key (x/y/yaw) is stamped as ``id_short`` before
         validation, so a config like ``{"y": {"parameter": {"value":
         "0.0"}}}`` gets ``parameter.id_short="y"`` without repeating the
-        axis inside each coordinate.  (The ``interface_reference`` is not
-        injected here — the base-defaults merge always supplies it, and a
-        before-validator-added instance is unreliable in the validator
-        chain.)
+        axis inside each coordinate. The interface reference is authored by
+        the constructor and preserved in exported model JSON.
         """
         if not isinstance(data, dict):
             return data

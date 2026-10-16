@@ -2,8 +2,8 @@
 
 All Resources must implement certain skills (Halt, Occupy, Release), expose
 a StationState property, track PackMLState, and declare a Location.  These
-defaults are baked into the Pydantic model so individual station configs
-only need to specify the delta.
+defaults are baked into the Pydantic model so Python-authored instances can
+extend them before exporting their complete structure as JSON.
 
 Each submodel's station-agnostic defaults live in its own module under
 ``resource_template/``:
@@ -14,16 +14,20 @@ Each submodel's station-agnostic defaults live in its own module under
     variables                    — custom Variables + PackMLState/OccupationState
     parameters                   — custom Parameters + Location
 
-This module composes them into ``ResourceTypeAAS``.  Station configs override
-fields via model_validate() — missing fields fall back to these defaults.
+This module composes them into ``Resource``. Author instances directly in
+Python, export with ``model_dump_json()``, and restore with
+``Resource.model_validate_json()``. JSON is an interchange format, not a
+separate resource definition language.
 
-Container-style: children live in ``value`` / ``submodel_element`` dicts
-keyed by id_short (basyx/IDTA-aligned).
+Children are named fields or dynamic maps keyed by id_short
+(basyx/IDTA-aligned).
 """
 
 from __future__ import annotations
 
-from typing import Optional
+from typing import Any, Optional
+
+from pydantic import Field
 
 from aas_pydantic import AAS
 
@@ -43,6 +47,7 @@ from aas_model.resource_template.control_component_instance import (
 )
 from aas_model.resource_template.variables import variables
 from aas_model.resource_template.parameters import ResourceParameters, resource_parameters
+from aas_model.invocation_authoring import finalize_invocation_addresses
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -57,15 +62,18 @@ SUBMODEL_FIELDS = (
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# ResourceTypeAAS — the type model with defaults
+# Resource — the shared type model with defaults
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
-class ResourceTypeAAS(AAS):
-    """Resource AAS type — all Resources share these defaults.
+class Resource(AAS):
+    """Python-authored Resource AAS with shared, independently owned defaults.
 
-    Individual stations override via JSON config.  Fields not specified
-    in the station config fall back to the defaults below.
+    Pass typed submodels to the constructor. Default invocation URL templates
+    are resolved during construction, without imposing an invocation policy.
+    Standard Pydantic JSON serialization preserves the complete authored
+    structure; restoring it does not deep-merge additional resource defaults.
+    Use ``aas_model.build_from_model(resource)`` to produce a BaSyx store.
 
     Mandatory for all resources:
         - Halt, Occupy, Release actions (MQTT + CCI skills)
@@ -77,21 +85,34 @@ class ResourceTypeAAS(AAS):
     model_config = {"extra": "forbid"}
 
     # ── Nameplate ─────────────────────────────────────────────────────────
-    nameplate: Nameplate = nameplate()
+    nameplate: Nameplate = Field(default_factory=nameplate)
 
     # ── Asset Interfaces Description ──────────────────────────────────────
-    asset_interfaces_description: DmpAssetInterfacesDescription = asset_interfaces_description()
+    asset_interfaces_description: DmpAssetInterfacesDescription = Field(
+        default_factory=asset_interfaces_description,
+    )
 
     # ── Control Component Instance ────────────────────────────────────────
-    control_component_instance: ResourceControlComponentInstance = control_component_instance()
+    control_component_instance: ResourceControlComponentInstance = Field(
+        default_factory=control_component_instance,
+    )
 
     # ── Variables ─────────────────────────────────────────────────────────
-    variables: Variables = variables()
+    variables: Variables = Field(default_factory=variables)
 
     # ── Parameters ────────────────────────────────────────────────────────
-    parameters: ResourceParameters = resource_parameters()
+    parameters: ResourceParameters = Field(default_factory=resource_parameters)
     # ── Asset Interfaces Mapping Configuration ──────────────────────────────
-    asset_interfaces_mapping_configuration: Aimc = asset_interfaces_mapping_configuration()
+    asset_interfaces_mapping_configuration: Aimc = Field(
+        default_factory=asset_interfaces_mapping_configuration,
+    )
     # ── Optional submodels (no defaults — stations opt in) ────────────────
     capability_description: Optional[CapabilityDescription] = None
     hierarchical_structures: Optional[HierarchicalStructures] = None
+
+    def model_post_init(self, context: Any) -> None:
+        finalize_invocation_addresses(self)
+
+
+# Existing registration-service consumers import this name.
+ResourceTypeAAS = Resource
