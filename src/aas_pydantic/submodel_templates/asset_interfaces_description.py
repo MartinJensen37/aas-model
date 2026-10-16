@@ -1,4 +1,6 @@
-"""AssetInterfacesDescription — generated from IDTA template."""
+"""AssetInterfacesDescription - generated from IDTA template.
+Source: Asset Interfaces Description/1/2/IDTA 02017_Template_Asset Interfaces Description.json
+"""
 
 from __future__ import annotations
 
@@ -15,26 +17,26 @@ class Title(Property):
 class Created(Property):
     semantic_id: str = "http://purl.org/dc/terms/created"
     description: str = "Provides information when the AID Submodel was created."
-    value_type: str = "xs:dateTime"
+    value_type: str = "xs:string"
 
 class Modified(Property):
     semantic_id: str = "http://purl.org/dc/terms/modified"
     description: str = "Provides information when the AID Submodel was modified."
-    value_type: str = "xs:dateTime"
+    value_type: str = "xs:string"
 
 class Support(Property):
     semantic_id: str = "https://www.w3.org/2019/wot/td#supportContact"
     description: str = "Provides an address on how to contact the maintainer of AID Submodel as URI scheme."
-    value_type: str = "xs:anyURI"
+    value_type: str = "xs:string"
 
 class Base(Property):
     semantic_id: str = "https://www.w3.org/2019/wot/td#baseURI"
-    description: str = "Defines asset connection entry point. The base pattern for HTTP is defined in Qalifier."
-    value_type: str = "xs:anyURI"
+    description: str = "Defines asset connection entry point. Each protocol specifies a base pattern. Please see Annex B.1 of the AID document for more details."
+    value_type: str = "xs:string"
 
 class ContentType(Property):
     semantic_id: str = "https://www.w3.org/2019/wot/hypermedia#forContentType"
-    description: str = "Defines content type based on a media type (e.g., text/plain) and potential character decoding/encoding type (e.g., charset=utf-8) for the media type (see RFC2046) of the whole interface."
+    description: str = "Defines content type based on a media type (e.g., text/plain) and potential character decoding/encoding type (e.g., charset=utf-8) for the media type (see RFC2046) of the whole interface"
     value_type: str = "xs:string"
 
 class security(SubmodelElementList):
@@ -45,22 +47,22 @@ class security(SubmodelElementList):
 
 class Scheme(Property):
     semantic_id: str = "https://www.w3.org/2019/wot/security#SecurityScheme"
-    description: str = "Defines the security mechanism that used during access. the scheme for nosec_sc is nosec"
+    description: str = "Defines the security mechanism that used during access. Supported modes one of nosec, basic, digest, bearer, psk, oauth2, apikey, combo, auto, uav_channelsec and uav_authentication_"
     value_type: str = "xs:string"
 
 class nosec_sc(SubmodelElementCollection):
     semantic_id: str = "https://www.w3.org/2019/wot/security#NoSecurityScheme"
-    description: str = "This SubmodelElements holds the information about security mechanism based on nosec security."
+    description: str = "No security scheme definition"
     scheme: Scheme
 
 class Proxy(Property):
     semantic_id: str = "https://www.w3.org/2019/wot/security#proxy"
-    description: str = "Provides address information of the proxy server the security configuration provides access to."
-    value_type: str = "xs:string"
+    description: str = "Provides address information of the proxy server the security configuration provides access to. "
+    value_type: str = "xs:anyURI"
 
 class auto_sc(SubmodelElementCollection):
     semantic_id: str = "https://www.w3.org/2019/wot/security#AutoSecurityScheme"
-    description: str = "This SubmodelElements holds the information about security mechanism based on auto security."
+    description: str = "Auto security scheme definition"
     scheme: Scheme
     proxy: Optional[Proxy] = None
 
@@ -76,7 +78,7 @@ class In(Property):
 
 class basic_sc(SubmodelElementCollection):
     semantic_id: str = "https://www.w3.org/2019/wot/security#BasicSecurityScheme"
-    description: str = "This SubmodelElements holds the information about security mechanism based on basic security."
+    description: str = "Basic security scheme definition"
     scheme: Scheme
     name: Optional[Name] = None
     in_: Optional[In] = None
@@ -84,17 +86,17 @@ class basic_sc(SubmodelElementCollection):
 
 class oneOf(SubmodelElementList):
     semantic_id: str = "https://www.w3.org/2019/wot/security#oneOf"
-    description: str = "Specifies alternative security schemes where at least one listed scheme can be used."
+    description: str = "Array of two or more strings identifying other named security scheme definitions, any one of which, when satisfied, will allow access. Only one may be chosen for use."
     value: List[Any] = []
 
 class allOf(SubmodelElementList):
     semantic_id: str = "https://www.w3.org/2019/wot/security#allOf"
-    description: str = "Specifies a combined security configuration where all listed schemes are applied together."
+    description: str = "Array of two or more strings identifying other named security scheme definitions, all of which must be satisfied for access."
     value: List[Any] = []
 
 class combo_sc(SubmodelElementCollection):
     semantic_id: str = "https://www.w3.org/2019/wot/security#ComboSecurityScheme"
-    description: str = "This SubmodelElements holds the information about security mechanism based on combo security."
+    description: str = "Combo security scheme definiton"
     scheme: Scheme
     oneOf: oneOf_t
     allOf: allOf_t
@@ -102,7 +104,7 @@ class combo_sc(SubmodelElementCollection):
 
 class apikey_sc(SubmodelElementCollection):
     semantic_id: str = "https://www.w3.org/2019/wot/security#APIKeySecurityScheme"
-    description: str = "This SubmodelElements holds the information about security mechanism based on apikey security."
+    description: str = "Apikey security scheme definition"
     scheme: Scheme
     name: Optional[Name] = None
     in_: Optional[In] = None
@@ -115,7 +117,7 @@ class Identity(Property):
 
 class psk_sc(SubmodelElementCollection):
     semantic_id: str = "https://www.w3.org/2019/wot/security#PSKSecurityScheme"
-    description: str = "This SubmodelElements holds the information about security mechanism based on psk security."
+    description: str = "PSK security scheme definition"
     scheme: Scheme
     identity: Optional[Identity] = None
     proxy: Optional[Proxy] = None
@@ -127,7 +129,7 @@ class Qop(Property):
 
 class digest_sc(SubmodelElementCollection):
     semantic_id: str = "https://www.w3.org/2019/wot/security#DigestSecurityScheme"
-    description: str = "This SubmodelElements holds the information about security mechanism based on digest security."
+    description: str = "Digest security scheme definition"
     scheme: Scheme
     name: Optional[Name] = None
     in_: Optional[In] = None
@@ -136,8 +138,8 @@ class digest_sc(SubmodelElementCollection):
 
 class Authorization(Property):
     semantic_id: str = "https://www.w3.org/2019/wot/security#authorization"
-    description: str = "Specifies URI of the authorization server."
-    value_type: str = "xs:string"
+    description: str = "Specifies URI of the authorization server"
+    value_type: str = "xs:anyURI"
 
 class Alg(Property):
     semantic_id: str = "https://www.w3.org/2019/wot/security#alg"
@@ -151,7 +153,7 @@ class Format(Property):
 
 class bearer_sc(SubmodelElementCollection):
     semantic_id: str = "https://www.w3.org/2019/wot/security#BearerSecurityScheme"
-    description: str = "This SubmodelElements holds the information about security mechanism based on bearer security."
+    description: str = "bearer security scheme definition"
     scheme: Scheme
     name: Optional[Name] = None
     in_: Optional[In] = None
@@ -162,12 +164,12 @@ class bearer_sc(SubmodelElementCollection):
 
 class Token(Property):
     semantic_id: str = "https://www.w3.org/2019/wot/security#token"
-    description: str = "Specifies URI of the token server."
+    description: str = "Specifies URI of the token server"
     value_type: str = "xs:anyURI"
 
 class Refresh(Property):
     semantic_id: str = "https://www.w3.org/2019/wot/security#refresh"
-    description: str = "Specifies URI of the refresh server."
+    description: str = "Specifies URI of the refresh server"
     value_type: str = "xs:anyURI"
 
 class scopes(SubmodelElementList):
@@ -177,23 +179,23 @@ class scopes(SubmodelElementList):
 
 class Flow(Property):
     semantic_id: str = "https://www.w3.org/2019/wot/security#flow"
-    description: str = "Defines authorization flow such as code or client."
+    description: str = "Defines authorization flow such as code or client "
     value_type: str = "xs:string"
 
 class oauth2_sc(SubmodelElementCollection):
     semantic_id: str = "https://www.w3.org/2019/wot/security#OAuth2SecurityScheme"
-    description: str = "This SubmodelElements holds the information about security mechanism based on oauth2 security."
+    description: str = "Oauth2 security scheme definition"
     scheme: Scheme
     token: Optional[Token] = None
     refresh: Optional[Refresh] = None
     authorization: Optional[Authorization] = None
     scopes: Optional[scopes_t] = None
-    flow: Optional[Flow] = None
+    flow: Flow
     proxy: Optional[Proxy] = None
 
 class securityDefinitions(SubmodelElementCollection):
     semantic_id: str = "https://www.w3.org/2019/wot/td#definesSecurityScheme"
-    description: str = "Defines the security scheme according to W3C"
+    description: str = "Defines the security scheme according to W3C:"
     nosec_sc: Optional[nosec_sc_t] = None
     auto_sc: Optional[auto_sc_t] = None
     basic_sc: Optional[basic_sc_t] = None
@@ -203,14 +205,24 @@ class securityDefinitions(SubmodelElementCollection):
     digest_sc: Optional[digest_sc_t] = None
     bearer_sc: Optional[bearer_sc_t] = None
     oauth2_sc: Optional[oauth2_sc_t] = None
+    opcua_channel_sc: Optional[opcua_channel_sc_t] = None
+    opcua_authentication_sc: Optional[opcua_authentication_sc_t] = None
+
+class ProtocolVersion(Property):
+    semantic_id: str = "https://www.w3.org/2019/wot/td#versionInfo"
+    description: str = "Used by multi-versioned protocols to indicate the specific protocol version of the interface"
+    value_type: str = "xs:string"
 
 class EndpointMetadata(SubmodelElementCollection):
     semantic_id: str = "https://admin-shell.io/idta/AssetInterfacesDescription/1/0/EndpointMetadata"
     description: str = "Provides the metadata of the asset\u2019s endpoint (base, content type that is used for interaction, etc)"
-    base: Base
-    contentType: ContentType
+    base: Optional[Base] = None
+    contentType: Optional[ContentType] = None
     security: security_t
     securityDefinitions: securityDefinitions_t
+    protocolVersion: Optional[ProtocolVersion] = None
+    modv_mostSignificantByte: Optional[ModvMostSignificantByte] = None
+    modv_mostSignificantWord: Optional[ModvMostSignificantWord] = None
 
 class Key(Property):
     semantic_id: str = "https://admin-shell.io/idta/AssetInterfacesDescription/1/0/key"
@@ -220,7 +232,7 @@ class Key(Property):
 
 class Type(Property):
     semantic_id: str = "https://www.w3.org/1999/02/22-rdf-syntax-ns#type"
-    description: str = "Indicates the abstract data type (one of object, array, string, number, integer, boolean, or null) of the described datapoint."
+    description: str = "Indicates the abstract data type (one of object, array, string, number, integer, boolean, or null) of the described datapoint"
     value_type: str = "xs:string"
 
 class Observable(Property):
@@ -228,15 +240,15 @@ class Observable(Property):
     description: str = "An indicator that tells that the interaction datapoint can be observed with a, e.g., subscription mechanism by an underlying protocol."
     value_type: str = "xs:boolean"
 
-class Const(Property):
-    semantic_id: str = "https://www.w3.org/2019/wot/json-schema#const"
-    description: str = "Provides a constant value for defined datapoint. The data type should be identical to the one provided by the Property type."
-    value_type: str = "xs:int"
-
 class enum(SubmodelElementList):
     semantic_id: str = "https://www.w3.org/2019/wot/json-schema#enum"
     description: str = "Provides a list of restricted set of values that the asset can provide as datapoint value."
     value: List[Any] = []
+
+class Const(Property):
+    semantic_id: str = "https://www.w3.org/2019/wot/json-schema#const"
+    description: str = "Provides a constant value for defined datapoint. The data type should be identical to the one provided by the Property type."
+    value_type: str = "xs:string"
 
 class Default(Property):
     semantic_id: str = "https://www.w3.org/2019/wot/json-schema#default"
@@ -256,9 +268,9 @@ class MinMax(Range):
 
 class LengthRange(Range):
     semantic_id: str = "https://admin-shell.io/idta/AssetInterfacesDescription/1/0/lengthRange"
-    description: str = "Specifies the minimum and maximum length of a string."
+    description: str = "Specifies the minimum and maximum length of a string"
     supplemental_semantic_ids: List[str] = ["https://www.w3.org/2019/wot/json-schema#minLength", "https://www.w3.org/2019/wot/json-schema#maxLength"]
-    value_type: str = "xs:string"
+    value_type: str = "xs:unsignedInt"
 
 class ValueSemantics(ReferenceElement):
     semantic_id: str = "https://admin-shell.io/idta/AssetInterfacesDescription/1/0/valueSemantics"
@@ -266,14 +278,14 @@ class ValueSemantics(ReferenceElement):
 
 class items(SubmodelElementCollection):
     semantic_id: str = "https://www.w3.org/2019/wot/json-schema#items"
-    description: str = "Used to define the data schema characteristics (as specified within Section 2.9) of an array payload."
+    description: str = "Used to define the data schema characteristics of an array payload"
     type: Optional[Type] = None
-    title: Optional[Title] = None
-    observable: Optional[Observable] = None
-    const: Optional[Const] = None
-    enum: Optional[enum_t] = None
-    default: Optional[Default] = None
     unit: Optional[Unit] = None
+    default: Optional[Default] = None
+    enum: Optional[enum_t] = None
+    const: Optional[Const] = None
+    observable: Optional[Observable] = None
+    title: Optional[Title] = None
     min_max: Optional[MinMax] = None
     lengthRange: Optional[LengthRange] = None
     valueSemantics: Optional[ValueSemantics] = None
@@ -282,7 +294,7 @@ class ItemsRange(Range):
     semantic_id: str = "https://admin-shell.io/idta/AssetInterfacesDescription/1/0/itemsRange"
     description: str = "Defines the minimum and maximum number of items that have to be in an array payload."
     supplemental_semantic_ids: List[str] = ["https://www.w3.org/2019/wot/json-schema#minItems", "https://www.w3.org/2019/wot/json-schema#maxItems"]
-    value_type: str = "xs:string"
+    value_type: str = "xs:unsignedInt"
 
 class property_name_json_schema(SubmodelElementCollection):
     semantic_id: str = "https://www.w3.org/2019/wot/json-schema#propertyName"
@@ -290,9 +302,8 @@ class property_name_json_schema(SubmodelElementCollection):
     key: Optional[Key] = None
     type: Optional[Type] = None
     title: Optional[Title] = None
-    observable: Optional[Observable] = None
-    const: Optional[Const] = None
     enum: Optional[enum_t] = None
+    const: Optional[Const] = None
     default: Optional[Default] = None
     unit: Optional[Unit] = None
     min_max: Optional[MinMax] = None
@@ -301,6 +312,7 @@ class property_name_json_schema(SubmodelElementCollection):
     itemsRange: Optional[ItemsRange] = None
     properties: Optional[properties_json_schema] = None
     valueSemantics: Optional[ValueSemantics] = None
+    observable: Optional[Observable] = None
 
 class properties_json_schema(SubmodelElementCollection):
     semantic_id: str = "https://www.w3.org/2019/wot/json-schema#properties"
@@ -309,7 +321,7 @@ class properties_json_schema(SubmodelElementCollection):
 
 class Href(Property):
     semantic_id: str = "https://www.w3.org/2019/wot/hypermedia#hasTarget"
-    description: str = "Indicates target IRI relative path or full IRI of asset\u2019s datapoint. The relative endpoint definition in href is always relative to base defined in EndpointMetadata. "
+    description: str = "Target IRI relative path or full IRI of asset\u2019s datapoint. The relative endpoint definition in href is always relative to base defined in EndpointMetadata"
     value_type: str = "xs:string"
 
 class Subprotocol(Property):
@@ -332,7 +344,7 @@ class HtvFieldValue(Property):
     description: str = "Defines message header value"
     value_type: str = "xs:string"
 
-class htv_header(SubmodelElementCollection):
+class htv_headersItem(SubmodelElementCollection):
     semantic_id: str = "https://www.w3.org/2011/http#headers"
     description: str = "Defines message header content "
     htv_fieldName: HtvFieldName
@@ -340,19 +352,48 @@ class htv_header(SubmodelElementCollection):
 
 class htv_headers(SubmodelElementList):
     semantic_id: str = "https://www.w3.org/2011/http#headers"
-    description: str = "Defines additional information to be sent within the HTTP header message."
-    item_type: ClassVar = htv_header
-    value: List[htv_header] = []
+    description: str = "Defines additional information to be sent within the HTTP header message. "
+    item_type: ClassVar = htv_headersItem
+    value: List[htv_headersItem] = []
 
 class forms(SubmodelElementCollection):
     semantic_id: str = "https://www.w3.org/2019/wot/td#hasForm"
-    description: str = "Contains information about datapoint resource location. Note, forms is only available at the top level {property_name}"
+    description: str = "Contains information about datapoint resource location. "
     href: Href
     contentType: Optional[ContentType] = None
     subprotocol: Optional[Subprotocol] = None
-    security: security_t
+    security: Optional[security_t] = None
     htv_methodName: Optional[HtvMethodName] = None
     htv_headers: Optional[htv_headers_t] = None
+    modv_function: Optional[ModvFunction] = None
+    modv_entity: Optional[ModvEntity] = None
+    modv_zeroBasedAddressing: Optional[ModvZeroBasedAddressing] = None
+    modv_pollingTime: Optional[ModvPollingTime] = None
+    modv_timeout: Optional[ModvTimeout] = None
+    modv_type: Optional[ModvType] = None
+    modv_mostSignificantByte: Optional[ModvMostSignificantByte] = None
+    modv_mostSignificantWord: Optional[ModvMostSignificantWord] = None
+    mqv_retain: Optional[MqvRetain] = None
+    mqv_controlPacket: Optional[MqvControlPacket] = None
+    mqv_qos: Optional[MqvQos] = None
+    uav_browsePath: Optional[UavBrowsePath] = None
+    bacv_useService: Optional[BacvUseService] = None
+    bacv_hasDataType: Optional[bacv_hasDataType_t] = None
+    iolv_method: Optional[IolvMethod] = None
+    iolv_accessRights: Optional[IolvAccessRights] = None
+    iolv_type: Optional[IolvType] = None
+    iolv_byteOffset: Optional[IolvByteOffset] = None
+    iolv_byteLength: Optional[IolvByteLength] = None
+    iolv_bitOffset: Optional[IolvBitOffset] = None
+    iolv_bitLength: Optional[IolvBitLength] = None
+    iolv_referenceToCondition: Optional[IolvReferenceToCondition] = None
+    iolv_enumeratedValues: Optional[iolv_enumeratedValues_t] = None
+    iolv_payloadMapping: Optional[iolv_payloadMapping_t] = None
+    canv_offset: Optional[CanvOffset] = None
+    canv_length: Optional[CanvLength] = None
+    canv_valueOffset: Optional[CanvValueOffset] = None
+    canv_enumeratedValues: Optional[canv_enumeratedValues_t] = None
+    canv_payloadMapping: Optional[canv_payloadMapping_t] = None
 
 class property_name(SubmodelElementCollection):
     semantic_id: str = "https://admin-shell.io/idta/AssetInterfacesDescription/1/0/PropertyDefinition"
@@ -362,8 +403,8 @@ class property_name(SubmodelElementCollection):
     type: Optional[Type] = None
     title: Optional[Title] = None
     observable: Optional[Observable] = None
-    const: Optional[Const] = None
     enum: Optional[enum_t] = None
+    const: Optional[Const] = None
     default: Optional[Default] = None
     unit: Optional[Unit] = None
     min_max: Optional[MinMax] = None
@@ -373,10 +414,11 @@ class property_name(SubmodelElementCollection):
     properties: Optional[properties_json_schema] = None
     valueSemantics: Optional[ValueSemantics] = None
     forms: forms_t
+    uriVariables: Optional[uriVariables_t] = None
 
 class properties(SubmodelElementCollection):
     semantic_id: str = "https://www.w3.org/2019/wot/td#PropertyAffordance"
-    description: str = "Collection of asset\u2019s datapoint definitions"
+    description: str = "Collection of asset\u2019s datapoint definitions as property SMC "
     property_name: Dict[str, property_name_t] = {}
 
 class actions(SubmodelElementCollection):
@@ -399,7 +441,6 @@ class InteractionMetadata(SubmodelElementCollection):
 
 class FileName(File):
     semantic_id: str = "https://admin-shell.io/idta/AssetInterfacesDescription/1/0/externalDescriptorName"
-    description: str = "File reference (local in AASX or outside) to an external descriptor description (e.g., Thing Description, GSDML, MTP, etc,).  "
     content_type: str = "application/json"
 
 class ExternalDescriptor(SubmodelElementCollection):
@@ -409,7 +450,7 @@ class ExternalDescriptor(SubmodelElementCollection):
 
 class InterfaceTemplateForHTTP(SubmodelElementCollection):
     semantic_id: str = "https://admin-shell.io/idta/AssetInterfacesDescription/1/0/Interface"
-    description: str = "Indicates entry point for HTTP interface."
+    description: str = "Indicates the entry point for a particular asset interface"
     supplemental_semantic_ids: List[str] = ["http://www.w3.org/2011/http", "https://www.w3.org/2019/wot/td"]
     title: Title
     created: Optional[Created] = None
@@ -422,12 +463,12 @@ class InterfaceTemplateForHTTP(SubmodelElementCollection):
 class ModvMostSignificantByte(Property):
     semantic_id: str = "https://www.w3.org/2019/wot/modbus#hasMostSignificantByte"
     description: str = "This property is only applicable for Modbus-based communication. When modv_mostSignificantByte is true, it describes that the byte order of the data in the Modbus message is the most significant byte first (i.e., Big-Endian). When false, it describes the least significant byte first (i.e., Little-Endian)."
-    value_type: str = "xs:string"
+    value_type: str = "xs:boolean"
 
 class ModvMostSignificantWord(Property):
     semantic_id: str = "https://www.w3.org/2019/wot/modbus#hasMostSignificantWord"
     description: str = "This property is only applicable for Modbus-based communication. When modv_mostSignificantWord is true, it describes that the word order of the data in the Modbus message is the most significant word first (i.e., no word swapping). When false, it describes the least significant word first (i.e. word swapping)."
-    value_type: str = "xs:string"
+    value_type: str = "xs:boolean"
 
 class ModvFunction(Property):
     semantic_id: str = "https://www.w3.org/2019/wot/modbus#hasFunction"
@@ -442,26 +483,26 @@ class ModvEntity(Property):
 class ModvZeroBasedAddressing(Property):
     semantic_id: str = "https://www.w3.org/2019/wot/modbus#hasZeroBasedAddressingFlag"
     description: str = "Modbus implementations can differ in the way addressing works, as the first coil/register can be either referred to as True or False."
-    value_type: str = "xs:string"
+    value_type: str = "xs:boolean"
 
 class ModvPollingTime(Property):
     semantic_id: str = "https://www.w3.org/2019/wot/modbus#hasPollingTime"
     description: str = "Modbus TCP maximum polling rate. The Modbus specification does not define a maximum or minimum allowed polling rate, however specific implementations might introduce such limits. Defined as integer of milliseconds."
-    value_type: str = "xs:string"
+    value_type: str = "xs:integer"
 
 class ModvTimeout(Property):
     semantic_id: str = "https://www.w3.org/2019/wot/modbus#hasTimeout"
     description: str = "Modbus response maximum waiting time. Defines how much time in milliseconds the runtime should wait until it receives a reply from the device."
-    value_type: str = "xs:string"
+    value_type: str = "xs:integer"
 
 class ModvType(Property):
     semantic_id: str = "https://www.w3.org/2019/wot/modbus#hasPayloadDataType"
-    description: str = "Defines the data type of the modbus asset payload. type in terms of possible sign, base type. the modv_type offers a set a types defined in XML schema defined in [12]. The set of supported types value are as follows:  xsd:float, xs:short ,xs:unsignedInt,,xs:string, xs:byte, xs:int, xs:boolean, xs:integer,xs:double, xs:hexbinary, xs:decimal, xs:long, xs:unsignedbyte, xs:unsignedshort, xs:unsignedint, xs:unsignedlong, "
+    description: str = "Defines the data type of the modbus asset payload. type in terms of possible sign, base type. the modv_type offers a set a types defined in XML schema "
     value_type: str = "xs:string"
 
 class InterfaceTemplateForMODBUS(SubmodelElementCollection):
     semantic_id: str = "https://admin-shell.io/idta/AssetInterfacesDescription/1/0/Interface"
-    description: str = "Indicates entry point for MODBUS interface."
+    description: str = "Indicates the entry point for a particular asset interface"
     supplemental_semantic_ids: List[str] = ["http://www.w3.org/2011/modbus", "https://www.w3.org/2019/wot/td"]
     title: Title
     created: Optional[Created] = None
@@ -474,7 +515,7 @@ class InterfaceTemplateForMODBUS(SubmodelElementCollection):
 class MqvRetain(Property):
     semantic_id: str = "https://www.w3.org/2019/wot/mqtt#hasRetainFlag"
     description: str = "It is an indicator that tells the broker to always retain last published payload. "
-    value_type: str = "xs:string"
+    value_type: str = "xs:boolean"
 
 class MqvControlPacket(Property):
     semantic_id: str = "https://www.w3.org/2019/wot/mqtt#ControlPacket"
@@ -483,12 +524,12 @@ class MqvControlPacket(Property):
 
 class MqvQos(Property):
     semantic_id: str = "https://www.w3.org/2019/wot/mqtt#hasQoSFlag"
-    description: str = "Defined the level of guarantee for message delivery between clients"
+    description: str = "Defined the level of guarantee for message delivery between clients."
     value_type: str = "xs:string"
 
 class InterfaceTemplateForMQTT(SubmodelElementCollection):
     semantic_id: str = "https://admin-shell.io/idta/AssetInterfacesDescription/1/0/Interface"
-    description: str = "Indicates entry point for MQTT interface."
+    description: str = "Indicates the entry point for a particular asset interface"
     supplemental_semantic_ids: List[str] = ["http://www.w3.org/2011/mqtt", "https://www.w3.org/2019/wot/td"]
     title: Title
     created: Optional[Created] = None
@@ -499,18 +540,15 @@ class InterfaceTemplateForMQTT(SubmodelElementCollection):
     ExternalDescriptor: Optional[ExternalDescriptor_t] = None
 
 class UavSecurityMode(Property):
-    semantic_id: str = "http://opcfoundation.org/UA/WoT-Binding/securityMode "
-    description: str = "Provides information about the security modes supported by the OPC UA server endpoint(e.g None, Sign,SignAndEncrypt)"
+    semantic_id: str = "http://opcfoundation.org/UA/WoT-Binding/securityMode"
     value_type: str = "xs:string"
 
 class UavSecurityPolicy(Property):
     semantic_id: str = "http://opcfoundation.org/UA/WoT-Binding/securityPolicy"
-    description: str = "Provides information about which policy options are available from the supported endpoints of the OPC UA server(e.g None, Basic256Sha256)"
     value_type: str = "xs:string"
 
 class opcua_channel_sc(SubmodelElementCollection):
     semantic_id: str = "http://opcfoundation.org/UA/WoT-Binding/OPCUASecurityChannelScheme"
-    description: str = "This SubmodelElements holds the information about security mechanism based on opcua_channel security."
     scheme: Scheme
     proxy: Optional[Proxy] = None
     uav_securityMode: UavSecurityMode
@@ -518,16 +556,13 @@ class opcua_channel_sc(SubmodelElementCollection):
 
 class UavUserIdentityToken(Property):
     semantic_id: str = "http://opcfoundation.org/UA/WoT-Binding/userIdentityToken"
-    description: str = "Provides information about which policy options are available from the supported endpoints of the OPC UA server (e.g Anonymous)"
     value_type: str = "xs:string"
 
 class UavIssueToken(ReferenceElement):
     semantic_id: str = "http://opcfoundation.org/UA/WoT-Binding/issueToken"
-    description: str = "Provides reference to security scheme within SecurityDefinition SMC that holds information about the token to use (e.g OAuth2)."
 
 class opcua_authentication_sc(SubmodelElementCollection):
-    semantic_id: str = "http://opcfoundation.org/UA/WoT-Binding/OPCUASecurityAuthenticationScheme "
-    description: str = "This SubmodelElements holds the information about security mechanism based on opcua_authentication security."
+    semantic_id: str = "http://opcfoundation.org/UA/WoT-Binding/OPCUASecurityAuthenticationScheme"
     scheme: Scheme
     proxy: Optional[Proxy] = None
     uav_userIdentityToken: UavUserIdentityToken
@@ -540,7 +575,7 @@ class UavBrowsePath(Property):
 
 class InterfaceTemplateForOPCUA(SubmodelElementCollection):
     semantic_id: str = "https://admin-shell.io/idta/AssetInterfacesDescription/1/0/Interface"
-    description: str = "Indicates entry point for OPC UA interface."
+    description: str = "Indicates the entry point for a particular asset interface"
     supplemental_semantic_ids: List[str] = ["http://opcfoundation.org/UA/WoT-Binding/", "https://www.w3.org/2019/wot/td"]
     title: Title
     created: Optional[Created] = None
@@ -557,7 +592,7 @@ class uriVariables(SubmodelElementCollection):
 
 class BacvUseService(Property):
     semantic_id: str = "http://www.w3.org/2022/bacnet#usesService"
-    description: str = "Defines the BACnet service to use on a datapoint operation."
+    description: str = "Defines the BACnet service to use on a datapoint operation"
     value_type: str = "xs:string"
 
 class BacvIsISO8601(Property):
@@ -567,8 +602,8 @@ class BacvIsISO8601(Property):
 
 class BacvHasBinaryRepresentation(Property):
     semantic_id: str = "http://www.w3.org/2022/bacnet#hasBinaryRepresentation"
-    description: str = "Defines the payload\u2019s binary representation type. This term is used when the payload is an OctetString"
-    value_type: str = "xs:boolean"
+    description: str = "Defines the payload\u2019s binary representation type. This term is used when the payload is an OctetString."
+    value_type: str = "xs:string"
 
 class BacvHasFieldName(Property):
     semantic_id: str = "http://www.w3.org/2022/bacnet#hasfieldName"
@@ -580,22 +615,21 @@ class BacvHasContextTag(Property):
     description: str = "Defines Context Tag for a Named Member of a Sequence or Choice data type."
     value_type: str = "xs:boolean"
 
-class properties_named_member(SubmodelElementCollection):
+class bacv_hasNamedMemberItem(SubmodelElementCollection):
     semantic_id: str = "http://www.w3.org/2022/bacnet#NamedMember"
     description: str = "Defines the Named Member of a Sequence or Choice data type."
     bacv_hasFieldName: BacvHasFieldName
-    bacv_hasContextTag: BacvHasContextTag
+    bacv_hasContextTag: Optional[BacvHasContextTag] = None
     bacv_hasDataType: Optional[bacv_hasDataType_t] = None
 
 class bacv_hasNamedMember(SubmodelElementList):
     semantic_id: str = "http://www.w3.org/2022/bacnet#hasNamedMember"
-    description: str = "Defines the Named Member of a Sequence or Choice data type."
-    item_type: ClassVar = properties_named_member
-    value: List[properties_named_member] = []
+    item_type: ClassVar = bacv_hasNamedMemberItem
+    value: List[bacv_hasNamedMemberItem] = []
 
 class BacvHasLogicalVal(Property):
     semantic_id: str = "http://www.w3.org/2022/bacnet#hasLogicalVal"
-    description: str = "Defines the logical value for a ValueMap."
+    description: str = "Defines the logical value for a ValueMap"
     value_type: str = "xs:string"
 
 class BacvHasProtocolVal(Property):
@@ -603,7 +637,7 @@ class BacvHasProtocolVal(Property):
     description: str = "Defines the protocol value for a ValueMap."
     value_type: str = "xs:integer"
 
-class properties_has_map_entry(SubmodelElementCollection):
+class bacv_hasValueMapItem(SubmodelElementCollection):
     semantic_id: str = "http://www.w3.org/2022/bacnet#hasMapEntry"
     description: str = "Defines the value map for an Enumeration."
     bacv_hasLogicalVal: BacvHasLogicalVal
@@ -612,8 +646,8 @@ class properties_has_map_entry(SubmodelElementCollection):
 class bacv_hasValueMap(SubmodelElementList):
     semantic_id: str = "http://www.w3.org/2022/bacnet#hasValueMap"
     description: str = "Defines the value map of an enumeration."
-    item_type: ClassVar = properties_has_map_entry
-    value: List[properties_has_map_entry] = []
+    item_type: ClassVar = bacv_hasValueMapItem
+    value: List[bacv_hasValueMapItem] = []
 
 class bacv_hasMember(SubmodelElementCollection):
     semantic_id: str = "http://www.w3.org/2022/bacnet#hasMember"
@@ -621,7 +655,7 @@ class bacv_hasMember(SubmodelElementCollection):
     bacv_isISO8601: Optional[BacvIsISO8601] = None
     bacv_hasBinaryRepresentation: Optional[BacvHasBinaryRepresentation] = None
     bacv_hasMember: Optional[bacv_hasMember_t] = None
-    bacv_hasNamedMember: bacv_hasNamedMember_t
+    bacv_hasNamedMember: Optional[bacv_hasNamedMember_t] = None
     bacv_hasValueMap: Optional[bacv_hasValueMap_t] = None
 
 class bacv_hasDataType(SubmodelElementCollection):
@@ -631,12 +665,12 @@ class bacv_hasDataType(SubmodelElementCollection):
     bacv_isISO8601: Optional[BacvIsISO8601] = None
     bacv_hasBinaryRepresentation: Optional[BacvHasBinaryRepresentation] = None
     bacv_hasMember: Optional[bacv_hasMember_t] = None
-    bacv_hasNamedMember: bacv_hasNamedMember_t
+    bacv_hasNamedMember: Optional[bacv_hasNamedMember_t] = None
     bacv_hasValueMap: Optional[bacv_hasValueMap_t] = None
 
 class InterfaceTemplateForBacnet(SubmodelElementCollection):
     semantic_id: str = "https://admin-shell.io/idta/AssetInterfacesDescription/1/0/Interface"
-    description: str = "Indicates entry point for BACnet interface."
+    description: str = "Indicates the entry point for a particular asset interface"
     supplemental_semantic_ids: List[str] = ["http://www.w3.org/2022/bacnet", "https://www.w3.org/2019/wot/td"]
     title: Title
     created: Optional[Created] = None
@@ -651,7 +685,7 @@ class IolvMethod(Property):
     description: str = "Defines the type of operation to execute on a datapoint"
     value_type: str = "xs:string"
 
-class IolvAccessRigths(Property):
+class IolvAccessRights(Property):
     semantic_id: str = "https://admin-shell.io/idta/AssetInterfacesDescription/1/1/IO-Link/hasAccessRights"
     description: str = "Defines the type of operation that can be executed of a datapoint."
     value_type: str = "xs:string"
@@ -663,27 +697,31 @@ class IolvType(Property):
 
 class IolvByteOffset(Property):
     semantic_id: str = "https://admin-shell.io/idta/AssetInterfacesDescription/1/1/IO-Link/byteOffset"
-    description: str = "For object type datapoints. Used to identify the starting point within a byte stream payload that represents a datapoint."
-    value_type: str = "xs:string"
+    description: str = "For object type datapoints. Used to identify the starting point within a byte stream payload that represents a datapoint"
+    value_type: str = "xs:nonNegativeInteger"
 
 class IolvByteLength(Property):
     semantic_id: str = "https://admin-shell.io/idta/AssetInterfacesDescription/1/1/IO-Link/byteLength"
     description: str = "For object type datapoints. Used to identify the byte length within a byte stream payload that represents a datapoint."
-    value_type: str = "xs:string"
+    value_type: str = "xs:nonNegativeInteger"
 
 class IolvBitOffset(Property):
     semantic_id: str = "https://admin-shell.io/idta/AssetInterfacesDescription/1/1/IO-Link/bitOffset"
     description: str = "For object type datapoints. Used to identify the starting point within a bit stream payload that represents a datapoint."
-    value_type: str = "xs:integer"
+    value_type: str = "xs:nonNegativeInteger"
 
 class IolvBitLength(Property):
     semantic_id: str = "https://admin-shell.io/idta/AssetInterfacesDescription/1/1/IO-Link/bitLength"
     description: str = "For object type datapoints. Used to identify the bit length of a datapoint from the bit stream payload."
-    value_type: str = "xs:string"
+    value_type: str = "xs:nonNegativeInteger"
+
+class IolvReferenceToCondition(ReferenceElement):
+    semantic_id: str = "https://admin-shell.io/idta/AssetInterfacesDescription/1/1/IO-Link/referenceToCondition"
+    description: str = "Defined the reference to a condition that must be validated on a datapoint. "
 
 class IolvEncodedPayload(Property):
     semantic_id: str = "https://admin-shell.io/idta/AssetInterfacesDescription/1/1/IO-Link/encodedPayload"
-    description: str = "Specifies the presentation of the payload Logical encoding.  "
+    description: str = "Specifies the presentation of the payload Logical encoding"
     value_type: str = "xs:string"
 
 class IolvDecodedPayload(Property):
@@ -691,24 +729,24 @@ class IolvDecodedPayload(Property):
     description: str = "Specifies the human readable meaning of the payload Logical encoding.  "
     value_type: str = "xs:integer"
 
-class iolv_enumeratedValue(SubmodelElementCollection):
-    semantic_id: str = "http://www.w3.org/2022/wot/iolink#EnumeratedValue"
+class iolv_enumeratedValuesItem(SubmodelElementCollection):
+    semantic_id: str = "https://admin-shell.io/idta/AssetInterfacesDescription/1/1/IO-Link/enumeratedValue"
     description: str = "Defines the logical semantic to encoded payload provided a byte or byte stream."
     iolv_encodedPayload: IolvEncodedPayload
     iolv_decodedPayload: IolvDecodedPayload
 
 class iolv_enumeratedValues(SubmodelElementList):
     semantic_id: str = "https://admin-shell.io/idta/AssetInterfacesDescription/1/1/IO-Link/hasEnumeratedValues"
-    description: str = "Contains a list of enumerated values that define the logical semantic to encoded payload provided a byte or byte stream. "
-    item_type: ClassVar = iolv_enumeratedValue
-    value: List[iolv_enumeratedValue] = []
+    description: str = "Contains a list of enumerated values that define the logical semantic to encoded payload provided a byte or byte stream"
+    item_type: ClassVar = iolv_enumeratedValuesItem
+    value: List[iolv_enumeratedValuesItem] = []
 
 class IolvReferenceToProperty(ReferenceElement):
     semantic_id: str = "https://admin-shell.io/idta/AssetInterfacesDescription/1/1/IO-Link/referenceToProperty"
     description: str = "Defined the reference to a nested datapoint of an object type datapoint. "
 
-class iolv_payloadMappingElement(SubmodelElementCollection):
-    semantic_id: str = "http://www.w3.org/2022/wot/iolink#PayloadMapping"
+class iolv_payloadMappingItem(SubmodelElementCollection):
+    semantic_id: str = "https://admin-shell.io/idta/AssetInterfacesDescription/1/1/IO-Link/payloadMapping"
     description: str = "Defines the payload mapping associated to a datapoint."
     iolv_referenceToProperty: Optional[IolvReferenceToProperty] = None
     iolv_type: Optional[IolvType] = None
@@ -720,13 +758,13 @@ class iolv_payloadMappingElement(SubmodelElementCollection):
 
 class iolv_payloadMapping(SubmodelElementList):
     semantic_id: str = "https://admin-shell.io/idta/AssetInterfacesDescription/1/1/IO-Link/hasPayloadMapping"
-    description: str = "For object type datapoints. Used to provides logical mapping information of a complex payload from a IO lInk device."
-    item_type: ClassVar = iolv_payloadMappingElement
-    value: List[iolv_payloadMappingElement] = []
+    description: str = "For object type datapoints. Used to provides logical mapping information for a complex payload from an IO-Link device."
+    item_type: ClassVar = iolv_payloadMappingItem
+    value: List[iolv_payloadMappingItem] = []
 
 class InterfaceTemplateForIOLINK_OVER_PROFINET_REST(SubmodelElementCollection):
     semantic_id: str = "https://admin-shell.io/idta/AssetInterfacesDescription/1/0/Interface"
-    description: str = "Indicates entry point for IO Link over HTTP and PROFINET interface."
+    description: str = "Indicates the entry point for a particular asset interface"
     supplemental_semantic_ids: List[str] = ["https://admin-shell.io/idta/AssetInterfacesDescription/1/1/IO-Link", "https://www.w3.org/2019/wot/td"]
     title: Title
     created: Optional[Created] = None
@@ -736,19 +774,100 @@ class InterfaceTemplateForIOLINK_OVER_PROFINET_REST(SubmodelElementCollection):
     InteractionMetadata: InteractionMetadata_t
     ExternalDescriptor: Optional[ExternalDescriptor_t] = None
 
+class InterfaceTemplateForSNMP(SubmodelElementCollection):
+    semantic_id: str = "https://admin-shell.io/idta/AssetInterfacesDescription/1/0/Interface"
+    description: str = "Indicates the entry point for a particular asset interface"
+    supplemental_semantic_ids: List[str] = ["https://admin-shell.io/idta/AssetInterfacesDescription/1/2/SNMP", "https://www.w3.org/2019/wot/td"]
+    title: Title
+    created: Optional[Created] = None
+    modified: Optional[Modified] = None
+    support: Optional[Support] = None
+    EndpointMetadata: EndpointMetadata_t
+    InteractionMetadata: InteractionMetadata_t
+    ExternalDescriptor: Optional[ExternalDescriptor_t] = None
+
+class CanvOffset(Property):
+    semantic_id: str = "https://admin-shell.io/idta/AssetInterfacesDescription/1/2/CAN/offset"
+    description: str = "Offset to indicate the beginning of a data point in the message payload."
+    value_type: str = "xs:nonNegativeInteger"
+
+class CanvLength(Property):
+    semantic_id: str = "https://admin-shell.io/idta/AssetInterfacesDescription/1/2/CAN/length"
+    description: str = "Length of the data point in the message payload."
+    value_type: str = "xs:nonNegativeInteger"
+
+class CanvValueOffset(Property):
+    semantic_id: str = "https://admin-shell.io/idta/AssetInterfacesDescription/1/2/CAN/value-offset"
+    description: str = "A constant to add to the decoded data point in order to restore its actual value"
+    value_type: str = "xs:double"
+
+class CanvEncodedPayload(Property):
+    semantic_id: str = "https://admin-shell.io/idta/AssetInterfacesDescription/1/2/CAN/encodedPayload"
+    description: str = "Specifies the presentation of the payload Logical encoding"
+    value_type: str = "xs:string"
+
+class CanvDecodedPayload(Property):
+    semantic_id: str = "https://admin-shell.io/idta/AssetInterfacesDescription/1/2/CAN/decodedPayload"
+    description: str = "Specifies the presentation of the payload Logical encoding"
+    value_type: str = "xs:integer"
+
+class canv_enumeratedValuesItem(SubmodelElementCollection):
+    semantic_id: str = "https://admin-shell.io/idta/AssetInterfacesDescription/1/2/CAN/enumeratedValue"
+    description: str = "Defines the logical semantic to encoded payload provided a byte or byte stream"
+    canv_encodedPayload: CanvEncodedPayload
+    canv_decodedPayload: CanvDecodedPayload
+
+class canv_enumeratedValues(SubmodelElementList):
+    semantic_id: str = "https://admin-shell.io/idta/AssetInterfacesDescription/1/2/CAN/hasEnumeratedValues"
+    description: str = "Contains a list of enumerated values that define the logical semantic to encoded payload provided a byte or byte stream. "
+    item_type: ClassVar = canv_enumeratedValuesItem
+    value: List[canv_enumeratedValuesItem] = []
+
+class CanvReferenceToProperty(ReferenceElement):
+    semantic_id: str = "https://admin-shell.io/idta/AssetInterfacesDescription/1/2/CAN/referenceToProperty"
+    description: str = "Defined the reference to a nested datapoint of an object type datapoint. "
+
+class canv_payloadMappingItem(SubmodelElementCollection):
+    semantic_id: str = "https://admin-shell.io/idta/AssetInterfacesDescription/1/2/CAN/payloadMapping"
+    description: str = "Defines the payload mapping associated to a datapoint."
+    canv_referenceToProperty: CanvReferenceToProperty
+    canv_offset: CanvOffset
+    canv_length: CanvLength
+    canv_valueOffset: Optional[CanvValueOffset] = None
+    canv_enumeratedValues: Optional[canv_enumeratedValues_t] = None
+
+class canv_payloadMapping(SubmodelElementList):
+    semantic_id: str = "https://admin-shell.io/idta/AssetInterfacesDescription/1/2/CAN/hasPayloadMapping"
+    description: str = "For object type datapoints. Used to provide logical mapping information of a complex payload from a CAN device."
+    item_type: ClassVar = canv_payloadMappingItem
+    value: List[canv_payloadMappingItem] = []
+
+class InterfaceTemplateForCAN(SubmodelElementCollection):
+    semantic_id: str = "https://admin-shell.io/idta/AssetInterfacesDescription/1/0/Interface"
+    description: str = "Indicates the entry point for a particular asset interface"
+    supplemental_semantic_ids: List[str] = ["https://admin-shell.io/idta/AssetInterfacesDescription/1/2/CAN", "https://www.w3.org/2019/wot/td"]
+    title: Title
+    created: Optional[Created] = None
+    modified: Optional[Modified] = None
+    support: Optional[Support] = None
+    EndpointMetadata: EndpointMetadata_t
+    InteractionMetadata: InteractionMetadata_t
+    ExternalDescriptor: Optional[ExternalDescriptor_t] = None
+
 class AssetInterfacesDescription(Submodel):
-    semantic_id: str = "https://admin-shell.io/idta/AssetInterfacesDescription/1/1/Submodel"
-    description: str = "Definition of the Submodel Asset Interfaces Description identified by its semanticId. The Submodel idShort can be picked freely."
+    semantic_id: str = "https://admin-shell.io/idta/AssetInterfacesDescription/1/2/Submodel"
+    description: str = "Definition of the Submodel Asset Interfaces Description identified by its semanticId."
     VERSION: ClassVar[str] = "1"
-    REVISION: ClassVar[str] = "1"
+    REVISION: ClassVar[str] = "2"
     InterfaceTemplateForHTTP: Dict[str, InterfaceTemplateForHTTP_t] = {}
     InterfaceTemplateForMODBUS: Dict[str, InterfaceTemplateForMODBUS_t] = {}
     InterfaceTemplateForMQTT: Dict[str, InterfaceTemplateForMQTT_t] = {}
     InterfaceTemplateForOPCUA: Dict[str, InterfaceTemplateForOPCUA_t] = {}
     InterfaceTemplateForBacnet: Dict[str, InterfaceTemplateForBacnet_t] = {}
     InterfaceTemplateForIOLINK_OVER_PROFINET_REST: Dict[str, InterfaceTemplateForIOLINK_OVER_PROFINET_REST_t] = {}
+    InterfaceTemplateForSNMP: Dict[str, InterfaceTemplateForSNMP_t] = {}
+    InterfaceTemplateForCAN: Dict[str, InterfaceTemplateForCAN_t] = {}
 
-# ── Clash aliases: field name == element class name ──
 # alias so field ``oneOf_t`` can name a class of the same id_short
 oneOf_t: TypeAlias = oneOf
 # alias so field ``allOf_t`` can name a class of the same id_short
@@ -773,6 +892,10 @@ digest_sc_t: TypeAlias = digest_sc
 bearer_sc_t: TypeAlias = bearer_sc
 # alias so field ``oauth2_sc_t`` can name a class of the same id_short
 oauth2_sc_t: TypeAlias = oauth2_sc
+# alias so field ``opcua_channel_sc_t`` can name a class of the same id_short
+opcua_channel_sc_t: TypeAlias = opcua_channel_sc
+# alias so field ``opcua_authentication_sc_t`` can name a class of the same id_short
+opcua_authentication_sc_t: TypeAlias = opcua_authentication_sc
 # alias so field ``security_t`` can name a class of the same id_short
 security_t: TypeAlias = security
 # alias so field ``securityDefinitions_t`` can name a class of the same id_short
@@ -783,8 +906,20 @@ enum_t: TypeAlias = enum
 items_t: TypeAlias = items
 # alias so field ``htv_headers_t`` can name a class of the same id_short
 htv_headers_t: TypeAlias = htv_headers
+# alias so field ``bacv_hasDataType_t`` can name a class of the same id_short
+bacv_hasDataType_t: TypeAlias = bacv_hasDataType
+# alias so field ``iolv_enumeratedValues_t`` can name a class of the same id_short
+iolv_enumeratedValues_t: TypeAlias = iolv_enumeratedValues
+# alias so field ``iolv_payloadMapping_t`` can name a class of the same id_short
+iolv_payloadMapping_t: TypeAlias = iolv_payloadMapping
+# alias so field ``canv_enumeratedValues_t`` can name a class of the same id_short
+canv_enumeratedValues_t: TypeAlias = canv_enumeratedValues
+# alias so field ``canv_payloadMapping_t`` can name a class of the same id_short
+canv_payloadMapping_t: TypeAlias = canv_payloadMapping
 # alias so field ``forms_t`` can name a class of the same id_short
 forms_t: TypeAlias = forms
+# alias so field ``uriVariables_t`` can name a class of the same id_short
+uriVariables_t: TypeAlias = uriVariables
 # alias so field ``property_name_t`` can name a class of the same id_short
 property_name_t: TypeAlias = property_name
 # alias so field ``properties_t`` can name a class of the same id_short
@@ -799,16 +934,12 @@ EndpointMetadata_t: TypeAlias = EndpointMetadata
 InteractionMetadata_t: TypeAlias = InteractionMetadata
 # alias so field ``ExternalDescriptor_t`` can name a class of the same id_short
 ExternalDescriptor_t: TypeAlias = ExternalDescriptor
-# alias so field ``bacv_hasDataType_t`` can name a class of the same id_short
-bacv_hasDataType_t: TypeAlias = bacv_hasDataType
 # alias so field ``bacv_hasMember_t`` can name a class of the same id_short
 bacv_hasMember_t: TypeAlias = bacv_hasMember
 # alias so field ``bacv_hasNamedMember_t`` can name a class of the same id_short
 bacv_hasNamedMember_t: TypeAlias = bacv_hasNamedMember
 # alias so field ``bacv_hasValueMap_t`` can name a class of the same id_short
 bacv_hasValueMap_t: TypeAlias = bacv_hasValueMap
-# alias so field ``iolv_enumeratedValues_t`` can name a class of the same id_short
-iolv_enumeratedValues_t: TypeAlias = iolv_enumeratedValues
 # alias so field ``InterfaceTemplateForHTTP_t`` can name a class of the same id_short
 InterfaceTemplateForHTTP_t: TypeAlias = InterfaceTemplateForHTTP
 # alias so field ``InterfaceTemplateForMODBUS_t`` can name a class of the same id_short
@@ -821,7 +952,10 @@ InterfaceTemplateForOPCUA_t: TypeAlias = InterfaceTemplateForOPCUA
 InterfaceTemplateForBacnet_t: TypeAlias = InterfaceTemplateForBacnet
 # alias so field ``InterfaceTemplateForIOLINK_OVER_PROFINET_REST_t`` can name a class of the same id_short
 InterfaceTemplateForIOLINK_OVER_PROFINET_REST_t: TypeAlias = InterfaceTemplateForIOLINK_OVER_PROFINET_REST
-
+# alias so field ``InterfaceTemplateForSNMP_t`` can name a class of the same id_short
+InterfaceTemplateForSNMP_t: TypeAlias = InterfaceTemplateForSNMP
+# alias so field ``InterfaceTemplateForCAN_t`` can name a class of the same id_short
+InterfaceTemplateForCAN_t: TypeAlias = InterfaceTemplateForCAN
 # ── Resolve forward references (Pydantic circular refs) ──
 Title.model_rebuild()
 Created.model_rebuild()
@@ -855,12 +989,13 @@ scopes.model_rebuild()
 Flow.model_rebuild()
 oauth2_sc.model_rebuild()
 securityDefinitions.model_rebuild()
+ProtocolVersion.model_rebuild()
 EndpointMetadata.model_rebuild()
 Key.model_rebuild()
 Type.model_rebuild()
 Observable.model_rebuild()
-Const.model_rebuild()
 enum.model_rebuild()
+Const.model_rebuild()
 Default.model_rebuild()
 Unit.model_rebuild()
 MinMax.model_rebuild()
@@ -875,7 +1010,7 @@ Subprotocol.model_rebuild()
 HtvMethodName.model_rebuild()
 HtvFieldName.model_rebuild()
 HtvFieldValue.model_rebuild()
-htv_header.model_rebuild()
+htv_headersItem.model_rebuild()
 htv_headers.model_rebuild()
 forms.model_rebuild()
 property_name.model_rebuild()
@@ -913,28 +1048,41 @@ BacvIsISO8601.model_rebuild()
 BacvHasBinaryRepresentation.model_rebuild()
 BacvHasFieldName.model_rebuild()
 BacvHasContextTag.model_rebuild()
-properties_named_member.model_rebuild()
+bacv_hasNamedMemberItem.model_rebuild()
 bacv_hasNamedMember.model_rebuild()
 BacvHasLogicalVal.model_rebuild()
 BacvHasProtocolVal.model_rebuild()
-properties_has_map_entry.model_rebuild()
+bacv_hasValueMapItem.model_rebuild()
 bacv_hasValueMap.model_rebuild()
 bacv_hasMember.model_rebuild()
 bacv_hasDataType.model_rebuild()
 InterfaceTemplateForBacnet.model_rebuild()
 IolvMethod.model_rebuild()
-IolvAccessRigths.model_rebuild()
+IolvAccessRights.model_rebuild()
 IolvType.model_rebuild()
 IolvByteOffset.model_rebuild()
 IolvByteLength.model_rebuild()
 IolvBitOffset.model_rebuild()
 IolvBitLength.model_rebuild()
+IolvReferenceToCondition.model_rebuild()
 IolvEncodedPayload.model_rebuild()
 IolvDecodedPayload.model_rebuild()
-iolv_enumeratedValue.model_rebuild()
+iolv_enumeratedValuesItem.model_rebuild()
 iolv_enumeratedValues.model_rebuild()
 IolvReferenceToProperty.model_rebuild()
-iolv_payloadMappingElement.model_rebuild()
+iolv_payloadMappingItem.model_rebuild()
 iolv_payloadMapping.model_rebuild()
 InterfaceTemplateForIOLINK_OVER_PROFINET_REST.model_rebuild()
+InterfaceTemplateForSNMP.model_rebuild()
+CanvOffset.model_rebuild()
+CanvLength.model_rebuild()
+CanvValueOffset.model_rebuild()
+CanvEncodedPayload.model_rebuild()
+CanvDecodedPayload.model_rebuild()
+canv_enumeratedValuesItem.model_rebuild()
+canv_enumeratedValues.model_rebuild()
+CanvReferenceToProperty.model_rebuild()
+canv_payloadMappingItem.model_rebuild()
+canv_payloadMapping.model_rebuild()
+InterfaceTemplateForCAN.model_rebuild()
 AssetInterfacesDescription.model_rebuild()

@@ -7,7 +7,12 @@ Usage::
 
 Regenerate::
 
-    python scripts/idta_generate.py \\
-        submodel-templates/published/<Template>/<version>/<file>.json \\
-        aas_pydantic/templates/
+    python scripts/idta_generate.py
+
+The default command writes the pinned templates to this package. To
+generate one template, pass its path relative to
+``submodel-templates/published/``. Each generated module records its source
+template path in its module docstring. Containers use direct fields preserving
+idShort casing; cardinality controls required, optional, and dynamic-map fields,
+while SubmodelElementLists retain list semantics.
 """

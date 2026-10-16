@@ -1,4 +1,6 @@
-"""Nameplate — generated from IDTA template."""
+"""Nameplate - generated from IDTA template.
+Source: Digital nameplate/3/0/2/IDTA 02006-3-0-2_Template_Digital Nameplate.json
+"""
 
 from __future__ import annotations
 
@@ -167,16 +169,16 @@ class Markings(SubmodelElementList):
 
 class ArbitraryProperty(Property):
     semantic_id: str = "https://admin-shell.io/SMT/General/ArbitraryProp"
-    description: str = "Note: Every property can be used."
+    description: str = "Note: Every property can be used. Note: The idShort is arbitrary Note: The use of a displayName is recommended."
     value_type: str = "xs:string"
 
 class ArbitraryMLP(MultiLanguageProperty):
     semantic_id: str = "https://admin-shell.io/SMT/General/ArbitraryMLP"
-    description: str = "Note: Every multilanguage property can be used."
+    description: str = "Note: Every multilanguage property can be used. Note: The idShort is arbitrary Note: The use of a displayName is recommended."
 
 class ArbitraryFile(File):
     semantic_id: str = "https://admin-shell.io/SMT/General/ArbitraryFile"
-    description: str = "Note: Every file can be used."
+    description: str = "Note: Every file can be used. The idShort is arbitrary Note: The use of a displayName is recommended."
     content_type: str = "application/pdf"
 
 class GuidelineForConformityDeclaration(Property):
@@ -228,7 +230,6 @@ class Nameplate(Submodel):
     Markings: Optional[Markings_t] = None
     AssetSpecificProperties: Optional[AssetSpecificProperties_t] = None
 
-# ── Clash aliases: field name == element class name ──
 # alias so field ``Street_t`` can name a class of the same id_short
 Street_t: TypeAlias = Street
 # alias so field ``Zipcode_t`` can name a class of the same id_short
@@ -301,7 +302,6 @@ CompanyLogo_t: TypeAlias = CompanyLogo
 Markings_t: TypeAlias = Markings
 # alias so field ``AssetSpecificProperties_t`` can name a class of the same id_short
 AssetSpecificProperties_t: TypeAlias = AssetSpecificProperties
-
 # ── Resolve forward references (Pydantic circular refs) ──
 URIOfTheProduct.model_rebuild()
 ManufacturerName.model_rebuild()

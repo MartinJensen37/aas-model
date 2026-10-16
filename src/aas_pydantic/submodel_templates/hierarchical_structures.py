@@ -1,4 +1,6 @@
-"""HierarchicalStructures — generated from IDTA template."""
+"""HierarchicalStructures - generated from IDTA template.
+Source: Hierarchical Structures enabling Bills of Material/1/1/2/IDTA 02011-1-1-2_Template_HSEBoM_forAASMetamodelV3.1.json
+"""
 
 from __future__ import annotations
 
@@ -88,7 +90,6 @@ class HierarchicalStructures(Submodel):
     EntryNode: EntryNode_t
     ArcheType: ArcheType_t
 
-# ── Clash aliases: field name == element class name ──
 # alias so field ``Node_t`` can name a class of the same id_short
 Node_t: TypeAlias = Node
 # alias so field ``SameAs_t`` can name a class of the same id_short
@@ -103,7 +104,6 @@ BulkCount_t: TypeAlias = BulkCount
 EntryNode_t: TypeAlias = EntryNode
 # alias so field ``ArcheType_t`` can name a class of the same id_short
 ArcheType_t: TypeAlias = ArcheType
-
 # ── Resolve forward references (Pydantic circular refs) ──
 SameAs.model_rebuild()
 IsPartOf.model_rebuild()

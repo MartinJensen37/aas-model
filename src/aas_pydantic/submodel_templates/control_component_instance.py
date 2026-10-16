@@ -1,4 +1,6 @@
-"""ControlComponentInstance — generated from IDTA template."""
+"""ControlComponentInstance - generated from IDTA template.
+Source: Control Component Instance/2/0/1/IDTA 02016-2-0-1 _Template_ControlComponentInstance_forAASMetamodelV3.1.json
+"""
 
 from __future__ import annotations
 
@@ -111,7 +113,6 @@ class ControlComponentInstance(Submodel):
     Skills: Skills_t
     Type: Type_instance
 
-# ── Clash aliases: field name == element class name ──
 # alias so field ``InterfaceReference_t`` can name a class of the same id_short
 InterfaceReference_t: TypeAlias = InterfaceReference
 # alias so field ``EndpointReference_t`` can name a class of the same id_short
@@ -148,7 +149,6 @@ Skill_t: TypeAlias = Skill
 Endpoints_t: TypeAlias = Endpoints
 # alias so field ``Skills_t`` can name a class of the same id_short
 Skills_t: TypeAlias = Skills
-
 # ── Resolve forward references (Pydantic circular refs) ──
 InterfaceReference.model_rebuild()
 EndpointReference.model_rebuild()

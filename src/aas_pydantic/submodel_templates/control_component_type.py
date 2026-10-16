@@ -1,4 +1,6 @@
-"""ControlComponentType — generated from IDTA template."""
+"""ControlComponentType - generated from IDTA template.
+Source: Control Component Type/2/0/2/IDTA 02015-2-0-2 _Template_ControlComponentType_forAASMetamodelV3.1.json
+"""
 
 from __future__ import annotations
 
@@ -130,7 +132,6 @@ class ControlComponentType(Submodel):
     Errors: Errors_t
     Skills: Skills_t
 
-# ── Clash aliases: field name == element class name ──
 # alias so field ``InterfaceProfile_t`` can name a class of the same id_short
 InterfaceProfile_t: TypeAlias = InterfaceProfile
 # alias so field ``InterfaceProfileSupplement_t`` can name a class of the same id_short
@@ -173,7 +174,6 @@ Interfaces_t: TypeAlias = Interfaces
 Errors_t: TypeAlias = Errors
 # alias so field ``Skills_t`` can name a class of the same id_short
 Skills_t: TypeAlias = Skills
-
 # ── Resolve forward references (Pydantic circular refs) ──
 InterfaceProfile.model_rebuild()
 InterfaceProfileSupplement.model_rebuild()

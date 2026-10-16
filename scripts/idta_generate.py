@@ -1,23 +1,17 @@
 #!/usr/bin/env python3
 """Generate aas_pydantic models from IDTA submodel template JSON.
 
-Emits the basyx/IDTA-aligned container structure:
+Emits named-field pydantic models from IDTA templates:
 
-    Submodel:  submodel_element: Dict[str, SubmodelElement] = { child: Elem(...) }
-    SMC:       value:            Dict[str, SubmodelElement] = { child: Elem(...) }
-    SML:       value:            List[Any]                   = [ Item(...) ]
+    Submodel:  ManufacturerName: ManufacturerName
+    SMC:       InterfaceTemplateForMQTT: InterfaceTemplateForMQTT
+    SML:       value: List[Item]
 
-Child elements are pre-populated from the template's example element(s) as
-typed instances, with all semantic_id / description / value_type metadata.
-The dict key IS the child's id_short: every instance carries
-``id_short=<key>`` so key == Python variable name == model id_short ==
-basyx id_short (one canonical name per element).
-
-There is no cardinality analysis, no field renames, no Pydantic name-collision
-workarounds: the container structure makes the generator template-agnostic.
-Subclasses may narrow the container element type, e.g.
-``value: Dict[str, Parameter]`` (see the handwritten Variables/Parameters
-submodels).
+Container children are emitted as direct fields using their idShort spelling.
+Required and optional fields follow SMT/Cardinality; multi-cardinality
+elements become dynamic name-keyed maps, while SubmodelElementLists retain
+their list behavior. IDTA example children define the class metadata, including
+semantic_id, description, value_type, and supplemental semantic IDs.
 """
 
 import json
@@ -54,14 +48,32 @@ def snake(name: str) -> str:
 
 
 def field_name(name: str) -> str:
-    """snake_case field name that is a valid Python identifier (reserved words
-    get a trailing underscore, e.g. W3C ``in`` → ``in_``).  IDTA ``__NN__``
-    placeholder suffixes (``Mode__00__``) are stripped first (→ ``mode``)."""
+    """Preserve idShort spelling while producing a valid Python identifier.
+
+    IDTA ``__NN__`` placeholder suffixes are stripped; invalid characters are
+    replaced with underscores and Python keywords receive a trailing underscore.
+    """
     name = re.sub(r"__\d+__$", "", name or "")
-    s = snake(name)
+    s = safe_name(name)
+    if s and s[0].isdigit():
+        s = f"_{s}"
     if keyword.iskeyword(s):
         s += "_"
     return s
+
+
+_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+TEMPLATE_ROOT = os.path.join(_ROOT, "submodel-templates", "published")
+OUTPUT_ROOT = os.path.join(_ROOT, "src", "aas_pydantic", "submodel_templates")
+TEMPLATES = (
+    "Capability Description/1/0/1/IDTA 02020_Template_Capability_Description.json",
+    "Control Component Instance/2/0/1/IDTA 02016-2-0-1 _Template_ControlComponentInstance_forAASMetamodelV3.1.json",
+    "Control Component Type/2/0/2/IDTA 02015-2-0-2 _Template_ControlComponentType_forAASMetamodelV3.1.json",
+    "Hierarchical Structures enabling Bills of Material/1/1/2/IDTA 02011-1-1-2_Template_HSEBoM_forAASMetamodelV3.1.json",
+    "Digital nameplate/3/0/2/IDTA 02006-3-0-2_Template_Digital Nameplate.json",
+    "Asset Interfaces Mapping Configuration/2/1/IDTA 02027_Template_AIMC.json",
+    "Asset Interfaces Description/1/2/IDTA 02017_Template_Asset Interfaces Description.json",
+)
 
 
 def to_camel(name: str) -> str:
@@ -97,6 +109,75 @@ _LAMBDA_CLASH_RE = re.compile(
 )
 _OPT_CLASH_RE = re.compile(r"^    (\w+): Optional\[(\w+)\] = None$")
 _REQUIRED_CLASH_RE = re.compile(r"^    (\w+): (\w+)$")
+_FIELD_LINE_RE = re.compile(r"^    (\w+): (.+?)(?: = (.*))?$")
+
+
+def _parse_field_line(line: str):
+    match = _FIELD_LINE_RE.match(line)
+    if not match:
+        return None
+    field_name, annotation, default = match.groups()
+    optional = annotation.startswith("Optional[") and annotation.endswith("]")
+    core = annotation[9:-1] if optional else annotation
+    shape = "map" if core.startswith("Dict[") else (
+        "list" if core.startswith("List[") else "single"
+    )
+    required = shape == "single" and not optional and default is None
+    return field_name, core, shape, required, default
+
+
+def _merge_field_bodies(class_name: str, bodies: list) -> list:
+    """Merge repeated definitions of one semantic container concept.
+
+    Fields present in every variant stay required only when they are required
+    in every variant. Dynamic maps and list fields keep their empty-container
+    defaults when absent from another variant. Conflicting field types or
+    repeatable defaults are rejected instead of silently choosing one variant.
+    """
+    variants = []
+    field_order = []
+    for body in bodies:
+        fields = {}
+        for line in body:
+            parsed = _parse_field_line(line)
+            if parsed is None:
+                continue
+            field, core, shape, required, default = parsed
+            if field in fields:
+                raise ValueError(f"Duplicate field {class_name}.{field}")
+            fields[field] = (core, shape, required, default)
+            if field not in field_order:
+                field_order.append(field)
+        variants.append(fields)
+
+    merged = []
+    for field in field_order:
+        definitions = [variant[field] for variant in variants if field in variant]
+        core, shape, _, default = definitions[0]
+        if any(candidate[0:2] != (core, shape) for candidate in definitions[1:]):
+            incompatible = sorted({definition[0] for definition in definitions})
+            raise ValueError(
+                f"Incompatible field types for {class_name}.{field}: "
+                f"{', '.join(incompatible)}"
+            )
+        if shape in ("map", "list"):
+            defaults = {definition[3] for definition in definitions}
+            if len(defaults) != 1:
+                raise ValueError(
+                    f"Incompatible repeatable defaults for {class_name}.{field}"
+                )
+            merged.append(f"    {field}: {core} = {default}")
+            continue
+
+        required_everywhere = (
+            len(definitions) == len(variants)
+            and all(definition[2] for definition in definitions)
+        )
+        if required_everywhere:
+            merged.append(f"    {field}: {core}")
+        else:
+            merged.append(f"    {field}: Optional[{core}] = None")
+    return merged or ["    pass"]
 
 
 def _rewrite_clash_fields(body: list, aliases_emitted: set):
@@ -107,9 +188,8 @@ def _rewrite_clash_fields(body: list, aliases_emitted: set):
     pydantic's schema gather fail with ``KeyError: 'type'``).
 
     The type is aliased as a ``TypeAlias`` (``security_t: TypeAlias =
-    security``) emitted once, before the first values class that needs it —
-    the aliased class is always already defined at that point (child
-    containers precede the parent values class in definition order)."""
+    security``) emitted once after class definitions. Postponed annotations
+    allow a shared or recursive container class to be declared later."""
     new_body = []
     alias_lines = []
     for line in body:
@@ -386,6 +466,7 @@ def gen_template(template_path: str, output_dir: str):
 
     # name → (meta_lines, body_lines); order of definition
     classes = {}
+    class_body_variants = {}
     order = []
     entity_classes = set()
     sml_classes = set()
@@ -398,11 +479,18 @@ def gen_template(template_path: str, output_dir: str):
     def register(name, meta, body, is_entity=False, is_sml=False):
         if name not in classes:
             classes[name] = (meta, body)
+            class_body_variants[name] = [body]
             order.append(name)
-            if is_entity:
-                entity_classes.add(name)
-            if is_sml:
-                sml_classes.add(name)
+        else:
+            class_body_variants[name].append(body)
+            classes[name] = (
+                classes[name][0],
+                _merge_field_bodies(name, class_body_variants[name]),
+            )
+        if is_entity:
+            entity_classes.add(name)
+        if is_sml:
+            sml_classes.add(name)
 
     def _disambiguated_leaf_name(base_name: str, sid: str, leaf_cls: str) -> str:
         """Unique class name for a leaf whose plain CamelCase name is owned by
@@ -686,6 +774,7 @@ def gen_template(template_path: str, output_dir: str):
     # derive the imports from the assembled text so nothing is missed.
     body = []
     aliases_emitted = set()
+    alias_definitions = []
     for name in order:
         meta, cbody = classes[name]
         if name == sm_name:
@@ -698,19 +787,24 @@ def gen_template(template_path: str, output_dir: str):
             base = leaf_bases[name]
         else:
             base = "SubmodelElementCollection"
-        # pydantic rejects a field whose name equals its type annotation
-        # (e.g. ``items: items``) — alias the type as a TypeAlias, emitted
-        # once, before the first class needing it.  The aliased class is
-        # always already defined at that point (children precede the parent
-        # container in order).
+        # Pydantic rejects a field whose name equals its type annotation
+        # (e.g. ``items: items``); alias the type and emit aliases after all
+        # classes so later-defined shared concepts are available too.
         cbody, alias_lines = _rewrite_clash_fields(cbody, aliases_emitted)
         for a in alias_lines:
-            body.append(f"# alias so field ``{a.split(':')[0]}`` can name a class of the same id_short")
-            body.append(f"{a}")
+            alias_definitions.append(
+                f"# alias so field ``{a.split(':')[0]}`` can name a class of the same id_short"
+            )
+            alias_definitions.append(a)
         body.append(f"class {name}({base}):")
         body.extend(meta)
         body.extend(cbody)
         body.append('')
+
+    # Postponed annotations let aliases follow their definitions. This matters
+    # for recursive/list graphs where a same-named referenced container is
+    # registered later in document traversal order.
+    body.extend(alias_definitions)
 
     body.append('# ── Resolve forward references (Pydantic circular refs) ──')
     for name in order:
@@ -719,7 +813,16 @@ def gen_template(template_path: str, output_dir: str):
 
     all_src = "\n".join(body)
     lines = []
-    lines.append(f'"""{sm_name} — generated from IDTA template."""')
+    template_abs = os.path.abspath(template_path)
+    relative_to = (
+        TEMPLATE_ROOT
+        if os.path.commonpath((TEMPLATE_ROOT, template_abs)) == TEMPLATE_ROOT
+        else _ROOT
+    )
+    source_path = os.path.relpath(template_abs, relative_to)
+    lines.append(f'"""{sm_name} - generated from IDTA template.')
+    lines.append(f"Source: {source_path}")
+    lines.append('"""')
     lines.append('')
     lines.append('from __future__ import annotations')
     lines.append('')
@@ -761,31 +864,12 @@ def gen_template(template_path: str, output_dir: str):
 if __name__ == "__main__":
     # Resolve relative to the aas-model repo root (scripts/ is one level down),
     # so this works from any working directory.
-    _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    _TMPL_ROOT = os.path.join(_ROOT, "submodel-templates", "published")
-    _OUT_ROOT = os.path.join(_ROOT, "src", "aas_pydantic", "submodel_templates")
-
     if len(sys.argv) >= 2:
         tmpl = sys.argv[1]
         if not os.path.isabs(tmpl):
-            tmpl = os.path.join(_TMPL_ROOT, tmpl)
-        gen_template(tmpl, sys.argv[2] if len(sys.argv) > 2 else _OUT_ROOT)
+            tmpl = os.path.join(TEMPLATE_ROOT, tmpl)
+        gen_template(tmpl, sys.argv[2] if len(sys.argv) > 2 else OUTPUT_ROOT)
     else:
-        TEMPLATES = [
-            ("Capability Description/1/0/IDTA 02020_Template_Capability_Description.json",),
-            ("Control Component Instance/2/0/1/IDTA 02016-2-0-1 _Template_ControlComponentInstance_forAASMetamodelV3.1.json",),
-            ("Control Component Type/2/0/1/IDTA 02015-2-0-1 _Template_ControlComponentType_forAASMetamodelV3.1.json",),
-            ("Hierarchical Structures enabling Bills of Material/1/1/1/IDTA 02011-1-1-1_Template_HSEBoM_forAASMetamodelV3.1.json",),
-            ("Digital nameplate/3/0/1/IDTA 02006-3-0-1_Template_Digital Nameplate.json",),
-            ("Asset Interfaces Mapping Configuration/2/0/IDTA 02027_Template_AIMC.json",),
-            ("Asset Interfaces Description/1/1/IDTA 02017-1-1_Template_Asset Interfaces Description.json",),
-        ]
-        n = 0
-        for rel in TEMPLATES:
-            tmpl_path = os.path.join(_TMPL_ROOT, rel[0])
-            if not os.path.exists(tmpl_path):
-                print(f"⚠️  Skipping missing template: {tmpl_path}")
-                continue
-            gen_template(tmpl_path, _OUT_ROOT)
-            n += 1
-        print(f"\n✅ Generated {n} templates into {_OUT_ROOT}")
+        for template in TEMPLATES:
+            gen_template(os.path.join(TEMPLATE_ROOT, template), OUTPUT_ROOT)
+        print(f"\nGenerated {len(TEMPLATES)} templates into {OUTPUT_ROOT}")

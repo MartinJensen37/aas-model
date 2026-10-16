@@ -1,7 +1,7 @@
 """AIMC partial — mandatory Resource live-data mappings (Variables + Operations).
 
 Maps the Resource's mandatory variables AND its skill operations via IDTA
-AIMC 2.0 MappingConfigurations:
+AIMC 2.1 MappingConfigurations:
 
 - **Variables** — ``PackMLState``/``OccupationState`` read from the AID
   ``StationState`` property (``/DATA/State``); the Lua ``transformation``
@@ -34,8 +34,8 @@ from aas_pydantic import (
     Key, ModelReference, ReferenceElement,
 )
 from aas_pydantic.submodel_templates.asset_interfaces_mapping_configuration import (
-    Source, Sink, Sources, Sinks,
-    Source_source, Sink_sink,
+    SourcesItem as Source, SinksItem as Sink, Sources, Sinks,
+    Source as SourceReference, Sink as SinkReference,
     SourceId, SinkId,
     DefaultPollingInterval,
 )
@@ -108,7 +108,7 @@ def source(name: str, ref: ModelReference) -> Source:
     """A single AID source: the affordance reference + a stable source id."""
     return Source(
         id_short=name,
-        Source=Source_source(value=ref),
+        Source=SourceReference(value=ref),
         SourceId=SourceId(value=name),
     )
 
@@ -117,7 +117,7 @@ def sink(name: str, ref: ModelReference) -> Sink:
     """A single sink: the submodel element reference + a stable sink id."""
     return Sink(
         id_short=name,
-        Sink=Sink_sink(value=ref),
+        Sink=SinkReference(value=ref),
         SinkId=SinkId(value=name),
     )
 

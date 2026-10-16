@@ -1,4 +1,6 @@
-"""AssetInterfacesMappingConfiguration — generated from IDTA template."""
+"""AssetInterfacesMappingConfiguration - generated from IDTA template.
+Source: Asset Interfaces Mapping Configuration/2/1/IDTA 02027_Template_AIMC.json
+"""
 
 from __future__ import annotations
 
@@ -17,7 +19,7 @@ class Transformation(Blob):
     description: str = "The transformation allows for transforming incoming data before writing it to the sinks. The transformation must contain an \"aimc_main(sources)\" entrypoint function in Lua."
     content_type: str = "text/plain"
 
-class Source_source(ReferenceElement):
+class Source(ReferenceElement):
     semantic_id: str = "https://admin-shell.io/idta/AssetInterfacesMappingConfiguration/2/0/MappingConfiguration/Source/Source"
     description: str = "This holds a reference to the respective SubmodelElement used as data source. A data source can be any SubmodelElement including those defined in the InteractionMetadata of AID Submodels for fetching live-data from assets."
 
@@ -31,20 +33,20 @@ class SourceId(Property):
     description: str = "This is a unique and non-empty identifier that facilitates data access in the Lua transformation or establishes a relationship to a corresponding sink when no transformation is given. It must only be unique with respect to the Sources-list of the parent MappingConfiguration and not globally."
     value_type: str = "xs:string"
 
-class Source(SubmodelElementCollection):
+class SourcesItem(SubmodelElementCollection):
     semantic_id: str = "https://admin-shell.io/idta/AssetInterfacesMappingConfiguration/2/0/MappingConfiguration/Source"
     description: str = "A data source is defined by a Source reference, PollingInterval and SourceId."
-    Source: Source_source
+    Source: Source_t
     PollingInterval: Optional[PollingInterval_t] = None
     SourceId: SourceId_t
 
 class Sources(SubmodelElementList):
     semantic_id: str = "https://admin-shell.io/idta/AssetInterfacesMappingConfiguration/2/0/MappingConfiguration/Sources"
     description: str = "This list includes all data sources that are used in this MappingConfiguration."
-    item_type: ClassVar = Source
-    value: List[Source] = []
+    item_type: ClassVar = SourcesItem
+    value: List[SourcesItem] = []
 
-class Sink_sink(ReferenceElement):
+class Sink(ReferenceElement):
     semantic_id: str = "https://admin-shell.io/idta/AssetInterfacesMappingConfiguration/2/0/MappingConfiguration/Sink/Sink"
     description: str = "This holds a reference to the respective SubmodelElement used as data sink for live-data."
 
@@ -53,19 +55,19 @@ class SinkId(Property):
     description: str = "This is a unique and non-empty identifier that facilitates data writing in the Lua transformation or establishes a relationship to a corresponding source when no transformation is given. It must only be unique with respect to the Sinks-list of the containing MappingConfiguration and not globally."
     value_type: str = "xs:string"
 
-class Sink(SubmodelElementCollection):
+class SinksItem(SubmodelElementCollection):
     semantic_id: str = "https://admin-shell.io/idta/AssetInterfacesMappingConfiguration/2/0/MappingConfiguration/Sink"
     description: str = "A data sink is defined by a Sink reference and SinkId."
-    Sink: Sink_sink
+    Sink: Sink_t
     SinkId: SinkId_t
 
 class Sinks(SubmodelElementList):
     semantic_id: str = "https://admin-shell.io/idta/AssetInterfacesMappingConfiguration/2/0/MappingConfiguration/Sinks"
     description: str = "This list includes all data sinks that are used in this MappingConfiguration."
-    item_type: ClassVar = Sink
-    value: List[Sink] = []
+    item_type: ClassVar = SinksItem
+    value: List[SinksItem] = []
 
-class MappingConfiguration(SubmodelElementCollection):
+class MappingConfigurationsItem(SubmodelElementCollection):
     semantic_id: str = "https://admin-shell.io/idta/AssetInterfacesMappingConfiguration/2/0/MappingConfiguration"
     description: str = "A MappingConfiguration defines one logical unit of sources (inputs) and sinks (outputs) that are in relation to one another. The relation can be expressed via a transformation."
     DefaultPollingInterval: Optional[DefaultPollingInterval_t] = None
@@ -76,8 +78,8 @@ class MappingConfiguration(SubmodelElementCollection):
 class MappingConfigurations(SubmodelElementList):
     semantic_id: str = "https://admin-shell.io/idta/AssetInterfacesMappingConfiguration/1/0/MappingConfigurations"
     description: str = "List of MappingConfigurations that each map and transform data from their sources to their sinks."
-    item_type: ClassVar = MappingConfiguration
-    value: List[MappingConfiguration] = []
+    item_type: ClassVar = MappingConfigurationsItem
+    value: List[MappingConfigurationsItem] = []
 
 class AssetInterfacesMappingConfiguration(Submodel):
     semantic_id: str = "https://admin-shell.io/idta/AssetInterfacesMappingConfiguration/2/0/Submodel"
@@ -86,11 +88,14 @@ class AssetInterfacesMappingConfiguration(Submodel):
     REVISION: ClassVar[str] = "0"
     MappingConfigurations: MappingConfigurations_t
 
-# ── Clash aliases: field name == element class name ──
+# alias so field ``Source_t`` can name a class of the same id_short
+Source_t: TypeAlias = Source
 # alias so field ``PollingInterval_t`` can name a class of the same id_short
 PollingInterval_t: TypeAlias = PollingInterval
 # alias so field ``SourceId_t`` can name a class of the same id_short
 SourceId_t: TypeAlias = SourceId
+# alias so field ``Sink_t`` can name a class of the same id_short
+Sink_t: TypeAlias = Sink
 # alias so field ``SinkId_t`` can name a class of the same id_short
 SinkId_t: TypeAlias = SinkId
 # alias so field ``DefaultPollingInterval_t`` can name a class of the same id_short
@@ -103,19 +108,18 @@ Sources_t: TypeAlias = Sources
 Sinks_t: TypeAlias = Sinks
 # alias so field ``MappingConfigurations_t`` can name a class of the same id_short
 MappingConfigurations_t: TypeAlias = MappingConfigurations
-
 # ── Resolve forward references (Pydantic circular refs) ──
 DefaultPollingInterval.model_rebuild()
 Transformation.model_rebuild()
-Source_source.model_rebuild()
+Source.model_rebuild()
 PollingInterval.model_rebuild()
 SourceId.model_rebuild()
-Source.model_rebuild()
+SourcesItem.model_rebuild()
 Sources.model_rebuild()
-Sink_sink.model_rebuild()
-SinkId.model_rebuild()
 Sink.model_rebuild()
+SinkId.model_rebuild()
+SinksItem.model_rebuild()
 Sinks.model_rebuild()
-MappingConfiguration.model_rebuild()
+MappingConfigurationsItem.model_rebuild()
 MappingConfigurations.model_rebuild()
 AssetInterfacesMappingConfiguration.model_rebuild()

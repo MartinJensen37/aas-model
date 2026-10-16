@@ -25,7 +25,7 @@ from typing import ClassVar, List, Optional
 
 from aas_pydantic.submodel_templates.asset_interfaces_mapping_configuration import (
     AssetInterfacesMappingConfiguration as _BaseAimc,
-    MappingConfiguration as _BaseMappingConfiguration,
+    MappingConfigurationsItem as _BaseMappingConfiguration,
     MappingConfigurations as _BaseMappingConfigurations,
     Blob,
 )

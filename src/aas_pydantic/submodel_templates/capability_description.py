@@ -1,4 +1,6 @@
-"""CapabilityDescription — generated from IDTA template."""
+"""CapabilityDescription - generated from IDTA template.
+Source: Capability Description/1/0/1/IDTA 02020_Template_Capability_Description.json
+"""
 
 from __future__ import annotations
 
@@ -153,6 +155,7 @@ class CustomConstraint(SubmodelElementCollection):
 class OCLConstraint(File):
     semantic_id: str = "https://admin-shell.io/idta/CapabilityDescription/PropertyConstraintType/OCLConstraint/1/0"
     description: str = "Object Contraint Language (OCL) as File element which can be used to validate the constraint for the considered Properties in this PropertyConstraintContainer against other properties."
+    content_type: str = "application/octet-stream"
 
 class OperationConstraint(ReferenceElement):
     semantic_id: str = "https://admin-shell.io/idta/CapabilityDescription/PropertyConstraintType/OperationConstraint/1/0"
@@ -274,7 +277,6 @@ class CapabilityDescription(Submodel):
     REVISION: ClassVar[str] = "0"
     CapabilitySet: Dict[str, CapabilitySet_t] = {}
 
-# ── Clash aliases: field name == element class name ──
 # alias so field ``SameProperty_t`` can name a class of the same id_short
 SameProperty_t: TypeAlias = SameProperty
 # alias so field ``PropertyRange_t`` can name a class of the same id_short
@@ -341,7 +343,6 @@ CapabilityRelations_t: TypeAlias = CapabilityRelations
 CapabilityContainer_t: TypeAlias = CapabilityContainer
 # alias so field ``CapabilitySet_t`` can name a class of the same id_short
 CapabilitySet_t: TypeAlias = CapabilitySet
-
 # ── Resolve forward references (Pydantic circular refs) ──
 CapabilityComment.model_rebuild()
 SameProperty.model_rebuild()

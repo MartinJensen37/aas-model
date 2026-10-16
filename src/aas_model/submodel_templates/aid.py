@@ -10,8 +10,8 @@ PRISTINE — every DMP extension lives HERE, in ONE hierarchy:
 
 - **Generic (protocol-neutral) WoT extension** — the generated ``actions``
   container cannot author action affordances and the generated ``forms``
-  cannot declare the invocation/response pattern. For EVERY protocol
-  interface (HTTP, Modbus, OPC UA, BACnet, IO-Link over Profinet REST):
+   cannot declare the invocation/response pattern. For the runtime-supported
+   interfaces (HTTP, Modbus, OPC UA, BACnet, IO-Link over Profinet REST):
 
       class DmpForm(forms):
           op: Property = Property(...)             # td#hasOperationType
@@ -74,9 +74,9 @@ RETIRED (ADR-022): the AID models only the device's own communication — the
 caller-facing REST surface is derived by the DMP.
 
 The top-level :class:`DmpAssetInterfacesDescription` overrides the generated
-``InterfaceTemplateFor*`` dict fields with the DMP-extended interface
-classes, so a hand-authored or generated AID parses with full action
-affordances on every protocol.
+``InterfaceTemplateFor*`` dict fields for supported transports with DMP-extended
+classes. Newly published CAN and SNMP bindings remain available through the
+inherited IDTA types; their presence does not add DMP transport implementations.
 """
 
 from __future__ import annotations
@@ -109,7 +109,7 @@ from aas_pydantic.submodel_templates.asset_interfaces_description import (
     ModvTimeout, ModvType, ModvFunction, ModvEntity, ModvZeroBasedAddressing,
     BacvUseService, BacvIsISO8601, BacvHasBinaryRepresentation,
     BacvHasFieldName, BacvHasContextTag,
-    IolvMethod, IolvAccessRigths, IolvType, IolvByteOffset, IolvByteLength,
+    IolvMethod, IolvAccessRights, IolvType, IolvByteOffset, IolvByteLength,
     IolvBitOffset, IolvBitLength,
     AssetInterfacesDescription as _BaseAID,
     # Required (One) children of the generated classes — provided here so the
@@ -352,7 +352,7 @@ class IolinkForm(DmpForm):
     """IO-Link request/response terms (WoT IO-Link binding) on the addressed
     datapoint's form."""
     iolv_method: Optional[IolvMethod] = None
-    iolv_accessRights: Optional[IolvAccessRigths] = None
+    iolv_accessRights: Optional[IolvAccessRights] = None
     iolv_type: Optional[IolvType] = None
     iolv_byteOffset: Optional[IolvByteOffset] = None
     iolv_byteLength: Optional[IolvByteLength] = None
@@ -529,7 +529,7 @@ class DmpAssetInterfacesDescription(_BaseAID):
     typed singular of the pre-generic era is gone.
 
     Parse routing of interface children is deterministic WITHOUT a typed
-    sibling: the six interface families share the ``…/Interface`` semanticId,
+    sibling: the interface families share the ``…/Interface`` semanticId,
     but each carries a UNIQUE protocol-binding supplemental IRI (MQTT
     ``…/2011/mqtt``, OPC UA ``opcfoundation.org/UA/WoT-Binding/``, HTTP,
     Modbus, …), and the converter disambiguates children by those

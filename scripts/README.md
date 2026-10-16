@@ -1,47 +1,55 @@
 # IDTA Submodel Regeneration
 
-This directory (and the `submodel-templates` submodule) let you **regenerate the
-generated IDTA pydantic classes** in `src/aas_pydantic/submodel_templates/` from
-the official IDTA template JSON, so `aas_model` stays current with the published
-submodel templates.
+`idta_generate.py` regenerates the IDTA pydantic model modules in
+`src/aas_pydantic/submodel_templates/` from the JSON templates in the
+`submodel-templates` submodule.
 
 ## Layout
 
-- `../submodel-templates/` — git submodule → the IDTA `submodel-templates` repo
-  (this project's fork): the published template JSONs are the raw source.
-- `idta_generate.py` — the generator (from `aas_pydantic`/`aas_registration_service`
-  tooling). Maps IDTA template JSON → pydantic container classes.
-- `_generator_utils.py` — helpers used by the generator (pure stdlib).
+- `../submodel-templates/published/` contains the source template JSON.
+- `idta_generate.py` maps template elements to pydantic container and leaf
+  classes. Its default `TEMPLATES` tuple pins the source paths used by the
+  package; generated module docstrings record each source path relative to
+  `published/`.
+- `../src/aas_pydantic/submodel_templates/` contains the generated modules.
 
 ## Regenerate
 
+Run from the repository root:
+
 ```bash
-# from the aas-model repo root:
-python scripts/idta_generate.py                 # all 7 templates -> src/aas_pydantic/submodel_templates/
-python scripts/idta_generate.py '<Template Path>'  # a single template (path relative to submodel-templates/published)
+python scripts/idta_generate.py
+python scripts/idta_generate.py '<Template Path>'
+python scripts/idta_generate.py '<Template Path>' /tmp/generated-models
 ```
 
-## ⚠️ CRITICAL — read this before regenerating
+A relative template path is resolved under `submodel-templates/published/`.
+Without arguments the generator writes all pinned templates to
+`src/aas_pydantic/submodel_templates/`. A missing pinned input fails the run
+rather than silently generating a partial package.
 
-The generator in this directory emits **container-style** classes (lowercase
-`value:`/`submodel_element:` dict fields). **The committed/vendored
-`src/aas_pydantic/submodel_templates/` models use **named-field style** with
-`_t` TypeAlias clash aliases (e.g. `MappingConfigurations: MappingConfigurations_t`),
-which the project submodels (`aas_model/submodel_templates/*`) **subclass and
-depend on.**
+## Generated model behavior
 
-Running the generator **unconditionally overwrites** the vendored files with the
-container style and **breaks** the named-field subclasses (and therefore the
-registration service + management-node parse path).
+- Container children are direct named fields. Safe `idShort` spellings retain
+  their original casing (for example, `ManufacturerName`); invalid identifier
+  characters are sanitized, repeatable `__NN__` suffixes are stripped, and
+  Python keywords receive a trailing underscore.
+- `SMT/Cardinality` values `One` and missing cardinality qualifiers produce
+  required fields; `ZeroToOne` produces optional fields.
+- Multi-cardinality elements use dynamic `Dict[str, Element]` fields. A
+  `SubmodelElementList` remains a list with homogeneous item typing when the
+  template permits it.
+- Semantic IDs, descriptions, supplemental semantic IDs, value types, and
+  relevant leaf metadata are retained on generated classes. Pydantic field/type
+  name collisions use `_t: TypeAlias` aliases.
+- Repeated container definitions with the same resolved concept are merged into
+  one field union. A single-cardinality field remains required only when it is
+  present and required in every variant; consistent dynamic maps and lists
+  retain their container defaults. Conflicting field types or repeatable
+  defaults fail generation instead of dropping a variant.
 
-Therefore:
-1. **Do not** run `idta_generate.py` blindly and commit the output as-is.
-2. Regenerate into a **separate** output dir first
-   (`python scripts/idta_generate.py <tmpl> /tmp/gen`) and **review the diff**
-   against the committed named-field files before adopting.
-3. When the IDTA templates change, reconcile the smaller, targeted edits into the
-   named-field files by hand (or port the named-field generation into the
-   generator) rather than regenerating wholesale.
-
-The `_t` clash-alias / named-field scheme is the style this repo consumes; keep
-regeneration aligned with it.
+Cardinality and list behavior intentionally follow the generator's current
+policy; the generator does not rewrite template structures to make a particular
+release importable. Review generated diffs and run the focused generator tests
+before adopting an upstream template release. Do not generate into the package
+directory while another integration is preparing its target-model changes.

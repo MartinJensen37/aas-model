@@ -32,7 +32,8 @@ from aas_model.submodel_templates import (
     DmpResponseTransformation,
 )
 from aas_pydantic.submodel_templates.asset_interfaces_mapping_configuration import (
-    Source, Sources, Sink, Sinks, SourceId, SinkId, Source_source, Sink_sink,
+    SourcesItem as Source, Sources, SinksItem as Sink, Sinks, SourceId, SinkId,
+    Source as SourceReference, Sink as SinkReference,
     DefaultPollingInterval,
 )
 
@@ -307,14 +308,14 @@ def aimc_ref(*values: str) -> ModelReference:
 def aimc_source(source_id: str, ref: ModelReference,
                 polling_interval: float | None = None) -> Source:
     return Source(
-        Source=Source_source(value=ref),
+        Source=SourceReference(value=ref),
         SourceId=SourceId(value=source_id),
         PollingInterval=DefaultPollingInterval(value=str(polling_interval)) if polling_interval is not None else None,
     )
 
 
 def aimc_sink(sink_id: str, ref: ModelReference) -> Sink:
-    return Sink(Sink=Sink_sink(value=ref), SinkId=SinkId(value=sink_id))
+    return Sink(Sink=SinkReference(value=ref), SinkId=SinkId(value=sink_id))
 
 
 def aimc_mapping(*, sources: list[Source], sinks: list[Sink],
