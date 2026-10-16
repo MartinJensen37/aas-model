@@ -4,6 +4,7 @@ Usage::
 
     from aas_pydantic.submodel_templates.capability_description import CapabilityDescription
     from aas_pydantic.submodel_templates.nameplate import Nameplate
+    from aas_pydantic.submodel_templates.time_series import TimeSeries
 
 Regenerate::
 

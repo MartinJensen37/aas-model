@@ -28,7 +28,7 @@ def test_default_template_paths_exist_and_output_is_package_directory():
     assert generator.OUTPUT_ROOT == str(
         ROOT / "src" / "aas_pydantic" / "submodel_templates"
     )
-    assert len(generator.TEMPLATES) == 7
+    assert len(generator.TEMPLATES) == 8
     assert all((Path(generator.TEMPLATE_ROOT) / template).is_file()
                for template in generator.TEMPLATES)
 

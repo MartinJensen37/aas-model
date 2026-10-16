@@ -73,6 +73,7 @@ TEMPLATES = (
     "Digital nameplate/3/0/2/IDTA 02006-3-0-2_Template_Digital Nameplate.json",
     "Asset Interfaces Mapping Configuration/2/1/IDTA 02027_Template_AIMC.json",
     "Asset Interfaces Description/1/2/IDTA 02017_Template_Asset Interfaces Description.json",
+    "Time Series Data/1/1/2/IDTA 02008-1-1-2_Template_TimeSeriesData_forAASMetamodelV3.1.json",
 )
 
 
