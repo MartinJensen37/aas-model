@@ -241,33 +241,29 @@ class DmpHttpInterface(_BaseHttpInterface):
 
 
 class UavComponentOf(Property):
-    """``uav:componentOf`` (OPC-10101 §7.1.3) — the NodeId of the UA Object
-    that owns a UA Method. MANDATORY on OPC UA action forms: the UA ``Call``
-    service addresses the method as (objectId, methodId)."""
+    """``uav:componentOf`` (OPC-10101 §6.5.4, §7.1.3) — the NodeId of the UA
+    Object that owns a UA Method. An affordance-level term, MANDATORY on OPC UA
+    actions: the UA ``Call`` service addresses the method as (objectId, methodId)."""
     semantic_id: str = "http://opcfoundation.org/UA/WoT-Binding/componentOf"
     description: str = "NodeId of the UA Object the method is defined in (the invocation objectId of the UA Call service)."
 
 
 class OpcuaForm(DmpForm):
-    """OPC UA form vocabulary shared by BOTH affordance kinds (OPC-10101):
+    """OPC UA form vocabulary shared by every affordance kind (OPC-10101):
     the optional ``uav_browsePath`` (§6.5.3 — a root-relative browse-name
     path to the addressed node) and the §6.2 ``href`` NodeId convention
-    (``/?id=<nodeId>``, percent-encoded). The UA ``Call`` service's owning
-    Object lives on the ACTION form (``OpcuaActionForm.uav_componentOf``) —
-    a variable has no owning-object call semantics."""
+    (``/?id=<nodeId>``, percent-encoded). ``op`` maps to the UA services
+    (§6.5.3): ``readproperty`` → Read, ``writeproperty`` → Write,
+    ``observeproperty`` → Monitor, ``invokeaction`` → Call."""
     uav_browsePath: Optional[UavBrowsePath] = None
 
 
-class OpcuaActionForm(OpcuaForm):
-    """OPC UA form of an ACTION affordance: ``uav_componentOf`` (§7.1.3) is
-    MANDATORY — the UA ``Call`` service addresses the method as
-    (objectId = owning Object, methodId = the href NodeId)."""
-    uav_componentOf: UavComponentOf = UavComponentOf()
-
-
 class OpcuaAction(DmpAction):
-    """Generic action affordance + the OPC UA action form."""
-    forms: OpcuaActionForm = OpcuaActionForm()
+    """Generic action affordance + the OPC UA form and the affordance-level
+    ``uav_componentOf`` naming the Method's owning Object (§7.1.3: "A TD action
+    must contain the uav:componentOf term")."""
+    uav_componentOf: UavComponentOf = UavComponentOf()
+    forms: OpcuaForm = OpcuaForm()
 
 
 class OpcuaProperty(_BaseProperty):

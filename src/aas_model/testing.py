@@ -160,7 +160,7 @@ def _gen_interface(template_cls, base: str, *, properties=None, events=None,
                    actions=None, observable=(False, None), op: str | None = None,
                    meta_cls=None, actions_cls=None, action_cls=None, form_cls=None,
                    action_form_cls=None, properties_cls=None, property_cls=None,
-                   form_extras=None):
+                   form_extras=None, action_extras=None):
     """Compose an interface from its protocol classes.
 
     ``meta_cls``/``actions_cls``/``action_cls``/``form_cls``/
@@ -169,8 +169,9 @@ def _gen_interface(template_cls, base: str, *, properties=None, events=None,
     built BEFORE interface validation (the after-validator stamps
     ``id_short`` = field name on every named-field child — post-construction
     assignment would leave the class defaults in place). ``form_extras(n,
-    spec)`` returns extra form-field values for protocol-specific terms
-    (e.g. the OPC UA ``uav_componentOf``)."""
+    spec)`` returns extra form-field values for protocol-specific form terms
+    (e.g. the OPC UA ``uav_browsePath``); ``action_extras(n, spec)`` returns
+    affordance-level values (e.g. the OPC UA ``uav_componentOf``)."""
     from aas_model.submodel_templates.aid import DmpAction, DmpActions
     from aas_pydantic.submodel_templates.asset_interfaces_description import (
         HtvMethodName,
@@ -218,7 +219,8 @@ def _gen_interface(template_cls, base: str, *, properties=None, events=None,
                         current.value = val
                     else:
                         setattr(form, fname, val)
-            acts.property_name[n] = action_cls(title=Title(value=n), forms=form)
+            acts.property_name[n] = action_cls(title=Title(value=n), forms=form,
+                                               **((action_extras(n, spec) or {}) if action_extras else {}))
         meta.actions = acts
     return template_cls(
         title=Title(value="iface"),
@@ -227,12 +229,16 @@ def _gen_interface(template_cls, base: str, *, properties=None, events=None,
     )
 
 
+def _opcua_action_extras(n, spec):
+    """OPC-10101 §7.1.3: the owning Object NodeId (mandatory) is an
+    affordance-level term of the action."""
+    from aas_model.submodel_templates.aid import UavComponentOf
+    return {"uav_componentOf": UavComponentOf(value=spec[2])} if len(spec) >= 3 and spec[2] else {}
+
+
 def _opcua_form_extras(n, spec):
-    """OPC-10101 §7.1.3: the owning Object NodeId (mandatory) + optional
-    browsePath ride the protocol form."""
+    """OPC-10101 §6.5.3: the optional browsePath rides the protocol form."""
     extras = {}
-    if len(spec) >= 3 and spec[2]:
-        extras["uav_componentOf"] = spec[2]
     if len(spec) >= 4 and spec[3]:
         from aas_pydantic.submodel_templates.asset_interfaces_description import (
             UavBrowsePath,
@@ -248,7 +254,7 @@ def opcua_interface(base: str, *, properties=None, actions=None, observable: boo
     carry the MANDATORY ``uav_componentOf`` owning-Object NodeId
     (OPC-10101 §7.1.3)."""
     from aas_model.submodel_templates.aid import (
-        OpcuaAction, OpcuaActionForm, OpcuaActions, OpcuaForm,
+        OpcuaAction, OpcuaActions, OpcuaForm,
         OpcuaInteractionMetadata, OpcuaProperties, OpcuaProperty,
     )
     return _gen_interface(
@@ -256,9 +262,8 @@ def opcua_interface(base: str, *, properties=None, actions=None, observable: boo
         observable=(observable, subprotocol), op=op,
         meta_cls=OpcuaInteractionMetadata, actions_cls=OpcuaActions,
         action_cls=OpcuaAction, form_cls=OpcuaForm,
-        action_form_cls=OpcuaActionForm,
         properties_cls=OpcuaProperties, property_cls=OpcuaProperty,
-        form_extras=_opcua_form_extras)
+        form_extras=_opcua_form_extras, action_extras=_opcua_action_extras)
 
 
 def http_interface(base: str, *, properties=None, actions=None) -> DmpHttpInterface:
