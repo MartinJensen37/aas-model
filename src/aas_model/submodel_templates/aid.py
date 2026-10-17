@@ -54,15 +54,24 @@ PRISTINE — every DMP extension lives HERE, in ONE hierarchy:
       class MqttActions(DmpActions) / MqttProperties(properties) /
       MqttInteractionMetadata(DmpGenericInteractionMetadata)
 
-- **OPC UA extension** — the same methodology (IDTA: the affordance stays
-  protocol-agnostic, the protocol-specific terms live on the protocol-
-  specific form):
+- **Events** — the IDTA template leaves ``events`` unspecified;
+  ``DmpEvent`` carries the WoT EventAffordance terms (``subscription``,
+  ``data``, ``dataResponse``, ``cancellation``, ``forms`` with ``op`` =
+  ``subscribeevent``), protocol subclasses add transport vocabulary only.
+
+- **OPC UA extension** — the same methodology; OPC-10101 terms where the
+  binding defines them, otherwise DMP terms (own semantic ids):
 
       class OpcuaForm(DmpForm):
-          uav_componentOf        # OPC-10101 §7.1.3, mandatory on actions
           uav_browsePath         # §6.5.3; href carries the §6.2 NodeId
-      class OpcuaAction(DmpAction) / OpcuaProperty(property) /
-      OpcuaActions(DmpActions) / OpcuaProperties(properties) /
+      class OpcuaAction(DmpAction):
+          uav_componentOf        # affordance level, §6.5.4/§7.1.3, mandatory
+      class OpcuaEvent(DmpEvent):  # href = event notifier
+          uav_eventType          # DMP: where clause (OfType)
+          data: OpcuaEventData   # properties = select clauses,
+                                 #   each with an optional uav_eventField
+      class OpcuaProperty(property) / OpcuaActions(DmpActions) /
+      OpcuaProperties(properties) / OpcuaEvents(DmpEvents) /
       OpcuaInteractionMetadata(DmpGenericInteractionMetadata)
 
   UA Methods are INVOKABLE by the DMP: camel-milo's UA ``Call`` service
@@ -91,6 +100,7 @@ from aas_pydantic.submodel_templates.asset_interfaces_description import (
     forms as _BaseForm,
     property_name as _BaseProperty,
     property_name_json_schema as _BaseDataSchema,
+    properties_json_schema as _BaseSchemaProperties,
     actions as _BaseActions,
     events as _BaseEvents,
     properties as _BaseProperties,
@@ -126,6 +136,8 @@ from aas_model.constants import (
     AID_MQTT_QOS, AID_MQTT_REQUEST_REPLY, AID_MQTT_RESPONSE_TOPIC,
     AID_SYNCHRONOUS, AID_WOT_SAFE, AID_WOT_IDEMPOTENT,
     AID_ACTION_INPUT, AID_ACTION_OUTPUT, AID_EVENT_DATA, AID_EVENT_AFFORDANCE,
+    AID_EVENT_SUBSCRIPTION, AID_EVENT_DATA_RESPONSE, AID_EVENT_CANCELLATION,
+    AID_OPCUA_EVENT_TYPE, AID_OPCUA_EVENT_FIELD,
     AID_WOT_OPERATION_TYPE, AID_WOT_RESPONSE_FORM,
 )
 
@@ -199,6 +211,14 @@ class DmpActions(_BaseActions):
     property_name: Dict[str, DmpAction] = {}
 
 
+class DmpEventSubscription(_BaseDataSchema):
+    """WoT ``subscription`` DataSchema of an event (td#hasSubscriptionSchema)
+    — the payload a consumer sends when it subscribes (e.g. a filter or a
+    callback address of an HTTP webhook event)."""
+    semantic_id: str = AID_EVENT_SUBSCRIPTION
+    description: str = "Data schema describing the payload sent when subscribing to the event."
+
+
 class DmpEventData(_BaseDataSchema):
     """WoT ``data`` DataSchema of an event (td#hasNotificationSchema) — the
     payload of each notification."""
@@ -206,18 +226,46 @@ class DmpEventData(_BaseDataSchema):
     description: str = "Data schema describing the payload of the event notification."
 
 
+class DmpEventDataResponse(_BaseDataSchema):
+    """WoT ``dataResponse`` DataSchema of an event
+    (td#hasNotificationResponseSchema) — what the consumer answers to each
+    notification, for protocols where a notification is a request."""
+    semantic_id: str = AID_EVENT_DATA_RESPONSE
+    description: str = "Data schema describing the consumer's response to an event notification."
+
+
+class DmpEventCancellation(_BaseDataSchema):
+    """WoT ``cancellation`` DataSchema of an event (td#hasCancellationSchema)
+    — the payload a consumer sends when it unsubscribes."""
+    semantic_id: str = AID_EVENT_CANCELLATION
+    description: str = "Data schema describing the payload sent when cancelling the event subscription."
+
+
 class DmpEvent(SubmodelElementCollection):
-    """WoT EventAffordance, protocol-neutral (TD 1.1 §5.3.1.5): a
-    notification the asset pushes, e.g. that a triggered action has
-    finished. ``forms.op`` is ``subscribeevent``; ``data`` is the
-    notification schema. An event has no current value: a consumer only
-    sees notifications sent while it is subscribed. Deliberate WoT
-    omissions (no DMP consumer): ``subscription``, ``dataResponse``,
-    ``cancellation``."""
+    """WoT EventAffordance, protocol-neutral (TD 1.1 §5.3.1.5; unchanged in
+    the TD 2.0 draft): a notification the asset pushes, e.g. that a triggered
+    action has finished. The IDTA AID leaves ``events`` unspecified; this
+    class carries every EventAffordance term, mirroring :class:`DmpAction`:
+
+    - ``title``;
+    - ``subscription`` / ``cancellation``: payloads of the subscribe and
+      unsubscribe requests, for protocols where those requests carry data;
+    - ``data``: the schema of each notification;
+    - ``dataResponse``: the consumer's answer to a notification;
+    - ``forms``: where to subscribe, ``op`` = ``subscribeevent`` (the IDTA
+      single-form abstraction carries one ``op``; ``unsubscribeevent`` is
+      implied by the same form).
+
+    An event has no current value: a consumer only sees notifications sent
+    while it is subscribed. The DMP consumes ``data`` and rejects the other
+    payload schemas (MQTT and OPC UA subscriptions carry no such payloads)."""
     semantic_id: str = AID_EVENT_AFFORDANCE
     description: str = "WoT EventAffordance: a notification pushed by the asset. The form declares where to subscribe; data describes the notification payload."
     title: Optional[Title] = None
+    subscription: Optional[DmpEventSubscription] = None
     data: Optional[DmpEventData] = None
+    dataResponse: Optional[DmpEventDataResponse] = None
+    cancellation: Optional[DmpEventCancellation] = None
     forms: DmpForm = DmpForm()
 
 
@@ -254,7 +302,8 @@ class OpcuaForm(DmpForm):
     path to the addressed node) and the §6.2 ``href`` NodeId convention
     (``/?id=<nodeId>``, percent-encoded). ``op`` maps to the UA services
     (§6.5.3): ``readproperty`` → Read, ``writeproperty`` → Write,
-    ``observeproperty`` → Monitor, ``invokeaction`` → Call."""
+    ``observeproperty`` → Monitor, ``invokeaction`` → Call; for events
+    (no OPC 10101 term) ``subscribeevent`` → Monitor with an EventFilter."""
     uav_browsePath: Optional[UavBrowsePath] = None
 
 
@@ -282,9 +331,58 @@ class OpcuaProperties(_BaseProperties):
     property_name: Dict[str, OpcuaProperty] = {}
 
 
+class UavEventType(Property):
+    """The OPC UA EventType a subscription is filtered to (where clause:
+    ``OfType``), e.g. ``i=2378`` (ProgramTransitionEventType) or a vendor
+    type ``nsu=urn:vendor;s=JobDoneEventType``. Events of subtypes pass too;
+    without the term every event of the notifier is delivered. A DMP term
+    (OPC 10101 v1.00 defines no event vocabulary); the ``uav_`` idShort
+    prefix only groups it with the OPC UA binding terms."""
+    semantic_id: str = AID_OPCUA_EVENT_TYPE
+    description: str = "NodeId of the OPC UA EventType the subscription is filtered to (OfType); subtypes are included."
+
+
+class UavEventField(Property):
+    """Browse path of an event field relative to the event (select clause),
+    as ``/``-separated qualified names, e.g. ``0:ToState/0:Id``; a name
+    without ``<namespaceIndex>:`` is in namespace 0. Without the term the
+    data-schema property's own name is the field's BrowseName in namespace
+    0 — so ``Message``, ``Severity``, ``Time``, ``SourceName``, ``EventType``
+    need no term. A DMP term (OPC 10101 v1.00 defines no event vocabulary)."""
+    semantic_id: str = AID_OPCUA_EVENT_FIELD
+    description: str = "Browse path of the event field relative to the event, e.g. 0:ToState/0:Id (select clause)."
+
+
+class OpcuaEventField(_BaseDataSchema):
+    """One property of an OPC UA event's ``data`` schema: one selected
+    event field, optionally with its browse path."""
+    uav_eventField: Optional[UavEventField] = None
+
+
+class OpcuaEventFields(_BaseSchemaProperties):
+    """The properties of an OPC UA event's ``data`` schema (name → field)."""
+    property_name: Dict[str, OpcuaEventField] = {}
+
+
+class OpcuaEventData(DmpEventData):
+    """``data`` of an OPC UA event: an object schema, one property per
+    selected event field. A notification is delivered as that object."""
+    properties: Optional[OpcuaEventFields] = None
+
+
 class OpcuaEvent(DmpEvent):
-    """Generic event affordance + the shared OPC UA form (the href NodeId
-    names the event notifier)."""
+    """Generic event affordance for OPC UA events (OPC 10000-3 §5.4,
+    10000-4 §7.22.3): the form ``href`` NodeId (or ``uav_browsePath``)
+    names the event notifier (e.g. the ``Server`` object ``i=2253`` or an
+    Object whose EventNotifier attribute is set), ``op`` is
+    ``subscribeevent``; ``data`` selects the event fields
+    (:class:`OpcuaEventData`) and the optional affordance-level
+    ``uav_eventType`` filters by EventType. The DMP subscribes with an
+    event monitored item. Treated like an MQTT event: the same
+    consumption and modelling as an observed property, but each
+    notification stands alone and there is no current value."""
+    uav_eventType: Optional[UavEventType] = None
+    data: Optional[OpcuaEventData] = None
     forms: OpcuaForm = OpcuaForm()
 
 

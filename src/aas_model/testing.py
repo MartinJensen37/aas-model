@@ -43,6 +43,12 @@ def _prop(value: str) -> Property:
     return Property(value=value)
 
 
+def _op(value: str) -> Property:
+    """A form ``op`` (td#hasOperationType), e.g. ``subscribeevent``."""
+    from aas_model.constants import AID_WOT_OPERATION_TYPE
+    return Property(semantic_id=AID_WOT_OPERATION_TYPE, value=value)
+
+
 def _endpoint(base: str, content_type: str = "application/json") -> EndpointMetadata:
     return EndpointMetadata(
         base=Base(value=base),
@@ -107,7 +113,7 @@ def mqtt_event(name: str, href: str, data_schema: dict | None = None, *,
         title=Title(value=name),
         data=(datapoint_from_schema(data_schema, key="data", cls=DmpEventData)
               if data_schema is not None else None),
-        forms=MqttForm(href=Href(value=href), op=_prop("subscribeevent"),
+        forms=MqttForm(href=Href(value=href), op=_op("subscribeevent"),
                        mqv_retain=_prop("false"), mqv_qos=_prop(str(qos)),
                        mqv_control_packet=_prop("subscribe")),
     )
@@ -177,7 +183,10 @@ def _gen_interface(template_cls, base: str, *, properties=None, events=None,
         HtvMethodName,
     )
     meta = (meta_cls or DmpGenericInteractionMetadata)()
-    properties_cls = properties_cls or type(meta.properties)
+    # ``properties`` is optional on the interaction metadata: start it empty.
+    properties_cls = properties_cls or _BaseProperties
+    if properties:
+        meta.properties = properties_cls(property_name={})
     actions_cls = actions_cls or DmpActions
     action_cls = action_cls or DmpAction
     form_cls = form_cls or DmpForm
@@ -247,23 +256,65 @@ def _opcua_form_extras(n, spec):
     return extras
 
 
-def opcua_interface(base: str, *, properties=None, actions=None, observable: bool = False,
-                    subprotocol: str | None = None, op: str | None = None) -> DmpOpcuaInterface:
+def opcua_event(name: str, notifier: str, fields: dict, *,
+                event_type: str | None = None):
+    """An OPC UA event affordance on the event notifier ``notifier`` (a
+    NodeId, e.g. ``i=2253`` for the Server object). ``fields`` maps each
+    notification field to its JSON Schema, or to ``(schema, browse_path)``
+    when the field is not the namespace-0 BrowseName of the same name
+    (e.g. ``0:ToState/0:Id``); ``event_type`` is the EventType NodeId the
+    subscription is filtered to."""
+    from aas_model.json_schema_aid import datapoint_from_schema
+    from aas_model.submodel_templates.aid import (
+        OpcuaEvent, OpcuaEventData, OpcuaEventField, OpcuaEventFields, OpcuaForm,
+        UavEventField, UavEventType,
+    )
+    schemas = {n: (v[0] if isinstance(v, tuple) else v) for n, v in fields.items()}
+    data = datapoint_from_schema({"type": "object", "properties": schemas},
+                                 key="data", cls=OpcuaEventData)
+    members = {}
+    for n, generic in data.properties.property_name.items():
+        spec = fields[generic.key.value if generic.key is not None else n]
+        member = OpcuaEventField(**{f: getattr(generic, f) for f in type(generic).model_fields})
+        if isinstance(spec, tuple):
+            member.uav_eventField = UavEventField(value=spec[1])
+        members[n] = member
+    data.properties = OpcuaEventFields(property_name=members)
+    return OpcuaEvent(
+        title=Title(value=name),
+        uav_eventType=UavEventType(value=event_type) if event_type else None,
+        data=data,
+        forms=OpcuaForm(href=Href(value=f"/?id={notifier}"), security=security_t(),
+                        op=_op("subscribeevent"),
+                        contentType=ContentType(value="application/octet-stream")),
+    )
+
+
+def opcua_interface(base: str, *, properties=None, actions=None, events=None,
+                    observable: bool = False, subprotocol: str | None = None,
+                    op: str | None = None) -> DmpOpcuaInterface:
     """OPC UA interface. ``actions`` values are ``(href, method)`` or
     ``(href, method, componentOf[, browsePath])`` tuples — OPC UA actions
     carry the MANDATORY ``uav_componentOf`` owning-Object NodeId
-    (OPC-10101 §7.1.3)."""
+    (OPC-10101 §7.1.3). ``events`` values are ``(notifier, fields[,
+    event_type])`` tuples (see :func:`opcua_event`)."""
     from aas_model.submodel_templates.aid import (
-        OpcuaAction, OpcuaActions, OpcuaForm,
+        OpcuaAction, OpcuaActions, OpcuaEvents, OpcuaForm,
         OpcuaInteractionMetadata, OpcuaProperties, OpcuaProperty,
     )
-    return _gen_interface(
+    interface = _gen_interface(
         DmpOpcuaInterface, base, properties=properties, actions=actions,
         observable=(observable, subprotocol), op=op,
         meta_cls=OpcuaInteractionMetadata, actions_cls=OpcuaActions,
         action_cls=OpcuaAction, form_cls=OpcuaForm,
         properties_cls=OpcuaProperties, property_cls=OpcuaProperty,
         form_extras=_opcua_form_extras, action_extras=_opcua_action_extras)
+    if events:
+        # Assigned after validation, so the container is named here.
+        interface.InteractionMetadata.events = OpcuaEvents(id_short="events", property_name={
+            n: opcua_event(n, v[0], v[1], event_type=v[2] if len(v) > 2 else None)
+            for n, v in events.items()})
+    return interface
 
 
 def http_interface(base: str, *, properties=None, actions=None) -> DmpHttpInterface:
