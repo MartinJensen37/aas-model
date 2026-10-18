@@ -53,3 +53,20 @@ policy; the generator does not rewrite template structures to make a particular
 release importable. Review generated diffs and run the focused generator tests
 before adopting an upstream template release. Do not generate into the package
 directory while another integration is preparing its target-model changes.
+
+# DMP contract fixtures
+
+`dmp_contract_fixtures.py` writes the model fixtures of aas-camel-dmp
+(`dmp.component/src/test/resources/runtime-model-contracts/`): synthetic AIDs
+and AIMCs built with `aas_model.testing`, one protocol or mapping form each, and
+every resource of `RESOURCE_FACTORIES` as registration builds it. The DMP's
+`RawModelContractFixtureTest` checks the files' hashes and that each case
+compiles as the manifest expects.
+
+```bash
+PYTHONPATH=src python scripts/dmp_contract_fixtures.py \
+    ../aas-camel-dmp/dmp.component/src/test/resources/runtime-model-contracts
+```
+
+Regenerate after changing the builders, a resource or a template, and review
+every changed compile outcome in the DMP; never edit the generated JSON.

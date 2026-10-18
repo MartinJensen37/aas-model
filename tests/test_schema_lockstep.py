@@ -34,8 +34,8 @@ def test_schemas_match_golden_snapshot():
         )
     golden = json.loads(GOLDEN.read_text())
     assert _schemas() == golden, (
-        "A shared model schema changed. The management node validates AID/AIMC "
-        "against these models (ADR-016); update schema_snapshots.json only if the "
-        "change is intended AND the management-node parser is updated in the same "
-        "change."
+        "A shared model schema changed. The DMP (aas-camel-dmp) reads the AIDs and "
+        "AIMCs these models author; update schema_snapshots.json only if the change "
+        "is intended, and regenerate the DMP's fixtures (scripts/dmp_contract_fixtures.py) "
+        "to see what it changes there."
     )

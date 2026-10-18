@@ -98,7 +98,7 @@ class Variables(Submodel):
     Variables submodel — asset variable definitions.
 
     Contains named variables with semantic identifiers and optional
-    references to AID properties for live-data mapping via AIMC/DataBridge.
+    references to AID properties for live-data mapping via AIMC and the DMP.
     """
     semantic_id: str = SM_VARIABLES
     description: str = "Asset variable definitions with semantic concepts and live-data interface references."
