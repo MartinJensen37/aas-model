@@ -51,6 +51,8 @@ from aas_pydantic.submodel_templates.asset_interfaces_description import (
     InterfaceTemplateForOPCUA as _BaseOpcuaInterface,
     InterfaceTemplateForBacnet as _BaseBacnetInterface,
     InterfaceTemplateForIOLINK_OVER_PROFINET_REST as _BaseIolinkInterface,
+    InterfaceTemplateForSNMP as _BaseSnmpInterface,
+    InterfaceTemplateForCAN as _BaseCanInterface,
     AssetInterfacesDescription as _BaseAID,
     # Required (One) children of the generated classes — provided here so the
     # variants construct: forms need href/security; the interface needs
@@ -133,10 +135,30 @@ class Synchronous(Property):
 # Forms
 # ═══════════════════════════════════════════════════════════════════════════════
 
+class SnmpvPduType(Property):
+    """AID 1.2 SNMP binding (Annex E.1): the PDU type of the interaction,
+    ``snmpv:GetRequestPDU`` (read, the default of readproperty) or
+    ``snmpv:SetRequestPDU`` (write, the default of writeproperty)."""
+    id_short: AasIdString = "snmpv_pduType"
+    semantic_id: str = "https://admin-shell.io/idta/AssetInterfacesDescription/1/2/SNMP/pduType"
+    description: str = "SNMP PDU type of the interaction: snmpv:GetRequestPDU or snmpv:SetRequestPDU."
+
+
+class SnmpvVersion(Property):
+    """AID 1.2 SNMP binding (Annex E.1): ``snmpv:SNMPv1`` or
+    ``snmpv:SNMPv2c`` (the default)."""
+    id_short: AasIdString = "snmpv_version"
+    semantic_id: str = "https://admin-shell.io/idta/AssetInterfacesDescription/1/2/SNMP/version"
+    description: str = "SNMP protocol version of the interaction: snmpv:SNMPv1 or snmpv:SNMPv2c (default)."
+
+
 class DmpForm(_BaseForm):
-    """The AID form plus the optional WoT ``op``."""
+    """The AID form plus the optional WoT ``op`` and the SNMP binding's form
+    terms (AID 1.2 Annex E.1 defines them, the template carries none)."""
     href: Href = Href()
     op: Optional[Op] = None
+    snmpv_pduType: Optional[SnmpvPduType] = None
+    snmpv_version: Optional[SnmpvVersion] = None
 
 
 class DmpResponseForm(SubmodelElementCollection):
@@ -155,7 +177,7 @@ class DmpActionForm(DmpForm):
 
 
 def _validate_protocol_form(form: DmpForm, protocol: str) -> None:
-    prefixes = ("htv_", "modv_", "mqv_", "uav_", "bacv_", "iolv_", "canv_")
+    prefixes = ("htv_", "modv_", "mqv_", "uav_", "bacv_", "iolv_", "canv_", "snmpv_")
     allowed = f"{protocol}_"
     foreign = [
         name for name in type(form).model_fields
@@ -462,6 +484,22 @@ class DmpIolinkInterface(_BaseIolinkInterface):
     InteractionMetadata: DmpInteractionMetadata = DmpInteractionMetadata()
 
 
+class DmpSnmpInterface(_BaseSnmpInterface):
+    """AID 1.2 SNMP v1/v2c interface: base ``snmp://{address}:{port}``, forms
+    addressing one OID each."""
+    title: Title = Title()
+    EndpointMetadata: EndpointMetadata_t = _endpoint_metadata()
+    InteractionMetadata: DmpInteractionMetadata = DmpInteractionMetadata()
+
+
+class DmpCanInterface(_BaseCanInterface):
+    """AID 1.2 CAN interface: base ``can://`` (the bus), forms addressing a
+    frame by its identifier and a datapoint by ``canv_offset``/``canv_length``."""
+    title: Title = Title()
+    EndpointMetadata: EndpointMetadata_t = _endpoint_metadata()
+    InteractionMetadata: DmpInteractionMetadata = DmpInteractionMetadata()
+
+
 class MqttInterface(_BaseMqttInterface):
     title: Title = Title()
     EndpointMetadata: EndpointMetadata_t = _endpoint_metadata()
@@ -485,8 +523,7 @@ class DmpAssetInterfacesDescription(_BaseAID):
     dict, keyed by its idShort (the DMP convention: the asset's one native
     MQTT interface is ``InterfaceTemplateForMQTT["interface_mqtt"]``). The
     interface families share the ``…/Interface`` semanticId; the parser
-    tells them apart by their protocol-binding supplemental IRI. SNMP and CAN
-    interfaces keep the generated types.
+    tells them apart by their protocol-binding supplemental IRI.
     """
     InterfaceTemplateForHTTP: Dict[str, DmpHttpInterface] = {}
     InterfaceTemplateForMODBUS: Dict[str, DmpModbusInterface] = {}
@@ -496,3 +533,5 @@ class DmpAssetInterfacesDescription(_BaseAID):
     InterfaceTemplateForOPCUA: Dict[str, DmpOpcuaInterface] = {}
     InterfaceTemplateForBacnet: Dict[str, DmpBacnetInterface] = {}
     InterfaceTemplateForIOLINK_OVER_PROFINET_REST: Dict[str, DmpIolinkInterface] = {}
+    InterfaceTemplateForSNMP: Dict[str, DmpSnmpInterface] = {}
+    InterfaceTemplateForCAN: Dict[str, DmpCanInterface] = {}

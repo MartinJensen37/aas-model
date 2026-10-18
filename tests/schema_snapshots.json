@@ -3638,6 +3638,8 @@
               "response": null,
               "security": null,
               "semantic_id": "https://www.w3.org/2019/wot/td#hasForm",
+              "snmpv_pduType": null,
+              "snmpv_version": null,
               "subprotocol": null,
               "supplemental_semantic_ids": [],
               "uav_browsePath": null
@@ -4185,6 +4187,28 @@
             "default": "https://www.w3.org/2019/wot/td#hasForm",
             "title": "Semantic Id",
             "type": "string"
+          },
+          "snmpv_pduType": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/SnmpvPduType"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "snmpv_version": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/SnmpvVersion"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
           },
           "subprotocol": {
             "anyOf": [
@@ -4912,6 +4936,205 @@
         "title": "DmpBacnetInterface",
         "type": "object"
       },
+      "DmpCanInterface": {
+        "additionalProperties": false,
+        "description": "AID 1.2 CAN interface: base ``can://`` (the bus), forms addressing a\nframe by its identifier and a datapoint by ``canv_offset``/``canv_length``.",
+        "properties": {
+          "EndpointMetadata": {
+            "$ref": "#/$defs/EndpointMetadata",
+            "default": {
+              "base": {
+                "description": "Defines asset connection entry point. Each protocol specifies a base pattern. Please see Annex B.1 of the AID document for more details.",
+                "display_name": null,
+                "id_short": "base",
+                "qualifiers": [],
+                "semantic_id": "https://www.w3.org/2019/wot/td#baseURI",
+                "supplemental_semantic_ids": [],
+                "value": "",
+                "value_id": "",
+                "value_type": "xs:string"
+              },
+              "contentType": {
+                "description": "Defines content type based on a media type (e.g., text/plain) and potential character decoding/encoding type (e.g., charset=utf-8) for the media type (see RFC2046) of the whole interface",
+                "display_name": null,
+                "id_short": "contentType",
+                "qualifiers": [],
+                "semantic_id": "https://www.w3.org/2019/wot/hypermedia#forContentType",
+                "supplemental_semantic_ids": [],
+                "value": "",
+                "value_id": "",
+                "value_type": "xs:string"
+              },
+              "description": "Provides the metadata of the asset\u2019s endpoint (base, content type that is used for interaction, etc)",
+              "display_name": null,
+              "id_short": "EndpointMetadata",
+              "modv_mostSignificantByte": null,
+              "modv_mostSignificantWord": null,
+              "protocolVersion": null,
+              "qualifiers": [],
+              "security": {
+                "description": "Selects one or more of the security scheme(s) that can be applied at runtime from the collection of security schemes defines in securityDefinitions. ",
+                "display_name": null,
+                "id_short": "security",
+                "order_relevant": true,
+                "qualifiers": [],
+                "semantic_id": "https://www.w3.org/2019/wot/td#hasSecurityConfiguration",
+                "semantic_id_list_element": "https://www.w3.org/2019/wot/td#definesSecurityScheme",
+                "supplemental_semantic_ids": [],
+                "type_value_list_element": "ReferenceElement",
+                "value": [],
+                "value_type_list_element": null
+              },
+              "securityDefinitions": {
+                "apikey_sc": null,
+                "auto_sc": null,
+                "basic_sc": null,
+                "bearer_sc": null,
+                "combo_sc": null,
+                "description": "Defines the security scheme according to W3C:",
+                "digest_sc": null,
+                "display_name": null,
+                "id_short": "securityDefinitions",
+                "nosec_sc": null,
+                "oauth2_sc": null,
+                "opcua_authentication_sc": null,
+                "opcua_channel_sc": null,
+                "psk_sc": null,
+                "qualifiers": [],
+                "semantic_id": "https://www.w3.org/2019/wot/td#definesSecurityScheme",
+                "supplemental_semantic_ids": []
+              },
+              "semantic_id": "https://admin-shell.io/idta/AssetInterfacesDescription/1/0/EndpointMetadata",
+              "supplemental_semantic_ids": []
+            }
+          },
+          "ExternalDescriptor": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/ExternalDescriptor"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "InteractionMetadata": {
+            "$ref": "#/$defs/DmpInteractionMetadata",
+            "default": {
+              "actions": null,
+              "description": "Provides the metadata of the actually interfaces such as which datapoints and functions are provided by the properties, actions, and events interaction abstraction. ",
+              "display_name": null,
+              "events": null,
+              "id_short": "InteractionMetadata",
+              "properties": null,
+              "qualifiers": [],
+              "semantic_id": "https://admin-shell.io/idta/AssetInterfacesDescription/1/0/InteractionMetadata",
+              "supplemental_semantic_ids": [
+                "https://www.w3.org/2019/wot/td#InteractionAffordance"
+              ]
+            }
+          },
+          "created": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/Created"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "description": {
+            "default": "Indicates the entry point for a particular asset interface",
+            "title": "Description",
+            "type": "string"
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Display Name"
+          },
+          "id_short": {
+            "default": "InterfaceTemplateForCAN",
+            "title": "Id Short",
+            "type": "string"
+          },
+          "modified": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/Modified"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "qualifiers": {
+            "default": [],
+            "items": {
+              "$ref": "#/$defs/Qualifier"
+            },
+            "title": "Qualifiers",
+            "type": "array"
+          },
+          "semantic_id": {
+            "default": "https://admin-shell.io/idta/AssetInterfacesDescription/1/0/Interface",
+            "title": "Semantic Id",
+            "type": "string"
+          },
+          "supplemental_semantic_ids": {
+            "default": [
+              "https://admin-shell.io/idta/AssetInterfacesDescription/1/2/CAN",
+              "https://www.w3.org/2019/wot/td"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "title": "Supplemental Semantic Ids",
+            "type": "array"
+          },
+          "support": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/Support"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "title": {
+            "$ref": "#/$defs/Title",
+            "default": {
+              "description": "Provides a human-readable title to give a human-readable context of the interface.",
+              "display_name": null,
+              "id_short": "title",
+              "qualifiers": [],
+              "semantic_id": "https://www.w3.org/2019/wot/td#title",
+              "supplemental_semantic_ids": [],
+              "value": "",
+              "value_id": "",
+              "value_type": "xs:string"
+            }
+          }
+        },
+        "title": "DmpCanInterface",
+        "type": "object"
+      },
       "DmpEvent": {
         "additionalProperties": false,
         "description": "One WoT EventAffordance (TD 1.1 \u00a75.3.1.5); its idShort is the event\nname. An event has no current value: a consumer only sees notifications\nsent while it is subscribed.",
@@ -5021,6 +5244,8 @@
               "qualifiers": [],
               "security": null,
               "semantic_id": "https://www.w3.org/2019/wot/td#hasForm",
+              "snmpv_pduType": null,
+              "snmpv_version": null,
               "subprotocol": null,
               "supplemental_semantic_ids": [],
               "uav_browsePath": null
@@ -6019,7 +6244,7 @@
       },
       "DmpForm": {
         "additionalProperties": false,
-        "description": "The AID form plus the optional WoT ``op``.",
+        "description": "The AID form plus the optional WoT ``op`` and the SNMP binding's form\nterms (AID 1.2 Annex E.1 defines them, the template carries none).",
         "properties": {
           "bacv_hasDataType": {
             "anyOf": [
@@ -6439,6 +6664,28 @@
             "default": "https://www.w3.org/2019/wot/td#hasForm",
             "title": "Semantic Id",
             "type": "string"
+          },
+          "snmpv_pduType": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/SnmpvPduType"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "snmpv_version": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/SnmpvVersion"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
           },
           "subprotocol": {
             "anyOf": [
@@ -7526,6 +7773,8 @@
               "qualifiers": [],
               "security": null,
               "semantic_id": "https://www.w3.org/2019/wot/td#hasForm",
+              "snmpv_pduType": null,
+              "snmpv_version": null,
               "subprotocol": null,
               "supplemental_semantic_ids": [],
               "uav_browsePath": null
@@ -7784,6 +8033,205 @@
           }
         },
         "title": "DmpResponseForm",
+        "type": "object"
+      },
+      "DmpSnmpInterface": {
+        "additionalProperties": false,
+        "description": "AID 1.2 SNMP v1/v2c interface: base ``snmp://{address}:{port}``, forms\naddressing one OID each.",
+        "properties": {
+          "EndpointMetadata": {
+            "$ref": "#/$defs/EndpointMetadata",
+            "default": {
+              "base": {
+                "description": "Defines asset connection entry point. Each protocol specifies a base pattern. Please see Annex B.1 of the AID document for more details.",
+                "display_name": null,
+                "id_short": "base",
+                "qualifiers": [],
+                "semantic_id": "https://www.w3.org/2019/wot/td#baseURI",
+                "supplemental_semantic_ids": [],
+                "value": "",
+                "value_id": "",
+                "value_type": "xs:string"
+              },
+              "contentType": {
+                "description": "Defines content type based on a media type (e.g., text/plain) and potential character decoding/encoding type (e.g., charset=utf-8) for the media type (see RFC2046) of the whole interface",
+                "display_name": null,
+                "id_short": "contentType",
+                "qualifiers": [],
+                "semantic_id": "https://www.w3.org/2019/wot/hypermedia#forContentType",
+                "supplemental_semantic_ids": [],
+                "value": "",
+                "value_id": "",
+                "value_type": "xs:string"
+              },
+              "description": "Provides the metadata of the asset\u2019s endpoint (base, content type that is used for interaction, etc)",
+              "display_name": null,
+              "id_short": "EndpointMetadata",
+              "modv_mostSignificantByte": null,
+              "modv_mostSignificantWord": null,
+              "protocolVersion": null,
+              "qualifiers": [],
+              "security": {
+                "description": "Selects one or more of the security scheme(s) that can be applied at runtime from the collection of security schemes defines in securityDefinitions. ",
+                "display_name": null,
+                "id_short": "security",
+                "order_relevant": true,
+                "qualifiers": [],
+                "semantic_id": "https://www.w3.org/2019/wot/td#hasSecurityConfiguration",
+                "semantic_id_list_element": "https://www.w3.org/2019/wot/td#definesSecurityScheme",
+                "supplemental_semantic_ids": [],
+                "type_value_list_element": "ReferenceElement",
+                "value": [],
+                "value_type_list_element": null
+              },
+              "securityDefinitions": {
+                "apikey_sc": null,
+                "auto_sc": null,
+                "basic_sc": null,
+                "bearer_sc": null,
+                "combo_sc": null,
+                "description": "Defines the security scheme according to W3C:",
+                "digest_sc": null,
+                "display_name": null,
+                "id_short": "securityDefinitions",
+                "nosec_sc": null,
+                "oauth2_sc": null,
+                "opcua_authentication_sc": null,
+                "opcua_channel_sc": null,
+                "psk_sc": null,
+                "qualifiers": [],
+                "semantic_id": "https://www.w3.org/2019/wot/td#definesSecurityScheme",
+                "supplemental_semantic_ids": []
+              },
+              "semantic_id": "https://admin-shell.io/idta/AssetInterfacesDescription/1/0/EndpointMetadata",
+              "supplemental_semantic_ids": []
+            }
+          },
+          "ExternalDescriptor": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/ExternalDescriptor"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "InteractionMetadata": {
+            "$ref": "#/$defs/DmpInteractionMetadata",
+            "default": {
+              "actions": null,
+              "description": "Provides the metadata of the actually interfaces such as which datapoints and functions are provided by the properties, actions, and events interaction abstraction. ",
+              "display_name": null,
+              "events": null,
+              "id_short": "InteractionMetadata",
+              "properties": null,
+              "qualifiers": [],
+              "semantic_id": "https://admin-shell.io/idta/AssetInterfacesDescription/1/0/InteractionMetadata",
+              "supplemental_semantic_ids": [
+                "https://www.w3.org/2019/wot/td#InteractionAffordance"
+              ]
+            }
+          },
+          "created": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/Created"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "description": {
+            "default": "Indicates the entry point for a particular asset interface",
+            "title": "Description",
+            "type": "string"
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Display Name"
+          },
+          "id_short": {
+            "default": "InterfaceTemplateForSNMP",
+            "title": "Id Short",
+            "type": "string"
+          },
+          "modified": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/Modified"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "qualifiers": {
+            "default": [],
+            "items": {
+              "$ref": "#/$defs/Qualifier"
+            },
+            "title": "Qualifiers",
+            "type": "array"
+          },
+          "semantic_id": {
+            "default": "https://admin-shell.io/idta/AssetInterfacesDescription/1/0/Interface",
+            "title": "Semantic Id",
+            "type": "string"
+          },
+          "supplemental_semantic_ids": {
+            "default": [
+              "https://admin-shell.io/idta/AssetInterfacesDescription/1/2/SNMP",
+              "https://www.w3.org/2019/wot/td"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "title": "Supplemental Semantic Ids",
+            "type": "array"
+          },
+          "support": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/Support"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "title": {
+            "$ref": "#/$defs/Title",
+            "default": {
+              "description": "Provides a human-readable title to give a human-readable context of the interface.",
+              "display_name": null,
+              "id_short": "title",
+              "qualifiers": [],
+              "semantic_id": "https://www.w3.org/2019/wot/td#title",
+              "supplemental_semantic_ids": [],
+              "value": "",
+              "value_id": "",
+              "value_type": "xs:string"
+            }
+          }
+        },
+        "title": "DmpSnmpInterface",
         "type": "object"
       },
       "EndpointMetadata": {
@@ -8640,322 +9088,6 @@
           }
         },
         "title": "In",
-        "type": "object"
-      },
-      "InteractionMetadata": {
-        "additionalProperties": false,
-        "properties": {
-          "actions": {
-            "anyOf": [
-              {
-                "$ref": "#/$defs/actions"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null
-          },
-          "description": {
-            "default": "Provides the metadata of the actually interfaces such as which datapoints and functions are provided by the properties, actions, and events interaction abstraction. ",
-            "title": "Description",
-            "type": "string"
-          },
-          "display_name": {
-            "anyOf": [
-              {
-                "additionalProperties": {
-                  "type": "string"
-                },
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Display Name"
-          },
-          "events": {
-            "anyOf": [
-              {
-                "$ref": "#/$defs/events"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null
-          },
-          "id_short": {
-            "default": "InteractionMetadata",
-            "title": "Id Short",
-            "type": "string"
-          },
-          "properties": {
-            "anyOf": [
-              {
-                "$ref": "#/$defs/properties"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null
-          },
-          "qualifiers": {
-            "default": [],
-            "items": {
-              "$ref": "#/$defs/Qualifier"
-            },
-            "title": "Qualifiers",
-            "type": "array"
-          },
-          "semantic_id": {
-            "default": "https://admin-shell.io/idta/AssetInterfacesDescription/1/0/InteractionMetadata",
-            "title": "Semantic Id",
-            "type": "string"
-          },
-          "supplemental_semantic_ids": {
-            "default": [
-              "https://www.w3.org/2019/wot/td#InteractionAffordance"
-            ],
-            "items": {
-              "type": "string"
-            },
-            "title": "Supplemental Semantic Ids",
-            "type": "array"
-          }
-        },
-        "title": "InteractionMetadata",
-        "type": "object"
-      },
-      "InterfaceTemplateForCAN": {
-        "additionalProperties": false,
-        "properties": {
-          "EndpointMetadata": {
-            "$ref": "#/$defs/EndpointMetadata"
-          },
-          "ExternalDescriptor": {
-            "anyOf": [
-              {
-                "$ref": "#/$defs/ExternalDescriptor"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null
-          },
-          "InteractionMetadata": {
-            "$ref": "#/$defs/InteractionMetadata"
-          },
-          "created": {
-            "anyOf": [
-              {
-                "$ref": "#/$defs/Created"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null
-          },
-          "description": {
-            "default": "Indicates the entry point for a particular asset interface",
-            "title": "Description",
-            "type": "string"
-          },
-          "display_name": {
-            "anyOf": [
-              {
-                "additionalProperties": {
-                  "type": "string"
-                },
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Display Name"
-          },
-          "id_short": {
-            "default": "InterfaceTemplateForCAN",
-            "title": "Id Short",
-            "type": "string"
-          },
-          "modified": {
-            "anyOf": [
-              {
-                "$ref": "#/$defs/Modified"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null
-          },
-          "qualifiers": {
-            "default": [],
-            "items": {
-              "$ref": "#/$defs/Qualifier"
-            },
-            "title": "Qualifiers",
-            "type": "array"
-          },
-          "semantic_id": {
-            "default": "https://admin-shell.io/idta/AssetInterfacesDescription/1/0/Interface",
-            "title": "Semantic Id",
-            "type": "string"
-          },
-          "supplemental_semantic_ids": {
-            "default": [
-              "https://admin-shell.io/idta/AssetInterfacesDescription/1/2/CAN",
-              "https://www.w3.org/2019/wot/td"
-            ],
-            "items": {
-              "type": "string"
-            },
-            "title": "Supplemental Semantic Ids",
-            "type": "array"
-          },
-          "support": {
-            "anyOf": [
-              {
-                "$ref": "#/$defs/Support"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null
-          },
-          "title": {
-            "$ref": "#/$defs/Title"
-          }
-        },
-        "required": [
-          "title",
-          "EndpointMetadata",
-          "InteractionMetadata"
-        ],
-        "title": "InterfaceTemplateForCAN",
-        "type": "object"
-      },
-      "InterfaceTemplateForSNMP": {
-        "additionalProperties": false,
-        "properties": {
-          "EndpointMetadata": {
-            "$ref": "#/$defs/EndpointMetadata"
-          },
-          "ExternalDescriptor": {
-            "anyOf": [
-              {
-                "$ref": "#/$defs/ExternalDescriptor"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null
-          },
-          "InteractionMetadata": {
-            "$ref": "#/$defs/InteractionMetadata"
-          },
-          "created": {
-            "anyOf": [
-              {
-                "$ref": "#/$defs/Created"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null
-          },
-          "description": {
-            "default": "Indicates the entry point for a particular asset interface",
-            "title": "Description",
-            "type": "string"
-          },
-          "display_name": {
-            "anyOf": [
-              {
-                "additionalProperties": {
-                  "type": "string"
-                },
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Display Name"
-          },
-          "id_short": {
-            "default": "InterfaceTemplateForSNMP",
-            "title": "Id Short",
-            "type": "string"
-          },
-          "modified": {
-            "anyOf": [
-              {
-                "$ref": "#/$defs/Modified"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null
-          },
-          "qualifiers": {
-            "default": [],
-            "items": {
-              "$ref": "#/$defs/Qualifier"
-            },
-            "title": "Qualifiers",
-            "type": "array"
-          },
-          "semantic_id": {
-            "default": "https://admin-shell.io/idta/AssetInterfacesDescription/1/0/Interface",
-            "title": "Semantic Id",
-            "type": "string"
-          },
-          "supplemental_semantic_ids": {
-            "default": [
-              "https://admin-shell.io/idta/AssetInterfacesDescription/1/2/SNMP",
-              "https://www.w3.org/2019/wot/td"
-            ],
-            "items": {
-              "type": "string"
-            },
-            "title": "Supplemental Semantic Ids",
-            "type": "array"
-          },
-          "support": {
-            "anyOf": [
-              {
-                "$ref": "#/$defs/Support"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null
-          },
-          "title": {
-            "$ref": "#/$defs/Title"
-          }
-        },
-        "required": [
-          "title",
-          "EndpointMetadata",
-          "InteractionMetadata"
-        ],
-        "title": "InterfaceTemplateForSNMP",
         "type": "object"
       },
       "IolvAccessRights": {
@@ -10746,6 +10878,8 @@
               "response": null,
               "security": null,
               "semantic_id": "https://www.w3.org/2019/wot/td#hasForm",
+              "snmpv_pduType": null,
+              "snmpv_version": null,
               "subprotocol": null,
               "supplemental_semantic_ids": [],
               "uav_browsePath": null
@@ -11304,6 +11438,28 @@
             "default": "https://www.w3.org/2019/wot/td#hasForm",
             "title": "Semantic Id",
             "type": "string"
+          },
+          "snmpv_pduType": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/SnmpvPduType"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "snmpv_version": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/SnmpvVersion"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
           },
           "subprotocol": {
             "anyOf": [
@@ -12269,6 +12425,8 @@
               "response": null,
               "security": null,
               "semantic_id": "https://www.w3.org/2019/wot/td#hasForm",
+              "snmpv_pduType": null,
+              "snmpv_version": null,
               "subprotocol": null,
               "supplemental_semantic_ids": [],
               "uav_browsePath": null
@@ -12828,6 +12986,28 @@
             "title": "Semantic Id",
             "type": "string"
           },
+          "snmpv_pduType": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/SnmpvPduType"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "snmpv_version": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/SnmpvVersion"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
           "subprotocol": {
             "anyOf": [
               {
@@ -13033,6 +13213,8 @@
               "qualifiers": [],
               "security": null,
               "semantic_id": "https://www.w3.org/2019/wot/td#hasForm",
+              "snmpv_pduType": null,
+              "snmpv_version": null,
               "subprotocol": null,
               "supplemental_semantic_ids": [],
               "uav_browsePath": null
@@ -14581,6 +14763,144 @@
         "title": "Scheme_security_scheme",
         "type": "object"
       },
+      "SnmpvPduType": {
+        "additionalProperties": false,
+        "description": "AID 1.2 SNMP binding (Annex E.1): the PDU type of the interaction,\n``snmpv:GetRequestPDU`` (read, the default of readproperty) or\n``snmpv:SetRequestPDU`` (write, the default of writeproperty).",
+        "properties": {
+          "description": {
+            "default": "SNMP PDU type of the interaction: snmpv:GetRequestPDU or snmpv:SetRequestPDU.",
+            "title": "Description",
+            "type": "string"
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Display Name"
+          },
+          "id_short": {
+            "default": "snmpv_pduType",
+            "title": "Id Short",
+            "type": "string"
+          },
+          "qualifiers": {
+            "default": [],
+            "items": {
+              "$ref": "#/$defs/Qualifier"
+            },
+            "title": "Qualifiers",
+            "type": "array"
+          },
+          "semantic_id": {
+            "default": "https://admin-shell.io/idta/AssetInterfacesDescription/1/2/SNMP/pduType",
+            "title": "Semantic Id",
+            "type": "string"
+          },
+          "supplemental_semantic_ids": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Supplemental Semantic Ids",
+            "type": "array"
+          },
+          "value": {
+            "default": "",
+            "title": "Value",
+            "type": "string"
+          },
+          "value_id": {
+            "default": "",
+            "title": "Value Id",
+            "type": "string"
+          },
+          "value_type": {
+            "default": "xs:string",
+            "title": "Value Type",
+            "type": "string"
+          }
+        },
+        "title": "SnmpvPduType",
+        "type": "object"
+      },
+      "SnmpvVersion": {
+        "additionalProperties": false,
+        "description": "AID 1.2 SNMP binding (Annex E.1): ``snmpv:SNMPv1`` or\n``snmpv:SNMPv2c`` (the default).",
+        "properties": {
+          "description": {
+            "default": "SNMP protocol version of the interaction: snmpv:SNMPv1 or snmpv:SNMPv2c (default).",
+            "title": "Description",
+            "type": "string"
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Display Name"
+          },
+          "id_short": {
+            "default": "snmpv_version",
+            "title": "Id Short",
+            "type": "string"
+          },
+          "qualifiers": {
+            "default": [],
+            "items": {
+              "$ref": "#/$defs/Qualifier"
+            },
+            "title": "Qualifiers",
+            "type": "array"
+          },
+          "semantic_id": {
+            "default": "https://admin-shell.io/idta/AssetInterfacesDescription/1/2/SNMP/version",
+            "title": "Semantic Id",
+            "type": "string"
+          },
+          "supplemental_semantic_ids": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Supplemental Semantic Ids",
+            "type": "array"
+          },
+          "value": {
+            "default": "",
+            "title": "Value",
+            "type": "string"
+          },
+          "value_id": {
+            "default": "",
+            "title": "Value Id",
+            "type": "string"
+          },
+          "value_type": {
+            "default": "xs:string",
+            "title": "Value Type",
+            "type": "string"
+          }
+        },
+        "title": "SnmpvVersion",
+        "type": "object"
+      },
       "Subprotocol": {
         "additionalProperties": false,
         "properties": {
@@ -15911,59 +16231,6 @@
           }
         },
         "title": "Key",
-        "type": "object"
-      },
-      "actions": {
-        "additionalProperties": false,
-        "properties": {
-          "description": {
-            "default": "Collection of functions that can be done on asset as action SMC",
-            "title": "Description",
-            "type": "string"
-          },
-          "display_name": {
-            "anyOf": [
-              {
-                "additionalProperties": {
-                  "type": "string"
-                },
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Display Name"
-          },
-          "id_short": {
-            "default": "actions",
-            "title": "Id Short",
-            "type": "string"
-          },
-          "qualifiers": {
-            "default": [],
-            "items": {
-              "$ref": "#/$defs/Qualifier"
-            },
-            "title": "Qualifiers",
-            "type": "array"
-          },
-          "semantic_id": {
-            "default": "https://www.w3.org/2019/wot/td#ActionAffordance",
-            "title": "Semantic Id",
-            "type": "string"
-          },
-          "supplemental_semantic_ids": {
-            "default": [],
-            "items": {
-              "type": "string"
-            },
-            "title": "Supplemental Semantic Ids",
-            "type": "array"
-          }
-        },
-        "title": "actions",
         "type": "object"
       },
       "allOf": {
@@ -17590,496 +17857,6 @@
         "title": "enum",
         "type": "object"
       },
-      "events": {
-        "additionalProperties": false,
-        "properties": {
-          "description": {
-            "default": "Collection of events triggerable by datapoint state as event SMC",
-            "title": "Description",
-            "type": "string"
-          },
-          "display_name": {
-            "anyOf": [
-              {
-                "additionalProperties": {
-                  "type": "string"
-                },
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Display Name"
-          },
-          "id_short": {
-            "default": "events",
-            "title": "Id Short",
-            "type": "string"
-          },
-          "qualifiers": {
-            "default": [],
-            "items": {
-              "$ref": "#/$defs/Qualifier"
-            },
-            "title": "Qualifiers",
-            "type": "array"
-          },
-          "semantic_id": {
-            "default": "https://www.w3.org/2019/wot/td#EventAffordance",
-            "title": "Semantic Id",
-            "type": "string"
-          },
-          "supplemental_semantic_ids": {
-            "default": [],
-            "items": {
-              "type": "string"
-            },
-            "title": "Supplemental Semantic Ids",
-            "type": "array"
-          }
-        },
-        "title": "events",
-        "type": "object"
-      },
-      "forms": {
-        "additionalProperties": false,
-        "properties": {
-          "bacv_hasDataType": {
-            "anyOf": [
-              {
-                "$ref": "#/$defs/bacv_hasDataType"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null
-          },
-          "bacv_useService": {
-            "anyOf": [
-              {
-                "$ref": "#/$defs/BacvUseService"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null
-          },
-          "canv_enumeratedValues": {
-            "anyOf": [
-              {
-                "$ref": "#/$defs/canv_enumeratedValues"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null
-          },
-          "canv_length": {
-            "anyOf": [
-              {
-                "$ref": "#/$defs/CanvLength"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null
-          },
-          "canv_offset": {
-            "anyOf": [
-              {
-                "$ref": "#/$defs/CanvOffset"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null
-          },
-          "canv_payloadMapping": {
-            "anyOf": [
-              {
-                "$ref": "#/$defs/canv_payloadMapping"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null
-          },
-          "canv_valueOffset": {
-            "anyOf": [
-              {
-                "$ref": "#/$defs/CanvValueOffset"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null
-          },
-          "contentType": {
-            "anyOf": [
-              {
-                "$ref": "#/$defs/ContentType_for_content_type"
-              },
-              {
-                "$ref": "#/$defs/ContentType"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Contenttype"
-          },
-          "description": {
-            "default": "Contains information about datapoint resource location. ",
-            "title": "Description",
-            "type": "string"
-          },
-          "display_name": {
-            "anyOf": [
-              {
-                "additionalProperties": {
-                  "type": "string"
-                },
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Display Name"
-          },
-          "href": {
-            "$ref": "#/$defs/Href"
-          },
-          "htv_headers": {
-            "anyOf": [
-              {
-                "$ref": "#/$defs/htv_headers"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null
-          },
-          "htv_methodName": {
-            "anyOf": [
-              {
-                "$ref": "#/$defs/HtvMethodName"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null
-          },
-          "id_short": {
-            "default": "forms",
-            "title": "Id Short",
-            "type": "string"
-          },
-          "iolv_accessRights": {
-            "anyOf": [
-              {
-                "$ref": "#/$defs/IolvAccessRights"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null
-          },
-          "iolv_bitLength": {
-            "anyOf": [
-              {
-                "$ref": "#/$defs/IolvBitLength"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null
-          },
-          "iolv_bitOffset": {
-            "anyOf": [
-              {
-                "$ref": "#/$defs/IolvBitOffset"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null
-          },
-          "iolv_byteLength": {
-            "anyOf": [
-              {
-                "$ref": "#/$defs/IolvByteLength"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null
-          },
-          "iolv_byteOffset": {
-            "anyOf": [
-              {
-                "$ref": "#/$defs/IolvByteOffset"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null
-          },
-          "iolv_enumeratedValues": {
-            "anyOf": [
-              {
-                "$ref": "#/$defs/iolv_enumeratedValues"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null
-          },
-          "iolv_method": {
-            "anyOf": [
-              {
-                "$ref": "#/$defs/IolvMethod"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null
-          },
-          "iolv_payloadMapping": {
-            "anyOf": [
-              {
-                "$ref": "#/$defs/iolv_payloadMapping"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null
-          },
-          "iolv_referenceToCondition": {
-            "anyOf": [
-              {
-                "$ref": "#/$defs/IolvReferenceToCondition"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null
-          },
-          "iolv_type": {
-            "anyOf": [
-              {
-                "$ref": "#/$defs/IolvType"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null
-          },
-          "modv_entity": {
-            "anyOf": [
-              {
-                "$ref": "#/$defs/ModvEntity"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null
-          },
-          "modv_function": {
-            "anyOf": [
-              {
-                "$ref": "#/$defs/ModvFunction"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null
-          },
-          "modv_mostSignificantByte": {
-            "anyOf": [
-              {
-                "$ref": "#/$defs/ModvMostSignificantByte"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null
-          },
-          "modv_mostSignificantWord": {
-            "anyOf": [
-              {
-                "$ref": "#/$defs/ModvMostSignificantWord"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null
-          },
-          "modv_pollingTime": {
-            "anyOf": [
-              {
-                "$ref": "#/$defs/ModvPollingTime"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null
-          },
-          "modv_timeout": {
-            "anyOf": [
-              {
-                "$ref": "#/$defs/ModvTimeout"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null
-          },
-          "modv_type": {
-            "anyOf": [
-              {
-                "$ref": "#/$defs/ModvType"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null
-          },
-          "modv_zeroBasedAddressing": {
-            "anyOf": [
-              {
-                "$ref": "#/$defs/ModvZeroBasedAddressing"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null
-          },
-          "mqv_controlPacket": {
-            "anyOf": [
-              {
-                "$ref": "#/$defs/MqvControlPacket"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null
-          },
-          "mqv_qos": {
-            "anyOf": [
-              {
-                "$ref": "#/$defs/MqvQos"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null
-          },
-          "mqv_retain": {
-            "anyOf": [
-              {
-                "$ref": "#/$defs/MqvRetain"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null
-          },
-          "qualifiers": {
-            "default": [],
-            "items": {
-              "$ref": "#/$defs/Qualifier"
-            },
-            "title": "Qualifiers",
-            "type": "array"
-          },
-          "security": {
-            "anyOf": [
-              {
-                "$ref": "#/$defs/security"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null
-          },
-          "semantic_id": {
-            "default": "https://www.w3.org/2019/wot/td#hasForm",
-            "title": "Semantic Id",
-            "type": "string"
-          },
-          "subprotocol": {
-            "anyOf": [
-              {
-                "$ref": "#/$defs/Subprotocol"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null
-          },
-          "supplemental_semantic_ids": {
-            "default": [],
-            "items": {
-              "type": "string"
-            },
-            "title": "Supplemental Semantic Ids",
-            "type": "array"
-          },
-          "uav_browsePath": {
-            "anyOf": [
-              {
-                "$ref": "#/$defs/UavBrowsePath"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null
-          }
-        },
-        "required": [
-          "href"
-        ],
-        "title": "forms",
-        "type": "object"
-      },
       "htv_headers": {
         "additionalProperties": false,
         "properties": {
@@ -19219,67 +18996,6 @@
         "title": "opcua_channel_sc",
         "type": "object"
       },
-      "properties": {
-        "additionalProperties": false,
-        "properties": {
-          "description": {
-            "default": "Collection of asset\u2019s datapoint definitions as property SMC ",
-            "title": "Description",
-            "type": "string"
-          },
-          "display_name": {
-            "anyOf": [
-              {
-                "additionalProperties": {
-                  "type": "string"
-                },
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Display Name"
-          },
-          "id_short": {
-            "default": "properties",
-            "title": "Id Short",
-            "type": "string"
-          },
-          "property_name": {
-            "additionalProperties": {
-              "$ref": "#/$defs/property_name"
-            },
-            "default": {},
-            "title": "Property Name",
-            "type": "object"
-          },
-          "qualifiers": {
-            "default": [],
-            "items": {
-              "$ref": "#/$defs/Qualifier"
-            },
-            "title": "Qualifiers",
-            "type": "array"
-          },
-          "semantic_id": {
-            "default": "https://www.w3.org/2019/wot/td#PropertyAffordance",
-            "title": "Semantic Id",
-            "type": "string"
-          },
-          "supplemental_semantic_ids": {
-            "default": [],
-            "items": {
-              "type": "string"
-            },
-            "title": "Supplemental Semantic Ids",
-            "type": "array"
-          }
-        },
-        "title": "properties",
-        "type": "object"
-      },
       "properties_json_schema": {
         "additionalProperties": false,
         "properties": {
@@ -19339,236 +19055,6 @@
           }
         },
         "title": "properties_json_schema",
-        "type": "object"
-      },
-      "property_name": {
-        "additionalProperties": false,
-        "properties": {
-          "const": {
-            "anyOf": [
-              {
-                "$ref": "#/$defs/Const"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null
-          },
-          "default": {
-            "anyOf": [
-              {
-                "$ref": "#/$defs/Default"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null
-          },
-          "description": {
-            "default": "Defines an interaction property that covers usually a datapoint definition that can be read or subscribed to.  ",
-            "title": "Description",
-            "type": "string"
-          },
-          "display_name": {
-            "anyOf": [
-              {
-                "additionalProperties": {
-                  "type": "string"
-                },
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Display Name"
-          },
-          "enum": {
-            "anyOf": [
-              {
-                "$ref": "#/$defs/enum"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null
-          },
-          "forms": {
-            "$ref": "#/$defs/forms"
-          },
-          "id_short": {
-            "default": "property_name",
-            "title": "Id Short",
-            "type": "string"
-          },
-          "items": {
-            "anyOf": [
-              {
-                "$ref": "#/$defs/items"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null
-          },
-          "itemsRange": {
-            "anyOf": [
-              {
-                "$ref": "#/$defs/ItemsRange"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null
-          },
-          "key": {
-            "anyOf": [
-              {
-                "$ref": "#/$defs/aas_pydantic__submodel_templates__asset_interfaces_description__Key"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null
-          },
-          "lengthRange": {
-            "anyOf": [
-              {
-                "$ref": "#/$defs/LengthRange"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null
-          },
-          "min_max": {
-            "anyOf": [
-              {
-                "$ref": "#/$defs/MinMax"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null
-          },
-          "observable": {
-            "anyOf": [
-              {
-                "$ref": "#/$defs/Observable"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null
-          },
-          "properties": {
-            "anyOf": [
-              {
-                "$ref": "#/$defs/properties_json_schema"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null
-          },
-          "qualifiers": {
-            "default": [],
-            "items": {
-              "$ref": "#/$defs/Qualifier"
-            },
-            "title": "Qualifiers",
-            "type": "array"
-          },
-          "semantic_id": {
-            "default": "https://admin-shell.io/idta/AssetInterfacesDescription/1/0/PropertyDefinition",
-            "title": "Semantic Id",
-            "type": "string"
-          },
-          "supplemental_semantic_ids": {
-            "default": [
-              "https://www.w3.org/2019/wot/td#name"
-            ],
-            "items": {
-              "type": "string"
-            },
-            "title": "Supplemental Semantic Ids",
-            "type": "array"
-          },
-          "title": {
-            "anyOf": [
-              {
-                "$ref": "#/$defs/Title_td"
-              },
-              {
-                "$ref": "#/$defs/Title"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Title"
-          },
-          "type": {
-            "anyOf": [
-              {
-                "$ref": "#/$defs/Type"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null
-          },
-          "unit": {
-            "anyOf": [
-              {
-                "$ref": "#/$defs/Unit"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null
-          },
-          "uriVariables": {
-            "anyOf": [
-              {
-                "$ref": "#/$defs/uriVariables"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null
-          },
-          "valueSemantics": {
-            "anyOf": [
-              {
-                "$ref": "#/$defs/ValueSemantics"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null
-          }
-        },
-        "required": [
-          "forms"
-        ],
-        "title": "property_name",
         "type": "object"
       },
       "property_name_json_schema": {
@@ -20341,7 +19827,7 @@
       }
     },
     "additionalProperties": false,
-    "description": "DMP-extended Asset Interfaces Description.\n\nEvery interface lives in its protocol family's ``InterfaceTemplateFor*``\ndict, keyed by its idShort (the DMP convention: the asset's one native\nMQTT interface is ``InterfaceTemplateForMQTT[\"interface_mqtt\"]``). The\ninterface families share the ``\u2026/Interface`` semanticId; the parser\ntells them apart by their protocol-binding supplemental IRI. SNMP and CAN\ninterfaces keep the generated types.",
+    "description": "DMP-extended Asset Interfaces Description.\n\nEvery interface lives in its protocol family's ``InterfaceTemplateFor*``\ndict, keyed by its idShort (the DMP convention: the asset's one native\nMQTT interface is ``InterfaceTemplateForMQTT[\"interface_mqtt\"]``). The\ninterface families share the ``\u2026/Interface`` semanticId; the parser\ntells them apart by their protocol-binding supplemental IRI.",
     "properties": {
       "InterfaceTemplateForBacnet": {
         "additionalProperties": {
@@ -20353,9 +19839,9 @@
       },
       "InterfaceTemplateForCAN": {
         "additionalProperties": {
-          "$ref": "#/$defs/InterfaceTemplateForCAN"
+          "$ref": "#/$defs/DmpCanInterface"
         },
-        "idta_min_cardinality": 1,
+        "default": {},
         "title": "Interfacetemplateforcan",
         "type": "object"
       },
@@ -20506,9 +19992,9 @@
       },
       "InterfaceTemplateForSNMP": {
         "additionalProperties": {
-          "$ref": "#/$defs/InterfaceTemplateForSNMP"
+          "$ref": "#/$defs/DmpSnmpInterface"
         },
-        "idta_min_cardinality": 1,
+        "default": {},
         "title": "Interfacetemplateforsnmp",
         "type": "object"
       },

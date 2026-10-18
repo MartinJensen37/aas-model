@@ -21,6 +21,7 @@ from aas_model.submodel_templates.aid import (
     DmpAssetInterfacesDescription, DmpAction, DmpActionForm, DmpActions,
     DmpEvent, DmpEventData, DmpEvents, DmpForm, DmpInteractionMetadata,
     DmpProperties, DmpProperty, DmpHttpInterface, DmpModbusInterface,
+    DmpSnmpInterface, DmpCanInterface, SnmpvPduType, SnmpvVersion,
     DmpBacnetInterface, DmpOpcuaInterface, MqttAction, MqttActionForm,
     MqttActions, MqttInteractionMetadata, MqttInterface, MqvResponseTopic,
     OpcuaAction, OpcuaActions, OpcuaEvent, OpcuaEventData, OpcuaEventField,
@@ -228,11 +229,51 @@ def bacnet_interface(base: str, *, properties=None, actions=None) -> DmpBacnetIn
     return _gen_interface(DmpBacnetInterface, base, properties=properties, actions=actions)
 
 
+def snmp_interface(base: str, *, properties=None, observable: bool = False) -> DmpSnmpInterface:
+    """SNMP v1/v2c interface (AID 1.2 Annex E.1), base ``snmp://{address}:{port}``.
+    ``properties`` maps a name to its OID href, or to ``(href, terms)`` where
+    ``terms`` sets ``pduType`` and/or ``version`` (e.g. ``"snmpv:SNMPv1"``)."""
+    interface = _gen_interface(DmpSnmpInterface, base, observable=observable, properties={
+        n: (v[0] if isinstance(v, tuple) else v) for n, v in (properties or {}).items()})
+    for n, v in (properties or {}).items():
+        terms = v[1] if isinstance(v, tuple) else {}
+        form = interface.InteractionMetadata.properties.property_name[n].forms
+        form.contentType = None
+        if "pduType" in terms:
+            form.snmpv_pduType = SnmpvPduType(value=terms["pduType"])
+        if "version" in terms:
+            form.snmpv_version = SnmpvVersion(value=terms["version"])
+    return interface
+
+
+def can_interface(base: str = "can://", *, properties=None) -> DmpCanInterface:
+    """CAN interface (AID 1.2 Annex E.2). ``properties`` maps a name to its
+    frame href (``can://0x1f2b3a00`` or ``0x1f2b3a00``) or to ``(href, terms)``
+    where ``terms`` sets ``offset``, ``length`` and ``valueOffset``."""
+    from aas_pydantic.submodel_templates.asset_interfaces_description import (
+        CanvLength, CanvOffset, CanvValueOffset)
+    interface = _gen_interface(DmpCanInterface, base, observable=True, properties={
+        n: (v[0] if isinstance(v, tuple) else v) for n, v in (properties or {}).items()})
+    for n, v in (properties or {}).items():
+        terms = v[1] if isinstance(v, tuple) else {}
+        form = interface.InteractionMetadata.properties.property_name[n].forms
+        form.contentType = ContentType(value="application/octet-stream")
+        if "offset" in terms:
+            form.canv_offset = CanvOffset(value=str(terms["offset"]))
+        if "length" in terms:
+            form.canv_length = CanvLength(value=str(terms["length"]))
+        if "valueOffset" in terms:
+            form.canv_valueOffset = CanvValueOffset(value=str(terms["valueOffset"]))
+    return interface
+
+
 def build_aid(*, mqtt: MqttInterface | None = None,
               opcua: DmpOpcuaInterface | None = None,
               http: DmpHttpInterface | None = None,
               modbus: DmpModbusInterface | None = None,
               bacnet: DmpBacnetInterface | None = None,
+              snmp: DmpSnmpInterface | None = None,
+              can: DmpCanInterface | None = None,
               id_short: str = "AID") -> DmpAssetInterfacesDescription:
     """Compose an AID. All interfaces live in their ``InterfaceTemplateFor*``
     dicts (the DMP convention: the native MQTT interface is
@@ -248,6 +289,10 @@ def build_aid(*, mqtt: MqttInterface | None = None,
         aid.InterfaceTemplateForMODBUS["interface_modbus"] = modbus
     if bacnet is not None:
         aid.InterfaceTemplateForBacnet["interface_bacnet"] = bacnet
+    if snmp is not None:
+        aid.InterfaceTemplateForSNMP["interface_snmp"] = snmp
+    if can is not None:
+        aid.InterfaceTemplateForCAN["interface_can"] = can
     return aid
 
 
