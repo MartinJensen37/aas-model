@@ -15,7 +15,10 @@ def build_from_model(resource: Resource) -> DictIdentifiableStore[Identifiable]:
 
     Pydantic owns model construction and JSON loading. Building only resolves
     IDs/references on a copy and converts it through the aas_pydantic fork.
+    Mutations to typed element dictionaries are validated as a complete graph
+    before export; inserting into a Python dict alone bypasses Pydantic.
     """
+    type(resource).model_validate_json(resource.model_dump_json())
     asset = resource.model_copy(deep=True)
     inject_ids(asset)
     return convert_model_to_aas(asset)

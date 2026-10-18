@@ -10,7 +10,7 @@ from pydantic import ValidationError
 
 from aas_model import Resource, ResourceTypeAAS, build_from_model, inject_ids
 from aas_model.constants import BASE_URL
-from aas_model.resource_template import Position, capability_description
+from aas_model.resource_template import Position, MqttOperationalStation as Station
 from aas_model.resource_instances.stopperingModule import syntegon_stoppering
 from aas_model.submodel_templates.control_component_instance import ExtendedSkill, SkillOperation
 from aas_model.submodel_templates.variables import VariableProp
@@ -24,6 +24,13 @@ from aas_pydantic.convert_util import strip_temp_id_short_attributes
 def _document(store):
     strip_temp_id_short_attributes(store)
     document = json.loads(json_serialization.object_store_to_json(store))
+    # Registration imports the base Resource schema, intentionally erasing the
+    # Python subclass name stored in authoring-only IEC 61360 metadata.
+    for referable in (*document.get("assetAdministrationShells", []), *document.get("submodels", [])):
+        for specification in referable.get("embeddedDataSpecifications", []):
+            content = specification.get("dataSpecificationContent", {})
+            if content.get("preferredName") == [{"language": "en", "text": "class"}]:
+                content["value"] = "<authoring-class>"
 
     def normalize(value):
         # The fork generates random data-specification IDs; shell references
@@ -54,8 +61,8 @@ def test_resource_instance_package_exports_the_module_factory():
 
 
 def test_resource_defaults_are_independent_and_have_authored_invocation_urls():
-    first = Resource(id_short="First")
-    second = Resource(id_short="Second")
+    first = Station(id_short="First")
+    second = Station(id_short="Second")
     first.variables.variable["PackMLState"].value = "IDLE"
     first.parameters.parameter["Location"].x.parameter.value = 100.0
 
@@ -67,10 +74,26 @@ def test_resource_defaults_are_independent_and_have_authored_invocation_urls():
             assert invocation.value == f"http://dmp:8080/operations/{resource.id_short}/{name}"
 
 
+def test_resource_aid_defaults_populate_optional_mqtt_containers_and_round_trip():
+    resource = Station(id_short="AIDContainers")
+    interface = resource.asset_interfaces_description.InterfaceTemplateForMQTT["interface_mqtt"]
+    interaction = interface.InteractionMetadata
+
+    assert set(interaction.actions.property_name) == {"Halt", "Occupy", "Release"}
+    assert set(interaction.properties.property_name) == {"StationState"}
+
+    restored = Resource.model_validate_json(resource.model_dump_json())
+    restored_interaction = restored.asset_interfaces_description.InterfaceTemplateForMQTT[
+        "interface_mqtt"
+    ].InteractionMetadata
+    assert set(restored_interaction.actions.property_name) == {"Halt", "Occupy", "Release"}
+    assert set(restored_interaction.properties.property_name) == {"StationState"}
+
+
 def test_resolving_one_resource_does_not_change_reference_defaults_for_the_next():
-    first = Resource(id_short="FirstIdentity")
+    first = Station(id_short="FirstIdentity")
     inject_ids(first)
-    second = Resource(id_short="SecondIdentity")
+    second = Station(id_short="SecondIdentity")
     native = second.control_component_instance.Skills.Skill["Halt"].interface_reference.value
     mapping = second.asset_interfaces_mapping_configuration.MappingConfigurations.value[0]
 
@@ -79,7 +102,7 @@ def test_resolving_one_resource_does_not_change_reference_defaults_for_the_next(
     assert mapping.Sinks.value[0].Sink.value.key[0].value == "{aas_id}/submodels/Variables"
 
 
-@pytest.mark.parametrize("factory", [lambda: Resource(id_short="Generic"), syntegon_stoppering])
+@pytest.mark.parametrize("factory", [lambda: Station(id_short="Generic"), syntegon_stoppering])
 def test_complete_resource_json_round_trip(factory):
     resource = factory()
     resource.parameters.parameter["Location"].x.parameter.value = 123.5
@@ -115,7 +138,7 @@ def test_build_from_model_resolves_references_without_mutating_resource():
 
     assert resource.model_dump_json() == before
     assert shell.id == f"{BASE_URL}/aas/{resource.id_short}"
-    assert len(shell.submodel) == 7
+    assert len(shell.submodel) == 8
     assert all(reference.resolve(store) is not None for reference in shell.submodel)
     submodels = {obj.id_short: obj for obj in store if isinstance(obj, model.Submodel)}
     assert "CapabilityDescription" in submodels
@@ -182,7 +205,7 @@ def test_pydantic_loading_preserves_empty_containers_without_default_overlay(sou
 
 
 def test_pydantic_rejects_invalid_exported_field_types():
-    resource = Resource(id_short="Invalid")
+    resource = Station(id_short="Invalid")
     resource.parameters.parameter["Location"].x.parameter.value = "not a float"
 
     with pytest.warns(UserWarning, match="Expected `float`"):
@@ -236,7 +259,7 @@ def test_build_from_model_does_not_revalidate_or_serialize_the_model(monkeypatch
     monkeypatch.setattr(Resource, "model_validate", unexpected_validation)
     monkeypatch.setattr(Resource, "model_dump", unexpected_validation)
 
-    assert len(build_from_model(resource)) == 8
+    assert len(build_from_model(resource)) == 9
 
 
 def test_resource_capability_description_defaults_are_independent():
@@ -245,11 +268,11 @@ def test_resource_capability_description_defaults_are_independent():
     first.capability_description.CapabilitySet["Processing"] = CapabilitySet(id_short="Processing")
 
     assert second.capability_description.CapabilitySet == {}
-    assert capability_description().id_short == "CapabilityDescription"
+    assert CapabilityDescription(id_short="CapabilityDescription").id_short == "CapabilityDescription"
 
 
 def test_authored_capability_survives_json_and_aas_construction():
-    capabilities = capability_description()
+    capabilities = CapabilityDescription(id_short="CapabilityDescription")
     capabilities.CapabilitySet["Processing"] = CapabilitySet(
         id_short="Processing",
         CapabilityContainer={"Stoppering": CapabilityContainer(

@@ -107,7 +107,8 @@ def test_variable_submodel_round_trips_through_rest_json():
 
 
 def test_resource_defaults_author_flat_variables():
-    asset = Resource(id_short="shapeTestAAS")
+    from aas_model.resource_template import MqttOperationalStation as Station
+    asset = Station(id_short="shapeTestAAS")
     assert {k: type(v).__name__ for k, v in asset.variables.variable.items()} == {
         "PackMLState": "VariableProp", "OccupationState": "VariableProp"}
     # Location is a real group, so it stays a collection
