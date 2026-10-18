@@ -138,29 +138,7 @@ def mqtt_property(
     return prop
 
 def asset_interfaces_description() -> DmpAssetInterfacesDescription:
-    """AssetInterfacesDescription with mandatory Resource actions/properties."""
-    aid = DmpAssetInterfacesDescription(id_short="AssetInterfacesDescription")
-    iface = aid.InterfaceTemplateForMQTT["interface_mqtt"]
-    ep = iface.EndpointMetadata
-    ep.base.value = f"{BROKER}/{SITE}/{{station_name}}"
-    ep.contentType.value = "application/json"
-    im = iface.InteractionMetadata
-    put(
-        im.actions.property_name, "Halt",
-        # every delegated MQTT skill declares its response form (ADR-022) —
-        # Halt included: the reply leg of the derived interaction
-        mqtt_action("Halt", synchronous=True, has_response=True),
-    )
-    put(
-        im.actions.property_name, "Occupy",
-        mqtt_action("Occupy", synchronous=True),
-    )
-    put(
-        im.actions.property_name, "Release",
-        mqtt_action("Release", synchronous=True),
-    )
-    put(
-        im.properties.property_name, "StationState",
-        mqtt_property("StationState", "/DATA/State", schema=_STATION_STATE_SCHEMA),
-    )
-    return aid
+    """Compatibility entry point backed by the operational MQTT template."""
+    from .operational import OperationalMqttInterfaces
+
+    return OperationalMqttInterfaces(id_short="AssetInterfacesDescription")

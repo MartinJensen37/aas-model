@@ -50,7 +50,6 @@ from aas_model.submodel_templates import (
     DmpStatusSourceId, DmpStatusSources, DmpStatusTransformation,
     DmpStatusTimeout, DmpResponseTransformation, Transformation,
 )
-from ._helpers import DEFAULT_SKILLS
 
 # ── Reference paths (self-referential — {aas_id} resolved by id_injector) ──
 AID_REF = "{aas_id}/submodels/AssetInterfacesDescription"
@@ -207,88 +206,3 @@ def mapping_configuration(
             TriggerSourceIds=DmpTriggerSourceIds(
                 value=[Property(value=source_id) for source_id in trigger_source_ids]))
     return AimcMappingConfiguration(**kwargs)
-
-
-_DEFAULT_TRANSFORMATION = """\
-function aimc_main(sources)
-    return {
-        PackMLState     = sources.StationState.State,
-        OccupationState = sources.StationState.ProcessQueue,
-    }
-end
-"""
-
-
-def _operation_request_transformation(name: str) -> str:
-    """Lua request blob for the skill's ONE operation mapping: the DMP
-    receives the caller's operation invocation (the REST body keyed by the
-    action) and packs the correlation Uuid into the native command message
-    sent to /CMD/<name>."""
-    return f"""\
--- Skill '{name}' operation delegation (one-MC): the DMP receives the caller's
--- operation invocation and packs it into the native command message sent to
--- /CMD/{name}, keeping the correlation Uuid (replies pass through unchanged):
-function aimc_main(sources)
-    local op = sources.{name}
-    return {{
-        {name} = {{
-            Uuid = op.Uuid,
-        }},
-    }}
-end
-"""
-
-
-def variables_mapping_configuration() -> AimcMappingConfiguration:
-    """The mandatory Variables mapping: StationState property → PackMLState /
-    OccupationState."""
-    return mapping_configuration(
-        id_short="MQTT",
-        sources=[
-            source("StationState", _property_ref("StationState")),
-        ],
-        sinks=[
-            sink("PackMLState", _variable_ref("PackMLState")),
-            sink("OccupationState", _variable_ref("OccupationState")),
-        ],
-        transformation=_DEFAULT_TRANSFORMATION,
-    )
-
-
-def skill_operation_mapping_configuration(name: str) -> AimcMappingConfiguration:
-    """One skill's operation-delegation MappingConfiguration (DMP v3, one-MC).
-
-    SOURCE = the skill's Operation SubmodelElement in the CCI (``Skills/<name>/
-    operation``); SINK = the skill's native MQTT command affordance; the
-    Transformation is the REQUEST blob. The management node classifies this
-    mapping as an interaction from the Operation-element source reference and
-    derives the caller-facing REST surface (``/operations/{aas_id_short}/
-    <name>``) by convention."""
-    return mapping_configuration(
-        id_short=name,
-        sources=[
-            source(name, operation_ref(name)),
-        ],
-        sinks=[
-            sink(name, _mqtt_action_ref(name)),
-        ],
-        transformation=_operation_request_transformation(name),
-    )
-
-
-def asset_interfaces_mapping_configuration() -> Aimc:
-    """AIMC submodel with the mandatory Resource mappings.
-
-    The Variables mapping (PackMLState/OccupationState ← StationState) plus,
-    per default skill, ONE operation-delegation MappingConfiguration (the
-    skill's CCI Operation → its native MQTT command affordance).  Resource
-    configs add their own skill / operation mappings to
-    ``MappingConfigurations``.
-    """
-    mcs = [variables_mapping_configuration()]
-    for name, _synchronous, _has_response in DEFAULT_SKILLS:
-        mcs.append(skill_operation_mapping_configuration(name))
-    return Aimc(
-        id_short="AssetInterfacesMappingConfiguration",
-        MappingConfigurations=AimcMappingConfigurations(value=mcs),
-    )

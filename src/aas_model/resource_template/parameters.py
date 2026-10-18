@@ -1,4 +1,4 @@
-from typing import Literal, Dict
+from typing import Literal, Dict, Optional
 from pydantic import model_validator
 from aas_pydantic import Property, ModelReference, Key
 from aas_model.submodel_templates.parameters import (
@@ -48,22 +48,22 @@ class CoordinateRef(ParamReference):
 
 
 class Coordinate(ParameterItem):
-    """A single position coordinate: typed property + AID interface reference.
+    """A position coordinate with an optional live AID interface reference.
 
     A leaf ParameterItem — ``parameter`` and ``interface_reference`` are direct
     children (no extra wrapper).  Carries its own semantic id (distinct from
     the generic ``ParameterItem``) so back-conversion resolves the concrete
-    type.  Instantiate with the axis and value: ``Coordinate("x", 480.0)``.
+    type. Static/home coordinates do not advertise a nonexistent interface.
+    Instantiate with the axis and value: ``Coordinate("x", 480.0)``.
     """
     semantic_id: str = PARAM_COORDINATE
     parameter: CoordinateProp = CoordinateProp()
-    interface_reference: CoordinateRef = CoordinateRef()
+    interface_reference: Optional[CoordinateRef] = None
 
     #Convenience Constructor
     def __init__(self, axis: str = "x", val: float = 0.0, **data):
         data.setdefault("id_short", axis)
         data.setdefault("parameter", CoordinateProp(axis, val))
-        data.setdefault("interface_reference", CoordinateRef(axis))
         super().__init__(**data)
 
     @model_validator(mode="before")
@@ -74,8 +74,8 @@ class Coordinate(ParameterItem):
         The container key (x/y/yaw) is stamped as ``id_short`` before
         validation, so a config like ``{"y": {"parameter": {"value":
         "0.0"}}}`` gets ``parameter.id_short="y"`` without repeating the
-        axis inside each coordinate. The interface reference is authored by
-        the constructor and preserved in exported model JSON.
+        axis inside each coordinate. Any explicitly authored interface
+        reference is preserved in exported model JSON.
         """
         if not isinstance(data, dict):
             return data
@@ -111,12 +111,3 @@ class ResourceParameters(Parameters):
     parameter: Dict[str, ParameterEntry] = {
         "Location": Position()
     }
-
-
-def resource_parameters() -> ResourceParameters:
-    """Fresh Resource Parameters submodel with the mandatory Location parameter.
-
-    ``id_short`` is passed explicitly — the Identifiable before-validator
-    requires it on the raw input (class-level defaults run too late).
-    """
-    return ResourceParameters(id_short="Parameters")

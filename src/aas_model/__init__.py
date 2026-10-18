@@ -24,12 +24,6 @@ from aas_model.id_injector import inject_ids  # noqa: F401
 from aas_model.resource_template import (  # noqa: F401
     Resource,
     ResourceTypeAAS,
-    nameplate,
-    capability_description,
     asset_interfaces_description,
-    asset_interfaces_mapping_configuration,
-    control_component_instance,
-    variables,
-    parameters,
 )
 from aas_model.submodel_templates import *  # noqa: F401,F403

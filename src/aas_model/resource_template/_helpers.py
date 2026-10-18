@@ -1,9 +1,4 @@
-"""Shared helpers for building partially-filled submodel templates.
-
-Used by the individual partial submodel modules under ``resource_template/``
-to stamp id_shorts and insert elements into values models / dynamic dict
-containers.
-"""
+"""Keep generated submodel container keys and element idShorts aligned."""
 
 from __future__ import annotations
 
@@ -28,17 +23,3 @@ def put(container: Any, key: str, element: SubmodelElement) -> SubmodelElement:
     else:
         container[key] = element
     return element
-
-
-# The mandatory default Resource skills, mirrored across the CCI (skills +
-# endpoints relationships), the AID (native MQTT actions) and the AIMC (one
-# operation-delegation mapping per skill, DMP v3).
-# Each entry is ``(name, synchronous, has_response)``. ``has_response`` is
-# TRUE for every skill: the delegated operation completes through the
-# command affordance's DECLARED reply topic (correlated by Uuid) — an
-# undeclared response form leaves the interaction unresolved.
-DEFAULT_SKILLS = (
-    ("Halt", True, True),
-    ("Occupy", True, True),
-    ("Release", True, True),
-)

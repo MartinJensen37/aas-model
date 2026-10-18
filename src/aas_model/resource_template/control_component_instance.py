@@ -1,4 +1,4 @@
-"""Control Component Instance partial — mandatory Resource skills + MQTT endpoint.
+"""CCI extension, reference paths and optional skill authoring utilities.
 
 Built on our extended CCI (``aas_model.submodel_templates.control_component_instance``),
 which extends the generated IDTA ControlComponentInstance Skill with:
@@ -28,7 +28,6 @@ from aas_model.submodel_templates.control_component_instance import (
     ExtendedSkill, ExtendedSkills, SkillOperation, OperationVariableProp,
     SkillInterfaceRelationship, ResourceEndpoints,
 )
-from ._helpers import put, DEFAULT_SKILLS
 
 # ── Reference paths (self-referential — {aas_id} resolved by id_injector) ──
 CCI_SUBMODEL_REF = "{aas_id}/submodels/ControlComponentInstance"
@@ -125,7 +124,7 @@ def skill_interface_relationship(name: str) -> SkillInterfaceRelationship:
     ``first`` = the skill SMC in the CCI, ``second`` = the skill's native
     MQTT action in the AID.  Both use the ``{aas_id}`` macro.
     """
-    rel = SkillInterfaceRelationship()
+    rel = SkillInterfaceRelationship(id_short=name)
     rel.first = skill_ref(name)
     rel.second = native_action_ref(name)
     return rel
@@ -142,7 +141,7 @@ def extended_skill(
     Sets the native-interface reference (``interface_reference`` → the AID
     MQTT action) and the delegated Operation (``operation``).
     """
-    skill = ExtendedSkill()
+    skill = ExtendedSkill(id_short=name)
     skill.Disabled.value = str(disabled).lower()
     skill.interface_reference.value = native_action_ref(name)
     skill.operation = skill_operation(
@@ -159,25 +158,4 @@ class ResourceControlComponentInstance(ControlComponentInstance):
         value=ModelReference(
             key=(Key(type_="Submodel", value="{aas_id}/submodels/ControlComponentType"),)
         )
-    )
-
-
-def control_component_instance() -> ResourceControlComponentInstance:
-    """ControlComponentInstance with mandatory Resource skills + MQTT endpoint.
-
-    Default skills: Halt (no response), Occupy, Release.  Each carries its
-    native-interface reference and its delegated Operation; the Endpoints
-    container holds the annotated skill ↔ native-interface relationships.
-    """
-    skills = ExtendedSkills()
-    endpoints = ResourceEndpoints()
-    for name, synchronous, has_response in DEFAULT_SKILLS:
-        put(skills.Skill, name, extended_skill(
-            name, synchronous=synchronous, has_response=has_response))
-        put(endpoints.Endpoint, name, skill_interface_relationship(name))
-
-    return ResourceControlComponentInstance(
-        id_short="ControlComponentInstance",
-        Skills=skills,
-        Endpoints=endpoints,
     )
