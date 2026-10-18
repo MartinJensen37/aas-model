@@ -130,7 +130,7 @@ def convert_model_to_submodel(
 
         # Pass field_info so create_submodel_element can read AAS metadata
         submodel_element = create_submodel_element(
-            attribute_info.name, attr_value,
+            _aas_attribute_name(attribute_info), attr_value,
             field_info=attribute_info.field_info,
         )
         attribute_data_specification = (
@@ -196,8 +196,25 @@ def _make_basyx_reference(ref: aas_model.Reference) -> model.Reference:
     )
     if isinstance(ref, aas_model.ModelReference) or ref.type_ == "ModelReference":
         target_type = getattr(model, ref.key[-1].type_, model.Referable) if ref.key else model.Referable
-        return model.ModelReference(key=basyx_keys, type_=target_type)
-    return model.ExternalReference(key=basyx_keys)
+        return model.ModelReference(
+            key=basyx_keys, type_=target_type,
+            referred_semantic_id=(
+                _make_external_reference(ref.referred_semantic_id)
+                if ref.referred_semantic_id else None
+            ),
+        )
+    return model.ExternalReference(
+        key=basyx_keys,
+        referred_semantic_id=(
+            _make_external_reference(ref.referred_semantic_id)
+            if ref.referred_semantic_id else None
+        ),
+    )
+
+
+def _aas_attribute_name(attribute_info) -> str:
+    extra = attribute_info.field_info.json_schema_extra
+    return extra.get("aas_id_short", attribute_info.name) if isinstance(extra, dict) else attribute_info.name
 
 
 def create_submodel_element(
@@ -258,7 +275,7 @@ def create_submodel_element(
                 )
                 continue
             sme = create_submodel_element(
-                attribute_info.name, attr_value,
+                _aas_attribute_name(attribute_info), attr_value,
                 field_info=attribute_info.field_info,
             )
             if sme:
@@ -529,7 +546,7 @@ def create_submodel_element_collection(
             continue
 
         sme = create_submodel_element(
-            attribute_info.name, attr_value,
+            _aas_attribute_name(attribute_info), attr_value,
             field_info=attribute_info.field_info,
         )
         attribute_data_specification = (
@@ -667,14 +684,29 @@ def create_submodel_element_list(
             f"Value must be a list, tuple or set, provided type {type(value)}"
         )
 
-    sml = model.SubmodelElementList(
+    semantic_id_list_element = (
+        _make_external_reference(sml.semantic_id_list_element)
+        if sml is not None and sml.semantic_id_list_element
+        else None
+    )
+    if sml is not None and sml.type_value_list_element:
+        type_value_list_element = sml.type_value_list_element
+        if isinstance(type_value_list_element, str):
+            type_value_list_element = getattr(
+                model, type_value_list_element, model.Property
+            )
+    if sml is not None and sml.value_type_list_element:
+        value_type_list_element = XSD_TYPE_CLASSES.get(
+            sml.value_type_list_element, value_type_list_element
+        )
+    return model.SubmodelElementList(
         id_short=attribute_name,
         type_value_list_element=type_value_list_element,
         value_type_list_element=value_type_list_element,
+        semantic_id_list_element=semantic_id_list_element,
         value=submodel_elements,
-        order_relevant=ordered,
+        order_relevant=sml.order_relevant if sml is not None else ordered,
     )
-    return sml
 
 
 def create_file(attribute_value: aas_model.File) -> Optional[model.File]:
@@ -690,6 +722,10 @@ def create_file(attribute_value: aas_model.File) -> Optional[model.File]:
         ),
         display_name=convert_util.get_basyx_display_name_from_model(attribute_value),
         semantic_id=get_semantic_id(attribute_value),
+        qualifier=_make_qualifiers(attribute_value.qualifiers),
+        supplemental_semantic_id=[
+            _make_external_reference(s) for s in attribute_value.supplemental_semantic_ids
+        ],
         content_type=attribute_value.content_type,
         value=attribute_value.value,
     )
@@ -720,6 +756,10 @@ def create_blob(attribute_value: aas_model.Blob) -> Optional[model.Blob]:
         # basyx needs an ExternalReference (a raw string serializes to an
         # invalid ``"semanticId": "..."`` and is rejected by the AAS server).
         semantic_id=get_semantic_id(attribute_value),
+        qualifier=_make_qualifiers(attribute_value.qualifiers),
+        supplemental_semantic_id=[
+            _make_external_reference(s) for s in attribute_value.supplemental_semantic_ids
+        ],
         content_type=attribute_value.content_type,
         value=attribute_value.value,
     )
@@ -749,6 +789,9 @@ def _make_qualifiers(qds: list) -> list:
                 "type_": qd.type_,
                 "value_type": XSD_TYPE_CLASSES.get(qd.value_type, datatypes.String),
                 "value": qd.value,
+                "value_id": (
+                    _make_external_reference(qd.value_id) if qd.value_id else None
+                ),
                 "kind": _QUALIFIER_KIND_TO_BASYX.get(qd.kind, model.QualifierKind.TEMPLATE_QUALIFIER),
             }
             if qd.semantic_id:
@@ -759,6 +802,10 @@ def _make_qualifiers(qds: list) -> list:
                 "type_": qd["type"],
                 "value_type": datatypes.String,
                 "value": qd["value"],
+                "value_id": (
+                    _make_external_reference(qd["value_id"])
+                    if qd.get("value_id") else None
+                ),
                 "kind": model.QualifierKind.TEMPLATE_QUALIFIER,
             }
             if "semantic_id" in qd and qd["semantic_id"]:

@@ -195,6 +195,7 @@ class Markings(SubmodelElementList):
     semantic_id: str = "0112/2///61360_7#AAS006#001"
     description: str = "Note: CE marking is declared as mandatory according to EU Blue Guide"
     supplemental_semantic_ids: List[str] = ["0173-1#02-ABI563#003/0173-1#01-AHF849#003"]
+    type_value_list_element: str = "SubmodelElementCollection"
     item_type: ClassVar = MarkingsItem
     value: List[MarkingsItem] = []
 
@@ -220,16 +221,23 @@ class GuidelineForConformityDeclaration(Property):
     semantic_id: str = "0173-1#02-AAO856#002"
     value_type: str = "xs:string"
 
+class ArbitraryFile_general(File):
+    id_short: AasIdString = "ArbitraryFile"
+    semantic_id: str = "https://admin-shell.io/SMT/General/ArbitraryFile"
+    description: str = "Note: Every file can be used. The idShort is arbitrary Note: The use of a displayName is recommended."
+    content_type: str = "image/png"
+
 class GuidelineSpecificPropertiesItem(SubmodelElementCollection):
     semantic_id: str = "0173-1#01-AHD205#004"
     GuidelineForConformityDeclaration: GuidelineForConformityDeclaration_t
     ArbitraryProperty: Dict[str, ArbitraryProperty_t] = {}
-    ArbitraryFile: Dict[str, ArbitraryFile_t] = {}
+    ArbitraryFile: Dict[str, ArbitraryFile_general] = {}
     ArbitraryMLP: Dict[str, ArbitraryMLP_t] = {}
 
 class GuidelineSpecificProperties(SubmodelElementList):
     id_short: AasIdString = "GuidelineSpecificProperties"
     semantic_id: str = "0173-1#02-ABI219#003/0173-1#01-AHD205#004"
+    type_value_list_element: str = "SubmodelElementCollection"
     item_type: ClassVar = GuidelineSpecificPropertiesItem
     value: List[GuidelineSpecificPropertiesItem] = []
 
@@ -294,10 +302,10 @@ MarkingAdditionalText_t: TypeAlias = MarkingAdditionalText
 GuidelineForConformityDeclaration_t: TypeAlias = GuidelineForConformityDeclaration
 # alias so field ``ArbitraryProperty_t`` can name a class of the same id_short
 ArbitraryProperty_t: TypeAlias = ArbitraryProperty
-# alias so field ``ArbitraryFile_t`` can name a class of the same id_short
-ArbitraryFile_t: TypeAlias = ArbitraryFile
 # alias so field ``ArbitraryMLP_t`` can name a class of the same id_short
 ArbitraryMLP_t: TypeAlias = ArbitraryMLP
+# alias so field ``ArbitraryFile_t`` can name a class of the same id_short
+ArbitraryFile_t: TypeAlias = ArbitraryFile
 # alias so field ``GuidelineSpecificProperties_t`` can name a class of the same id_short
 GuidelineSpecificProperties_t: TypeAlias = GuidelineSpecificProperties
 # alias so field ``URIOfTheProduct_t`` can name a class of the same id_short
@@ -376,6 +384,7 @@ ArbitraryProperty.model_rebuild()
 ArbitraryMLP.model_rebuild()
 ArbitraryFile.model_rebuild()
 GuidelineForConformityDeclaration.model_rebuild()
+ArbitraryFile_general.model_rebuild()
 GuidelineSpecificPropertiesItem.model_rebuild()
 GuidelineSpecificProperties.model_rebuild()
 AssetSpecificProperties.model_rebuild()

@@ -4,10 +4,11 @@ Source: Time Series Data/1/1/2/IDTA 02008-1-1-2_Template_TimeSeriesData_forAASMe
 
 from __future__ import annotations
 
-from typing import Any, ClassVar, List, Dict, Optional, TypeAlias
+from typing import Any, ClassVar, List, Dict, Optional, Union, TypeAlias
 from aas_pydantic import (
     Blob, File, MultiLanguageProperty, Property, Submodel, SubmodelElement, SubmodelElementCollection, SubmodelElementList,
 )
+from pydantic import Field
 from aas_pydantic.aas_model import AasIdString
 
 class Name(MultiLanguageProperty):
@@ -41,7 +42,7 @@ class SampleAccelerationZ(Property):
 class Record(SubmodelElementCollection):
     id_short: AasIdString = "Record"
     semantic_id: str = "https://admin-shell.io/idta/TimeSeries/Record/1/1"
-    Time: Dict[str, Time_t] = {}
+    Time: Dict[str, Time_t] = Field(default_factory=dict, json_schema_extra={"idta_min_cardinality": 1})
     sampleAccelerationX: Optional[SampleAccelerationX] = None
     sampleAccelerationY: Optional[SampleAccelerationY] = None
     sampleAccelerationZ: Optional[SampleAccelerationZ] = None
@@ -101,6 +102,16 @@ class LastUpdate(Property):
     semantic_id: str = "https://admin-shell.io/idta/TimeSeries/Segment/LastUpdate/1/1"
     value_type: str = "xs:string"
 
+class File_time_series(File):
+    id_short: AasIdString = "File"
+    semantic_id: str = "https://admin-shell.io/idta/TimeSeries/File/1/1"
+    content_type: str = "application/json"
+
+class Blob_time_series(Blob):
+    id_short: AasIdString = "Blob"
+    semantic_id: str = "https://admin-shell.io/idta/TimeSeries/Blob/1/1"
+    content_type: str = "application/json"
+
 class ExternalSegment(SubmodelElementCollection):
     id_short: AasIdString = "ExternalSegment"
     semantic_id: str = "https://admin-shell.io/idta/TimeSeries/Segments/ExternalSegment/1/1"
@@ -114,16 +125,8 @@ class ExternalSegment(SubmodelElementCollection):
     SamplingRate: Optional[SamplingRate_t] = None
     State: Optional[State_t] = None
     LastUpdate: Optional[LastUpdate_t] = None
-    File: Optional[File_t] = None
-    Blob: Optional[Blob_t] = None
-
-class Name_segment_2(MultiLanguageProperty):
-    id_short: AasIdString = "Name"
-    semantic_id: str = "https://admin-shell.io/idta/TimeSeries/Segment/Name/1/1"
-
-class Description_segment_2(MultiLanguageProperty):
-    id_short: AasIdString = "Description"
-    semantic_id: str = "https://admin-shell.io/idta/TimeSeries/Segment/Description/1/1"
+    File: Optional[Union[File_time_series, File_base]] = None
+    Blob: Optional[Union[Blob_time_series, Blob_base]] = None
 
 class Endpoint(Property):
     id_short: AasIdString = "Endpoint"
@@ -138,8 +141,8 @@ class Query(Property):
 class LinkedSegment(SubmodelElementCollection):
     id_short: AasIdString = "LinkedSegment"
     semantic_id: str = "https://admin-shell.io/idta/TimeSeries/Segments/LinkedSegment/1/1"
-    Name: Optional[Name_segment_2] = None
-    Description: Optional[Description_segment_2] = None
+    Name: Optional[Name_segment] = None
+    Description: Optional[Description_segment] = None
     RecordCount: Optional[RecordCount_t] = None
     StartTime: Optional[StartTime_t] = None
     EndTime: Optional[EndTime_t] = None
@@ -151,14 +154,6 @@ class LinkedSegment(SubmodelElementCollection):
     Endpoint: Endpoint_t
     Query: Query_t
 
-class Name_segment_3(MultiLanguageProperty):
-    id_short: AasIdString = "Name"
-    semantic_id: str = "https://admin-shell.io/idta/TimeSeries/Segment/Name/1/1"
-
-class Description_segment_3(MultiLanguageProperty):
-    id_short: AasIdString = "Description"
-    semantic_id: str = "https://admin-shell.io/idta/TimeSeries/Segment/Description/1/1"
-
 class Records(SubmodelElementCollection):
     id_short: AasIdString = "Records"
     semantic_id: str = "https://admin-shell.io/idta/TimeSeries/Records/1/1"
@@ -167,8 +162,8 @@ class Records(SubmodelElementCollection):
 class InternalSegment(SubmodelElementCollection):
     id_short: AasIdString = "InternalSegment"
     semantic_id: str = "https://admin-shell.io/idta/TimeSeries/Segments/InternalSegment/1/1"
-    Name: Optional[Name_segment_3] = None
-    Description: Optional[Description_segment_3] = None
+    Name: Optional[Name_segment] = None
+    Description: Optional[Description_segment] = None
     RecordCount: Optional[RecordCount_t] = None
     StartTime: Optional[StartTime_t] = None
     EndTime: Optional[EndTime_t] = None
@@ -219,10 +214,6 @@ SamplingRate_t: TypeAlias = SamplingRate
 State_t: TypeAlias = State
 # alias so field ``LastUpdate_t`` can name a class of the same id_short
 LastUpdate_t: TypeAlias = LastUpdate
-# alias so field ``File_t`` can name a class of the same id_short
-File_t: TypeAlias = File
-# alias so field ``Blob_t`` can name a class of the same id_short
-Blob_t: TypeAlias = Blob
 # alias so field ``Endpoint_t`` can name a class of the same id_short
 Endpoint_t: TypeAlias = Endpoint
 # alias so field ``Query_t`` can name a class of the same id_short
@@ -239,6 +230,8 @@ InternalSegment_t: TypeAlias = InternalSegment
 Metadata_t: TypeAlias = Metadata
 # alias so field ``Segments_t`` can name a class of the same id_short
 Segments_t: TypeAlias = Segments
+Blob_base: TypeAlias = Blob
+File_base: TypeAlias = File
 # ── Resolve forward references (Pydantic circular refs) ──
 Name.model_rebuild()
 Description.model_rebuild()
@@ -258,14 +251,12 @@ SamplingInterval.model_rebuild()
 SamplingRate.model_rebuild()
 State.model_rebuild()
 LastUpdate.model_rebuild()
+File_time_series.model_rebuild()
+Blob_time_series.model_rebuild()
 ExternalSegment.model_rebuild()
-Name_segment_2.model_rebuild()
-Description_segment_2.model_rebuild()
 Endpoint.model_rebuild()
 Query.model_rebuild()
 LinkedSegment.model_rebuild()
-Name_segment_3.model_rebuild()
-Description_segment_3.model_rebuild()
 Records.model_rebuild()
 InternalSegment.model_rebuild()
 Segments.model_rebuild()

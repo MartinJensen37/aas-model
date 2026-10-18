@@ -8,6 +8,7 @@ from typing import Any, ClassVar, List, Dict, Optional, TypeAlias
 from aas_pydantic import (
     Property, ReferenceElement, Submodel, SubmodelElement, SubmodelElementCollection, SubmodelElementList,
 )
+from pydantic import Field
 from aas_pydantic.aas_model import AasIdString
 
 class InterfaceProfile(Property):
@@ -74,7 +75,7 @@ class Modes(SubmodelElementCollection):
     id_short: AasIdString = "Modes"
     semantic_id: str = "https://admin-shell.io/idta/ControlComponent/Skill/Modes/2/0"
     description: str = "Collection of operation, operating, operational or execution modes (depending on the standard), in which the skill is available/allowed to execute."
-    Mode: Dict[str, Mode_t] = {}
+    Mode: Dict[str, Mode_t] = Field(default_factory=dict, json_schema_extra={"idta_min_cardinality": 1})
 
 class Direction(Property):
     id_short: AasIdString = "Direction"

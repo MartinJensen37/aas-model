@@ -50,6 +50,9 @@ class Sources(SubmodelElementList):
     id_short: AasIdString = "Sources"
     semantic_id: str = "https://admin-shell.io/idta/AssetInterfacesMappingConfiguration/2/0/MappingConfiguration/Sources"
     description: str = "This list includes all data sources that are used in this MappingConfiguration."
+    type_value_list_element: str = "SubmodelElementCollection"
+    semantic_id_list_element: str = "https://admin-shell.io/idta/AssetInterfacesMappingConfiguration/2/0/MappingConfiguration/Source"
+    order_relevant: bool = False
     item_type: ClassVar = SourcesItem
     value: List[SourcesItem] = []
 
@@ -74,6 +77,8 @@ class Sinks(SubmodelElementList):
     id_short: AasIdString = "Sinks"
     semantic_id: str = "https://admin-shell.io/idta/AssetInterfacesMappingConfiguration/2/0/MappingConfiguration/Sinks"
     description: str = "This list includes all data sinks that are used in this MappingConfiguration."
+    type_value_list_element: str = "SubmodelElementCollection"
+    semantic_id_list_element: str = "https://admin-shell.io/idta/AssetInterfacesMappingConfiguration/2/0/MappingConfiguration/Sink"
     item_type: ClassVar = SinksItem
     value: List[SinksItem] = []
 
@@ -89,6 +94,9 @@ class MappingConfigurations(SubmodelElementList):
     id_short: AasIdString = "MappingConfigurations"
     semantic_id: str = "https://admin-shell.io/idta/AssetInterfacesMappingConfiguration/1/0/MappingConfigurations"
     description: str = "List of MappingConfigurations that each map and transform data from their sources to their sinks."
+    type_value_list_element: str = "SubmodelElementCollection"
+    semantic_id_list_element: str = "https://admin-shell.io/idta/AssetInterfacesMappingConfiguration/2/0/MappingConfiguration"
+    order_relevant: bool = False
     item_type: ClassVar = MappingConfigurationsItem
     value: List[MappingConfigurationsItem] = []
 

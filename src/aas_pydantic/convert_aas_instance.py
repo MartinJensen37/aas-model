@@ -397,6 +397,37 @@ def _unwrap_optional(ann):
     return ann
 
 
+def _named_element_types(ann):
+    members = typing.get_args(ann) if typing.get_origin(ann) is typing.Union else (ann,)
+    return tuple(
+        member for member in members
+        if isinstance(member, type) and issubclass(member, aas_model.SubmodelElement)
+    )
+
+
+def _matching_named_type(candidates, basyx_el):
+    """Choose the occurrence-specific definition of a shared semantic concept."""
+    if len(candidates) == 1:
+        return candidates[0]
+    sid = convert_util.get_semantic_id_value_of_model(basyx_el)
+    supplemental = _element_supplemental_sids(basyx_el)
+    for candidate in candidates:
+        if sid and _element_cls_sid(candidate) != sid:
+            continue
+        if supplemental != _element_cls_supplemental(candidate):
+            continue
+        if isinstance(basyx_el, model.File | model.Blob):
+            declared = candidate.model_fields.get("content_type")
+            if declared and declared.default != basyx_el.content_type:
+                continue
+        if isinstance(basyx_el, model.Property):
+            declared = candidate.model_fields.get("value_type")
+            if declared and convert_util.convert_basyx_value_type_to_xsd(basyx_el.value_type) != declared.default:
+                continue
+        return candidate
+    return candidates[0]
+
+
 def _has_direct_element_fields(cls) -> bool:
     """True when *cls* carries leaf children as DIRECT named element fields
     (e.g. handwritten ``VariableItem`` with ``variable``/``interface_reference``)
@@ -409,7 +440,7 @@ def _has_direct_element_fields(cls) -> bool:
         if fname in aas_model._ELEMENT_META_KEYS:
             continue
         ann = _unwrap_optional(ann)
-        if isinstance(ann, type) and issubclass(ann, aas_model.SubmodelElement):
+        if _named_element_types(ann):
             return True
     return False
 
@@ -439,9 +470,10 @@ def _container_named_field_data(cls, basyx_children):
     for fname, ann in hints.items():
         if fname in aas_model._ELEMENT_META_KEYS:
             continue
-        ann = _unwrap_optional(ann)
-        if isinstance(ann, type) and issubclass(ann, aas_model.SubmodelElement):
-            element_fields[fname] = ann
+        candidates = _named_element_types(ann)
+        if candidates:
+            aas_name = aas_model._aas_field_name(cls, fname)
+            element_fields[aas_name] = (fname, candidates)
     dict_fields = _multi_fields_by_sid(cls)
     out = {}
     # A class with a single Dict[str, E] container routes any unmatched child
@@ -452,7 +484,10 @@ def _container_named_field_data(cls, basyx_children):
     for c in basyx_children:
         named = element_fields.get(c.id_short)
         if named is not None:
-            out[c.id_short] = _container_element_to_pydantic(c, expected_cls=named)
+            fname, candidates = named
+            out[fname] = _container_element_to_pydantic(
+                c, expected_cls=_matching_named_type(candidates, c)
+            )
             continue
         sid = convert_util.get_semantic_id_value_of_model(c)
         fields = dict_fields.get(sid) or []
@@ -521,7 +556,7 @@ def _direct_element_field_names(cls):
         if fname in aas_model._ELEMENT_META_KEYS:
             continue
         ann = _unwrap_optional(ann)
-        if isinstance(ann, type) and issubclass(ann, aas_model.SubmodelElement):
+        if _named_element_types(ann):
             names.add(fname)
     return names
 
@@ -655,7 +690,11 @@ def _container_children_data(basyx_children, values_cls):
             key = _dict_id_short_to_key(c.id_short, _multi_key_type(values_cls, field))
             out.setdefault(field, {})[key] = converted
         else:
-            out[c.id_short] = _container_element_to_pydantic(c)
+            named = next((
+                name for name in values_cls.model_fields
+                if aas_model._aas_field_name(values_cls, name) == c.id_short
+            ), c.id_short)
+            out[named] = _container_element_to_pydantic(c)
     return out
 
 
@@ -688,6 +727,19 @@ def _container_element_to_pydantic(
                 basyx_el.type_value_list_element.__name__
                 if basyx_el.type_value_list_element
                 else None
+            ),
+            "value_type_list_element": (
+                convert_util.convert_basyx_value_type_to_xsd(
+                    basyx_el.value_type_list_element
+                )
+                if basyx_el.value_type_list_element
+                else None
+            ),
+            "semantic_id_list_element": (
+                basyx_el.semantic_id_list_element.key[0].value
+                if basyx_el.semantic_id_list_element
+                and basyx_el.semantic_id_list_element.key
+                else ""
             ),
             "order_relevant": basyx_el.order_relevant,
         }
@@ -912,11 +964,25 @@ def convert_submodel_list_to_pydantic_model(
                     getattr(sm_element, "display_name", None)
                 ),
                 "semantic_id": convert_util.get_semantic_id_value_of_model(sm_element),
+                "supplemental_semantic_ids": _element_supplemental_sids(sm_element),
                 "value": dumped,
                 "type_value_list_element": (
                     sm_element.type_value_list_element.__name__
                     if sm_element.type_value_list_element
                     else None
+                ),
+                "value_type_list_element": (
+                    convert_util.convert_basyx_value_type_to_xsd(
+                        sm_element.value_type_list_element
+                    )
+                    if sm_element.value_type_list_element
+                    else None
+                ),
+                "semantic_id_list_element": (
+                    sm_element.semantic_id_list_element.key[0].value
+                    if sm_element.semantic_id_list_element
+                    and sm_element.semantic_id_list_element.key
+                    else ""
                 ),
                 "order_relevant": sm_element.order_relevant,
             }
@@ -969,7 +1035,10 @@ def _convert_basyx_reference_to_pydantic(
         if isinstance(basyx_ref, model.ModelReference)
         else aas_model.ExternalReference
     )
-    return cls(key=keys)
+    referred_semantic_id = ""
+    if basyx_ref.referred_semantic_id and basyx_ref.referred_semantic_id.key:
+        referred_semantic_id = basyx_ref.referred_semantic_id.key[0].value
+    return cls(key=keys, referred_semantic_id=referred_semantic_id)
 
 
 _QUALIFIER_KIND_MAP = {
@@ -987,6 +1056,11 @@ def _convert_basyx_qualifiers(basyx_qualifiers: typing.Iterable[model.Qualifier]
                 type_=q.type,
                 value="" if q.value is None else str(q.value),
                 value_type=convert_util.convert_basyx_value_type_to_xsd(q.value_type),
+                value_id=(
+                    q.value_id.key[0].value
+                    if q.value_id is not None and q.value_id.key
+                    else ""
+                ),
                 semantic_id=(
                     convert_util.get_semantic_id_value_of_model(q)
                     if q.semantic_id
@@ -1008,6 +1082,7 @@ def _element_meta(basyx_el: model.SubmodelElement) -> typing.Dict[str, typing.An
             getattr(basyx_el, "display_name", None)
         ),
         "semantic_id": convert_util.get_semantic_id_value_of_model(basyx_el),
+        "supplemental_semantic_ids": _element_supplemental_sids(basyx_el),
         "qualifiers": _convert_basyx_qualifiers(
             getattr(basyx_el, "qualifier", None) or ()
         ),

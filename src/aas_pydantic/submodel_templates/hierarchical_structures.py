@@ -8,6 +8,7 @@ from typing import Any, ClassVar, List, Dict, Optional, TypeAlias
 from aas_pydantic import (
     Entity, ExternalReference, Key, Property, RelationshipElement, Submodel, SubmodelElement, SubmodelElementCollection, SubmodelElementList,
 )
+from pydantic import Field
 from aas_pydantic.aas_model import AasIdString
 
 class SameAs(RelationshipElement):
@@ -18,12 +19,12 @@ class SameAs(RelationshipElement):
         key=(
             Key(type_="GlobalReference", value="https://admin-shell.io/SMT/General/IntentionallyEmpty"),
         ),
-    ),
+    )
     second: ExternalReference = ExternalReference(
         key=(
             Key(type_="GlobalReference", value="https://admin-shell.io/SMT/General/IntentionallyEmpty"),
         ),
-    ),
+    )
 
 class IsPartOf(RelationshipElement):
     id_short: AasIdString = "IsPartOf"
@@ -33,12 +34,12 @@ class IsPartOf(RelationshipElement):
         key=(
             Key(type_="GlobalReference", value="https://admin-shell.io/SMT/General/IntentionallyEmpty"),
         ),
-    ),
+    )
     second: ExternalReference = ExternalReference(
         key=(
             Key(type_="GlobalReference", value="https://admin-shell.io/SMT/General/IntentionallyEmpty"),
         ),
-    ),
+    )
 
 class HasPart(RelationshipElement):
     id_short: AasIdString = "HasPart"
@@ -48,12 +49,12 @@ class HasPart(RelationshipElement):
         key=(
             Key(type_="GlobalReference", value="https://admin-shell.io/SMT/General/IntentionallyEmpty"),
         ),
-    ),
+    )
     second: ExternalReference = ExternalReference(
         key=(
             Key(type_="GlobalReference", value="https://admin-shell.io/SMT/General/IntentionallyEmpty"),
         ),
-    ),
+    )
 
 class BulkCount(Property):
     id_short: AasIdString = "BulkCount"
@@ -73,15 +74,30 @@ class Node(Entity):
     HasPart: Dict[str, HasPart_t] = {}
     BulkCount: Optional[BulkCount_t] = None
 
+class IsPartOf_hierarchical_structures(RelationshipElement):
+    id_short: AasIdString = "IsPartOf"
+    semantic_id: str = "https://admin-shell.io/idta/HierarchicalStructures/IsPartOf/1/0"
+    description: str = "Modeling of logical connections between asset and sub-asset. Either this or \"HasPart\" must be used, not both."
+    first: ExternalReference = ExternalReference(
+        key=(
+            Key(type_="GlobalReference", value="https://admin-shell.io/SMT/General/IntentionallyEmpty"),
+        ),
+    )
+    second: ExternalReference = ExternalReference(
+        key=(
+            Key(type_="GlobalReference", value="https://admin-shell.io/SMT/General/IntentionallyEmpty"),
+        ),
+    )
+
 class EntryNode(Entity):
     id_short: AasIdString = "EntryNode"
     semantic_id: str = "https://admin-shell.io/idta/HierarchicalStructures/EntryNode/1/0"
     description: str = "Base entry point for the Entity tree in this Submodel, this must be a Self-managed Entity reflecting the Assets administrated in the AAS this Submodel is part of."
     entity_type: str = "SelfManagedEntity"
     global_asset_id: str = "https://admin-shell.io/idta/HierarchicalStructures/EntryNode/1/0"
-    Node: Dict[str, Node_t] = {}
+    Node: Dict[str, Node_t] = Field(default_factory=dict, json_schema_extra={"idta_min_cardinality": 1})
     SameAs: Dict[str, SameAs_t] = {}
-    IsPartOf: Dict[str, IsPartOf_t] = {}
+    IsPartOf: Dict[str, IsPartOf_hierarchical_structures] = {}
     HasPart: Dict[str, HasPart_t] = {}
 
 class ArcheType(Property):
@@ -119,6 +135,7 @@ IsPartOf.model_rebuild()
 HasPart.model_rebuild()
 BulkCount.model_rebuild()
 Node.model_rebuild()
+IsPartOf_hierarchical_structures.model_rebuild()
 EntryNode.model_rebuild()
 ArcheType.model_rebuild()
 HierarchicalStructures.model_rebuild()

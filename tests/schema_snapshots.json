@@ -193,39 +193,6 @@
           "Sources": {
             "$ref": "#/$defs/Sources"
           },
-          "StatusSources": {
-            "anyOf": [
-              {
-                "$ref": "#/$defs/DmpStatusSources"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null
-          },
-          "StatusTimeout": {
-            "anyOf": [
-              {
-                "$ref": "#/$defs/DmpStatusTimeout"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null
-          },
-          "StatusTransformation": {
-            "anyOf": [
-              {
-                "$ref": "#/$defs/DmpStatusTransformation"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null
-          },
           "Transformation": {
             "anyOf": [
               {
@@ -321,7 +288,7 @@
             "type": "string"
           },
           "order_relevant": {
-            "default": true,
+            "default": false,
             "title": "Order Relevant",
             "type": "boolean"
           },
@@ -339,7 +306,7 @@
             "type": "string"
           },
           "semantic_id_list_element": {
-            "default": "",
+            "default": "https://admin-shell.io/idta/AssetInterfacesMappingConfiguration/2/0/MappingConfiguration",
             "title": "Semantic Id List Element",
             "type": "string"
           },
@@ -352,16 +319,9 @@
             "type": "array"
           },
           "type_value_list_element": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Type Value List Element"
+            "default": "SubmodelElementCollection",
+            "title": "Type Value List Element",
+            "type": "string"
           },
           "value": {
             "default": [],
@@ -679,7 +639,7 @@
       },
       "DmpResponseSource": {
         "additionalProperties": false,
-        "description": "A response source, taken once per invocation: the command's output, a\nproperty of the action's AID (read after the command or status phase), or\nan element that is also a StatusSource (the value that ended the wait).",
+        "description": "A response source: the action's output, or a member of it.",
         "properties": {
           "Source": {
             "$ref": "#/$defs/DmpResponseSourceReference"
@@ -688,7 +648,7 @@
             "$ref": "#/$defs/DmpResponseSourceId"
           },
           "description": {
-            "default": "A response source: the command output, an element read once after the command or status phase, or a status source's final value.",
+            "default": "A response source: the output of the invoked action, or a member of it.",
             "title": "Description",
             "type": "string"
           },
@@ -1038,449 +998,6 @@
           }
         },
         "title": "DmpResponseTransformation",
-        "type": "object"
-      },
-      "DmpStatusSource": {
-        "additionalProperties": false,
-        "description": "A status property (read at ``PollingInterval``, or subscribed when the\nform declares an observation) or a status event of the action's AID.",
-        "properties": {
-          "PollingInterval": {
-            "anyOf": [
-              {
-                "$ref": "#/$defs/PollingInterval"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null
-          },
-          "Source": {
-            "$ref": "#/$defs/DmpStatusSourceReference"
-          },
-          "SourceId": {
-            "$ref": "#/$defs/DmpStatusSourceId"
-          },
-          "description": {
-            "default": "A status source: a property or event of the action's AID, sampled while the triggered action runs.",
-            "title": "Description",
-            "type": "string"
-          },
-          "display_name": {
-            "anyOf": [
-              {
-                "additionalProperties": {
-                  "type": "string"
-                },
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Display Name"
-          },
-          "id_short": {
-            "default": "SubmodelElementCollection",
-            "title": "Id Short",
-            "type": "string"
-          },
-          "qualifiers": {
-            "default": [],
-            "items": {
-              "$ref": "#/$defs/Qualifier"
-            },
-            "title": "Qualifiers",
-            "type": "array"
-          },
-          "semantic_id": {
-            "default": "https://smartproductionlab.aau.dk/aimc/StatusSource/1/0",
-            "title": "Semantic Id",
-            "type": "string"
-          },
-          "supplemental_semantic_ids": {
-            "default": [],
-            "items": {
-              "type": "string"
-            },
-            "title": "Supplemental Semantic Ids",
-            "type": "array"
-          }
-        },
-        "required": [
-          "Source",
-          "SourceId"
-        ],
-        "title": "DmpStatusSource",
-        "type": "object"
-      },
-      "DmpStatusSourceId": {
-        "additionalProperties": false,
-        "properties": {
-          "description": {
-            "default": "This is a unique and non-empty identifier that facilitates data access in the Lua transformation or establishes a relationship to a corresponding sink when no transformation is given. It must only be unique with respect to the Sources-list of the parent MappingConfiguration and not globally.",
-            "title": "Description",
-            "type": "string"
-          },
-          "display_name": {
-            "anyOf": [
-              {
-                "additionalProperties": {
-                  "type": "string"
-                },
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Display Name"
-          },
-          "id_short": {
-            "default": "SourceId",
-            "title": "Id Short",
-            "type": "string"
-          },
-          "qualifiers": {
-            "default": [],
-            "items": {
-              "$ref": "#/$defs/Qualifier"
-            },
-            "title": "Qualifiers",
-            "type": "array"
-          },
-          "semantic_id": {
-            "default": "https://smartproductionlab.aau.dk/aimc/StatusSource/SourceId/1/0",
-            "title": "Semantic Id",
-            "type": "string"
-          },
-          "supplemental_semantic_ids": {
-            "default": [],
-            "items": {
-              "type": "string"
-            },
-            "title": "Supplemental Semantic Ids",
-            "type": "array"
-          },
-          "value": {
-            "default": "",
-            "title": "Value",
-            "type": "string"
-          },
-          "value_id": {
-            "default": "",
-            "title": "Value Id",
-            "type": "string"
-          },
-          "value_type": {
-            "default": "xs:string",
-            "title": "Value Type",
-            "type": "string"
-          }
-        },
-        "title": "DmpStatusSourceId",
-        "type": "object"
-      },
-      "DmpStatusSourceReference": {
-        "additionalProperties": false,
-        "properties": {
-          "description": {
-            "default": "Reference to a property or event affordance of the action's AID that reports the action's progress.",
-            "title": "Description",
-            "type": "string"
-          },
-          "display_name": {
-            "anyOf": [
-              {
-                "additionalProperties": {
-                  "type": "string"
-                },
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Display Name"
-          },
-          "id_short": {
-            "default": "ReferenceElement",
-            "title": "Id Short",
-            "type": "string"
-          },
-          "qualifiers": {
-            "default": [],
-            "items": {
-              "$ref": "#/$defs/Qualifier"
-            },
-            "title": "Qualifiers",
-            "type": "array"
-          },
-          "semantic_id": {
-            "default": "https://smartproductionlab.aau.dk/aimc/StatusSource/Source/1/0",
-            "title": "Semantic Id",
-            "type": "string"
-          },
-          "supplemental_semantic_ids": {
-            "default": [],
-            "items": {
-              "type": "string"
-            },
-            "title": "Supplemental Semantic Ids",
-            "type": "array"
-          },
-          "value": {
-            "anyOf": [
-              {
-                "$ref": "#/$defs/Reference"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null
-          }
-        },
-        "title": "DmpStatusSourceReference",
-        "type": "object"
-      },
-      "DmpStatusSources": {
-        "additionalProperties": false,
-        "properties": {
-          "description": {
-            "default": "Status sources sampled until the status transformation reports that the action has finished or failed.",
-            "title": "Description",
-            "type": "string"
-          },
-          "display_name": {
-            "anyOf": [
-              {
-                "additionalProperties": {
-                  "type": "string"
-                },
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Display Name"
-          },
-          "id_short": {
-            "default": "SubmodelElementList",
-            "title": "Id Short",
-            "type": "string"
-          },
-          "order_relevant": {
-            "default": true,
-            "title": "Order Relevant",
-            "type": "boolean"
-          },
-          "qualifiers": {
-            "default": [],
-            "items": {
-              "$ref": "#/$defs/Qualifier"
-            },
-            "title": "Qualifiers",
-            "type": "array"
-          },
-          "semantic_id": {
-            "default": "https://smartproductionlab.aau.dk/aimc/StatusSources/1/0",
-            "title": "Semantic Id",
-            "type": "string"
-          },
-          "semantic_id_list_element": {
-            "default": "",
-            "title": "Semantic Id List Element",
-            "type": "string"
-          },
-          "supplemental_semantic_ids": {
-            "default": [],
-            "items": {
-              "type": "string"
-            },
-            "title": "Supplemental Semantic Ids",
-            "type": "array"
-          },
-          "type_value_list_element": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Type Value List Element"
-          },
-          "value": {
-            "default": [],
-            "items": {
-              "$ref": "#/$defs/DmpStatusSource"
-            },
-            "title": "Value",
-            "type": "array"
-          },
-          "value_type_list_element": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Value Type List Element"
-          }
-        },
-        "title": "DmpStatusSources",
-        "type": "object"
-      },
-      "DmpStatusTimeout": {
-        "additionalProperties": false,
-        "description": "How long the status phase may last, in seconds; required with\n``StatusSources``.",
-        "properties": {
-          "description": {
-            "default": "Time in seconds the operation mapping waits for the status transformation to report that the triggered action has finished or failed; the call fails with a timeout when it expires.",
-            "title": "Description",
-            "type": "string"
-          },
-          "display_name": {
-            "anyOf": [
-              {
-                "additionalProperties": {
-                  "type": "string"
-                },
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Display Name"
-          },
-          "id_short": {
-            "default": "Property",
-            "title": "Id Short",
-            "type": "string"
-          },
-          "qualifiers": {
-            "default": [],
-            "items": {
-              "$ref": "#/$defs/Qualifier"
-            },
-            "title": "Qualifiers",
-            "type": "array"
-          },
-          "semantic_id": {
-            "default": "https://smartproductionlab.aau.dk/aimc/StatusTimeout/1/0",
-            "title": "Semantic Id",
-            "type": "string"
-          },
-          "supplemental_semantic_ids": {
-            "default": [],
-            "items": {
-              "type": "string"
-            },
-            "title": "Supplemental Semantic Ids",
-            "type": "array"
-          },
-          "value": {
-            "default": "",
-            "title": "Value",
-            "type": "string"
-          },
-          "value_id": {
-            "default": "",
-            "title": "Value Id",
-            "type": "string"
-          },
-          "value_type": {
-            "default": "xs:double",
-            "title": "Value Type",
-            "type": "string"
-          }
-        },
-        "title": "DmpStatusTimeout",
-        "type": "object"
-      },
-      "DmpStatusTransformation": {
-        "additionalProperties": false,
-        "description": "Status phase: decides after every status sample whether the action is\nstill running. Called as ``aimc_main(sources, invocation)`` with\n``invocation.baseline`` (status values before the trigger),\n``invocation.elapsed`` (seconds), ``invocation.inputs`` (the caller's\nvariables) and ``invocation.reply`` (the command's reply or ack).",
-        "properties": {
-          "content_type": {
-            "default": "text/plain",
-            "title": "Content Type",
-            "type": "string"
-          },
-          "description": {
-            "default": "Decides from the status sources whether the triggered action is still running. Must contain an \"aimc_main(sources, invocation)\" entrypoint function in Lua returning \"running\", \"done\" or \"failed\" (or a table { state = ..., reason = ... }).",
-            "title": "Description",
-            "type": "string"
-          },
-          "display_name": {
-            "anyOf": [
-              {
-                "additionalProperties": {
-                  "type": "string"
-                },
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Display Name"
-          },
-          "id_short": {
-            "default": "Blob",
-            "title": "Id Short",
-            "type": "string"
-          },
-          "qualifiers": {
-            "default": [],
-            "items": {
-              "$ref": "#/$defs/Qualifier"
-            },
-            "title": "Qualifiers",
-            "type": "array"
-          },
-          "semantic_id": {
-            "default": "https://smartproductionlab.aau.dk/aimc/StatusTransformation/1/0",
-            "title": "Semantic Id",
-            "type": "string"
-          },
-          "supplemental_semantic_ids": {
-            "default": [],
-            "items": {
-              "type": "string"
-            },
-            "title": "Supplemental Semantic Ids",
-            "type": "array"
-          },
-          "value": {
-            "anyOf": [
-              {
-                "format": "binary",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Value"
-          }
-        },
-        "title": "DmpStatusTransformation",
         "type": "object"
       },
       "DmpTriggerSourceIds": {
@@ -2004,7 +1521,7 @@
             "type": "string"
           },
           "semantic_id_list_element": {
-            "default": "",
+            "default": "https://admin-shell.io/idta/AssetInterfacesMappingConfiguration/2/0/MappingConfiguration/Sink",
             "title": "Semantic Id List Element",
             "type": "string"
           },
@@ -2017,16 +1534,9 @@
             "type": "array"
           },
           "type_value_list_element": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Type Value List Element"
+            "default": "SubmodelElementCollection",
+            "title": "Type Value List Element",
+            "type": "string"
           },
           "value": {
             "default": [],
@@ -2276,7 +1786,7 @@
             "type": "string"
           },
           "order_relevant": {
-            "default": true,
+            "default": false,
             "title": "Order Relevant",
             "type": "boolean"
           },
@@ -2294,7 +1804,7 @@
             "type": "string"
           },
           "semantic_id_list_element": {
-            "default": "",
+            "default": "https://admin-shell.io/idta/AssetInterfacesMappingConfiguration/2/0/MappingConfiguration/Source",
             "title": "Semantic Id List Element",
             "type": "string"
           },
@@ -2307,16 +1817,9 @@
             "type": "array"
           },
           "type_value_list_element": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Type Value List Element"
+            "default": "SubmodelElementCollection",
+            "title": "Type Value List Element",
+            "type": "string"
           },
           "value": {
             "default": [],
@@ -2497,12 +2000,12 @@
           "description": "List of MappingConfigurations that each map and transform data from their sources to their sinks.",
           "display_name": null,
           "id_short": "MappingConfigurations",
-          "order_relevant": true,
+          "order_relevant": false,
           "qualifiers": [],
           "semantic_id": "https://admin-shell.io/idta/AssetInterfacesMappingConfiguration/1/0/MappingConfigurations",
-          "semantic_id_list_element": "",
+          "semantic_id_list_element": "https://admin-shell.io/idta/AssetInterfacesMappingConfiguration/2/0/MappingConfiguration",
           "supplemental_semantic_ids": [],
-          "type_value_list_element": null,
+          "type_value_list_element": "SubmodelElementCollection",
           "value": [],
           "value_type_list_element": null
         }
@@ -3786,6 +3289,142 @@
         "title": "ContentType",
         "type": "object"
       },
+      "ContentType_for_content_type": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "default": "Indicates the datapoint media type specified by IANA.",
+            "title": "Description",
+            "type": "string"
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Display Name"
+          },
+          "id_short": {
+            "default": "contentType",
+            "title": "Id Short",
+            "type": "string"
+          },
+          "qualifiers": {
+            "default": [],
+            "items": {
+              "$ref": "#/$defs/Qualifier"
+            },
+            "title": "Qualifiers",
+            "type": "array"
+          },
+          "semantic_id": {
+            "default": "https://www.w3.org/2019/wot/hypermedia#forContentType",
+            "title": "Semantic Id",
+            "type": "string"
+          },
+          "supplemental_semantic_ids": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Supplemental Semantic Ids",
+            "type": "array"
+          },
+          "value": {
+            "default": "",
+            "title": "Value",
+            "type": "string"
+          },
+          "value_id": {
+            "default": "",
+            "title": "Value Id",
+            "type": "string"
+          },
+          "value_type": {
+            "default": "xs:string",
+            "title": "Value Type",
+            "type": "string"
+          }
+        },
+        "title": "ContentType_for_content_type",
+        "type": "object"
+      },
+      "ContentType_for_content_type_2": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "default": "",
+            "title": "Description",
+            "type": "string"
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Display Name"
+          },
+          "id_short": {
+            "default": "contentType",
+            "title": "Id Short",
+            "type": "string"
+          },
+          "qualifiers": {
+            "default": [],
+            "items": {
+              "$ref": "#/$defs/Qualifier"
+            },
+            "title": "Qualifiers",
+            "type": "array"
+          },
+          "semantic_id": {
+            "default": "https://www.w3.org/2019/wot/hypermedia#forContentType",
+            "title": "Semantic Id",
+            "type": "string"
+          },
+          "supplemental_semantic_ids": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Supplemental Semantic Ids",
+            "type": "array"
+          },
+          "value": {
+            "default": "",
+            "title": "Value",
+            "type": "string"
+          },
+          "value_id": {
+            "default": "",
+            "title": "Value Id",
+            "type": "string"
+          },
+          "value_type": {
+            "default": "xs:string",
+            "title": "Value Type",
+            "type": "string"
+          }
+        },
+        "title": "ContentType_for_content_type_2",
+        "type": "object"
+      },
       "Created": {
         "additionalProperties": false,
         "properties": {
@@ -4197,13 +3836,17 @@
           "contentType": {
             "anyOf": [
               {
+                "$ref": "#/$defs/ContentType_for_content_type"
+              },
+              {
                 "$ref": "#/$defs/ContentType"
               },
               {
                 "type": "null"
               }
             ],
-            "default": null
+            "default": null,
+            "title": "Contenttype"
           },
           "description": {
             "default": "Contains information about datapoint resource location. ",
@@ -4664,13 +4307,17 @@
           "key": {
             "anyOf": [
               {
+                "$ref": "#/$defs/Key_asset_interfaces_description"
+              },
+              {
                 "$ref": "#/$defs/aas_pydantic__submodel_templates__asset_interfaces_description__Key"
               },
               {
                 "type": "null"
               }
             ],
-            "default": null
+            "default": null,
+            "title": "Key"
           },
           "lengthRange": {
             "anyOf": [
@@ -4740,13 +4387,17 @@
           "title": {
             "anyOf": [
               {
+                "$ref": "#/$defs/Title_td"
+              },
+              {
                 "$ref": "#/$defs/Title"
               },
               {
                 "type": "null"
               }
             ],
-            "default": null
+            "default": null,
+            "title": "Title"
           },
           "type": {
             "anyOf": [
@@ -4872,13 +4523,17 @@
           "key": {
             "anyOf": [
               {
+                "$ref": "#/$defs/Key_asset_interfaces_description"
+              },
+              {
                 "$ref": "#/$defs/aas_pydantic__submodel_templates__asset_interfaces_description__Key"
               },
               {
                 "type": "null"
               }
             ],
-            "default": null
+            "default": null,
+            "title": "Key"
           },
           "lengthRange": {
             "anyOf": [
@@ -4948,13 +4603,17 @@
           "title": {
             "anyOf": [
               {
+                "$ref": "#/$defs/Title_td"
+              },
+              {
                 "$ref": "#/$defs/Title"
               },
               {
                 "type": "null"
               }
             ],
-            "default": null
+            "default": null,
+            "title": "Title"
           },
           "type": {
             "anyOf": [
@@ -5097,9 +4756,9 @@
                 "order_relevant": true,
                 "qualifiers": [],
                 "semantic_id": "https://www.w3.org/2019/wot/td#hasSecurityConfiguration",
-                "semantic_id_list_element": "",
+                "semantic_id_list_element": "https://www.w3.org/2019/wot/td#definesSecurityScheme",
                 "supplemental_semantic_ids": [],
-                "type_value_list_element": null,
+                "type_value_list_element": "ReferenceElement",
                 "value": [],
                 "value_type_list_element": null
               },
@@ -5519,13 +5178,17 @@
           "key": {
             "anyOf": [
               {
+                "$ref": "#/$defs/Key_asset_interfaces_description"
+              },
+              {
                 "$ref": "#/$defs/aas_pydantic__submodel_templates__asset_interfaces_description__Key"
               },
               {
                 "type": "null"
               }
             ],
-            "default": null
+            "default": null,
+            "title": "Key"
           },
           "lengthRange": {
             "anyOf": [
@@ -5595,13 +5258,17 @@
           "title": {
             "anyOf": [
               {
+                "$ref": "#/$defs/Title_td"
+              },
+              {
                 "$ref": "#/$defs/Title"
               },
               {
                 "type": "null"
               }
             ],
-            "default": null
+            "default": null,
+            "title": "Title"
           },
           "type": {
             "anyOf": [
@@ -5727,13 +5394,17 @@
           "key": {
             "anyOf": [
               {
+                "$ref": "#/$defs/Key_asset_interfaces_description"
+              },
+              {
                 "$ref": "#/$defs/aas_pydantic__submodel_templates__asset_interfaces_description__Key"
               },
               {
                 "type": "null"
               }
             ],
-            "default": null
+            "default": null,
+            "title": "Key"
           },
           "lengthRange": {
             "anyOf": [
@@ -5803,13 +5474,17 @@
           "title": {
             "anyOf": [
               {
+                "$ref": "#/$defs/Title_td"
+              },
+              {
                 "$ref": "#/$defs/Title"
               },
               {
                 "type": "null"
               }
             ],
-            "default": null
+            "default": null,
+            "title": "Title"
           },
           "type": {
             "anyOf": [
@@ -5935,13 +5610,17 @@
           "key": {
             "anyOf": [
               {
+                "$ref": "#/$defs/Key_asset_interfaces_description"
+              },
+              {
                 "$ref": "#/$defs/aas_pydantic__submodel_templates__asset_interfaces_description__Key"
               },
               {
                 "type": "null"
               }
             ],
-            "default": null
+            "default": null,
+            "title": "Key"
           },
           "lengthRange": {
             "anyOf": [
@@ -6011,13 +5690,17 @@
           "title": {
             "anyOf": [
               {
+                "$ref": "#/$defs/Title_td"
+              },
+              {
                 "$ref": "#/$defs/Title"
               },
               {
                 "type": "null"
               }
             ],
-            "default": null
+            "default": null,
+            "title": "Title"
           },
           "type": {
             "anyOf": [
@@ -6143,13 +5826,17 @@
           "key": {
             "anyOf": [
               {
+                "$ref": "#/$defs/Key_asset_interfaces_description"
+              },
+              {
                 "$ref": "#/$defs/aas_pydantic__submodel_templates__asset_interfaces_description__Key"
               },
               {
                 "type": "null"
               }
             ],
-            "default": null
+            "default": null,
+            "title": "Key"
           },
           "lengthRange": {
             "anyOf": [
@@ -6219,13 +5906,17 @@
           "title": {
             "anyOf": [
               {
+                "$ref": "#/$defs/Title_td"
+              },
+              {
                 "$ref": "#/$defs/Title"
               },
               {
                 "type": "null"
               }
             ],
-            "default": null
+            "default": null,
+            "title": "Title"
           },
           "type": {
             "anyOf": [
@@ -6410,13 +6101,17 @@
           "contentType": {
             "anyOf": [
               {
+                "$ref": "#/$defs/ContentType_for_content_type"
+              },
+              {
                 "$ref": "#/$defs/ContentType"
               },
               {
                 "type": "null"
               }
             ],
-            "default": null
+            "default": null,
+            "title": "Contenttype"
           },
           "description": {
             "default": "Contains information about datapoint resource location. ",
@@ -6821,9 +6516,9 @@
                 "order_relevant": true,
                 "qualifiers": [],
                 "semantic_id": "https://www.w3.org/2019/wot/td#hasSecurityConfiguration",
-                "semantic_id_list_element": "",
+                "semantic_id_list_element": "https://www.w3.org/2019/wot/td#definesSecurityScheme",
                 "supplemental_semantic_ids": [],
-                "type_value_list_element": null,
+                "type_value_list_element": "ReferenceElement",
                 "value": [],
                 "value_type_list_element": null
               },
@@ -7108,9 +6803,9 @@
                 "order_relevant": true,
                 "qualifiers": [],
                 "semantic_id": "https://www.w3.org/2019/wot/td#hasSecurityConfiguration",
-                "semantic_id_list_element": "",
+                "semantic_id_list_element": "https://www.w3.org/2019/wot/td#definesSecurityScheme",
                 "supplemental_semantic_ids": [],
-                "type_value_list_element": null,
+                "type_value_list_element": "ReferenceElement",
                 "value": [],
                 "value_type_list_element": null
               },
@@ -7306,9 +7001,9 @@
                 "order_relevant": true,
                 "qualifiers": [],
                 "semantic_id": "https://www.w3.org/2019/wot/td#hasSecurityConfiguration",
-                "semantic_id_list_element": "",
+                "semantic_id_list_element": "https://www.w3.org/2019/wot/td#definesSecurityScheme",
                 "supplemental_semantic_ids": [],
-                "type_value_list_element": null,
+                "type_value_list_element": "ReferenceElement",
                 "value": [],
                 "value_type_list_element": null
               },
@@ -7504,9 +7199,9 @@
                 "order_relevant": true,
                 "qualifiers": [],
                 "semantic_id": "https://www.w3.org/2019/wot/td#hasSecurityConfiguration",
-                "semantic_id_list_element": "",
+                "semantic_id_list_element": "https://www.w3.org/2019/wot/td#definesSecurityScheme",
                 "supplemental_semantic_ids": [],
-                "type_value_list_element": null,
+                "type_value_list_element": "ReferenceElement",
                 "value": [],
                 "value_type_list_element": null
               },
@@ -7955,13 +7650,17 @@
           "title": {
             "anyOf": [
               {
+                "$ref": "#/$defs/Title_td"
+              },
+              {
                 "$ref": "#/$defs/Title"
               },
               {
                 "type": "null"
               }
             ],
-            "default": null
+            "default": null,
+            "title": "Title"
           },
           "type": {
             "anyOf": [
@@ -8107,10 +7806,14 @@
                 "$ref": "#/$defs/ContentType"
               },
               {
+                "$ref": "#/$defs/ContentType_for_content_type_2"
+              },
+              {
                 "type": "null"
               }
             ],
-            "default": null
+            "default": null,
+            "title": "Contenttype"
           },
           "description": {
             "default": "Provides the metadata of the asset\u2019s endpoint (base, content type that is used for interaction, etc)",
@@ -10092,6 +9795,74 @@
         "title": "ItemsRange",
         "type": "object"
       },
+      "Key_asset_interfaces_description": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "default": "Optional element when the idShort of {property_name} cannot be used to reflect the desired property name due to the idShort restrictions (e.g., payload message uses \u201ctemperature-value\u201d as key term).",
+            "title": "Description",
+            "type": "string"
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Display Name"
+          },
+          "id_short": {
+            "default": "key",
+            "title": "Id Short",
+            "type": "string"
+          },
+          "qualifiers": {
+            "default": [],
+            "items": {
+              "$ref": "#/$defs/Qualifier"
+            },
+            "title": "Qualifiers",
+            "type": "array"
+          },
+          "semantic_id": {
+            "default": "https://admin-shell.io/idta/AssetInterfacesDescription/1/0/key",
+            "title": "Semantic Id",
+            "type": "string"
+          },
+          "supplemental_semantic_ids": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Supplemental Semantic Ids",
+            "type": "array"
+          },
+          "value": {
+            "default": "",
+            "title": "Value",
+            "type": "string"
+          },
+          "value_id": {
+            "default": "",
+            "title": "Value Id",
+            "type": "string"
+          },
+          "value_type": {
+            "default": "xs:string",
+            "title": "Value Type",
+            "type": "string"
+          }
+        },
+        "title": "Key_asset_interfaces_description",
+        "type": "object"
+      },
       "LengthRange": {
         "additionalProperties": false,
         "properties": {
@@ -11173,13 +10944,17 @@
           "contentType": {
             "anyOf": [
               {
+                "$ref": "#/$defs/ContentType_for_content_type"
+              },
+              {
                 "$ref": "#/$defs/ContentType"
               },
               {
                 "type": "null"
               }
             ],
-            "default": null
+            "default": null,
+            "title": "Contenttype"
           },
           "description": {
             "default": "Contains information about datapoint resource location. ",
@@ -11756,9 +11531,9 @@
                 "order_relevant": true,
                 "qualifiers": [],
                 "semantic_id": "https://www.w3.org/2019/wot/td#hasSecurityConfiguration",
-                "semantic_id_list_element": "",
+                "semantic_id_list_element": "https://www.w3.org/2019/wot/td#definesSecurityScheme",
                 "supplemental_semantic_ids": [],
-                "type_value_list_element": null,
+                "type_value_list_element": "ReferenceElement",
                 "value": [],
                 "value_type_list_element": null
               },
@@ -12442,7 +12217,7 @@
             "title": "Display Name"
           },
           "forms": {
-            "$ref": "#/$defs/DmpActionForm",
+            "$ref": "#/$defs/OpcuaActionForm",
             "default": {
               "bacv_hasDataType": null,
               "bacv_useService": null,
@@ -12594,18 +12369,15 @@
             "default": null
           },
           "uav_componentOf": {
-            "$ref": "#/$defs/UavComponentOf",
-            "default": {
-              "description": "NodeId of the UA Object the method is defined in (the objectId of the UA Call service).",
-              "display_name": null,
-              "id_short": "uav_componentOf",
-              "qualifiers": [],
-              "semantic_id": "http://opcfoundation.org/UA/WoT-Binding/componentOf",
-              "supplemental_semantic_ids": [],
-              "value": "",
-              "value_id": "",
-              "value_type": "xs:string"
-            }
+            "anyOf": [
+              {
+                "$ref": "#/$defs/UavComponentOf"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
           },
           "uriVariables": {
             "anyOf": [
@@ -12620,6 +12392,474 @@
           }
         },
         "title": "OpcuaAction",
+        "type": "object"
+      },
+      "OpcuaActionForm": {
+        "additionalProperties": false,
+        "description": "OPC UA action form; permits OPC UA binding fields, not other protocols.",
+        "properties": {
+          "bacv_hasDataType": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/bacv_hasDataType"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "bacv_useService": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/BacvUseService"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "canv_enumeratedValues": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/canv_enumeratedValues"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "canv_length": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/CanvLength"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "canv_offset": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/CanvOffset"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "canv_payloadMapping": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/canv_payloadMapping"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "canv_valueOffset": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/CanvValueOffset"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "contentType": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/ContentType_for_content_type"
+              },
+              {
+                "$ref": "#/$defs/ContentType"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Contenttype"
+          },
+          "description": {
+            "default": "Contains information about datapoint resource location. ",
+            "title": "Description",
+            "type": "string"
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Display Name"
+          },
+          "href": {
+            "$ref": "#/$defs/Href",
+            "default": {
+              "description": "Target IRI relative path or full IRI of asset\u2019s datapoint. The relative endpoint definition in href is always relative to base defined in EndpointMetadata",
+              "display_name": null,
+              "id_short": "href",
+              "qualifiers": [],
+              "semantic_id": "https://www.w3.org/2019/wot/hypermedia#hasTarget",
+              "supplemental_semantic_ids": [],
+              "value": "",
+              "value_id": "",
+              "value_type": "xs:string"
+            }
+          },
+          "htv_headers": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/htv_headers"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "htv_methodName": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/HtvMethodName"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "id_short": {
+            "default": "forms",
+            "title": "Id Short",
+            "type": "string"
+          },
+          "iolv_accessRights": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/IolvAccessRights"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "iolv_bitLength": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/IolvBitLength"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "iolv_bitOffset": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/IolvBitOffset"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "iolv_byteLength": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/IolvByteLength"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "iolv_byteOffset": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/IolvByteOffset"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "iolv_enumeratedValues": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/iolv_enumeratedValues"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "iolv_method": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/IolvMethod"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "iolv_payloadMapping": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/iolv_payloadMapping"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "iolv_referenceToCondition": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/IolvReferenceToCondition"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "iolv_type": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/IolvType"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "modv_entity": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/ModvEntity"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "modv_function": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/ModvFunction"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "modv_mostSignificantByte": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/ModvMostSignificantByte"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "modv_mostSignificantWord": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/ModvMostSignificantWord"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "modv_pollingTime": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/ModvPollingTime"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "modv_timeout": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/ModvTimeout"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "modv_type": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/ModvType"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "modv_zeroBasedAddressing": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/ModvZeroBasedAddressing"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "mqv_controlPacket": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/MqvControlPacket"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "mqv_qos": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/MqvQos"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "mqv_retain": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/MqvRetain"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "op": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/Op"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "qualifiers": {
+            "default": [],
+            "items": {
+              "$ref": "#/$defs/Qualifier"
+            },
+            "title": "Qualifiers",
+            "type": "array"
+          },
+          "response": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/DmpResponseForm"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "security": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/security"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "semantic_id": {
+            "default": "https://www.w3.org/2019/wot/td#hasForm",
+            "title": "Semantic Id",
+            "type": "string"
+          },
+          "subprotocol": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/Subprotocol"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "supplemental_semantic_ids": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Supplemental Semantic Ids",
+            "type": "array"
+          },
+          "uav_browsePath": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/UavBrowsePath"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          }
+        },
+        "title": "OpcuaActionForm",
         "type": "object"
       },
       "OpcuaActions": {
@@ -12961,13 +13201,17 @@
           "key": {
             "anyOf": [
               {
+                "$ref": "#/$defs/Key_asset_interfaces_description"
+              },
+              {
                 "$ref": "#/$defs/aas_pydantic__submodel_templates__asset_interfaces_description__Key"
               },
               {
                 "type": "null"
               }
             ],
-            "default": null
+            "default": null,
+            "title": "Key"
           },
           "lengthRange": {
             "anyOf": [
@@ -13037,13 +13281,17 @@
           "title": {
             "anyOf": [
               {
+                "$ref": "#/$defs/Title_td"
+              },
+              {
                 "$ref": "#/$defs/Title"
               },
               {
                 "type": "null"
               }
             ],
-            "default": null
+            "default": null,
+            "title": "Title"
           },
           "type": {
             "anyOf": [
@@ -13169,13 +13417,17 @@
           "key": {
             "anyOf": [
               {
+                "$ref": "#/$defs/Key_asset_interfaces_description"
+              },
+              {
                 "$ref": "#/$defs/aas_pydantic__submodel_templates__asset_interfaces_description__Key"
               },
               {
                 "type": "null"
               }
             ],
-            "default": null
+            "default": null,
+            "title": "Key"
           },
           "lengthRange": {
             "anyOf": [
@@ -13245,13 +13497,17 @@
           "title": {
             "anyOf": [
               {
+                "$ref": "#/$defs/Title_td"
+              },
+              {
                 "$ref": "#/$defs/Title"
               },
               {
                 "type": "null"
               }
             ],
-            "default": null
+            "default": null,
+            "title": "Title"
           },
           "type": {
             "anyOf": [
@@ -13715,6 +13971,74 @@
           }
         },
         "title": "Proxy",
+        "type": "object"
+      },
+      "Proxy_security": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "default": "",
+            "title": "Description",
+            "type": "string"
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Display Name"
+          },
+          "id_short": {
+            "default": "proxy",
+            "title": "Id Short",
+            "type": "string"
+          },
+          "qualifiers": {
+            "default": [],
+            "items": {
+              "$ref": "#/$defs/Qualifier"
+            },
+            "title": "Qualifiers",
+            "type": "array"
+          },
+          "semantic_id": {
+            "default": "https://www.w3.org/2019/wot/security#proxy",
+            "title": "Semantic Id",
+            "type": "string"
+          },
+          "supplemental_semantic_ids": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Supplemental Semantic Ids",
+            "type": "array"
+          },
+          "value": {
+            "default": "",
+            "title": "Value",
+            "type": "string"
+          },
+          "value_id": {
+            "default": "",
+            "title": "Value Id",
+            "type": "string"
+          },
+          "value_type": {
+            "default": "xs:anyURI",
+            "title": "Value Type",
+            "type": "string"
+          }
+        },
+        "title": "Proxy_security",
         "type": "object"
       },
       "Qop": {
@@ -14189,6 +14513,74 @@
         "title": "Scheme",
         "type": "object"
       },
+      "Scheme_security_scheme": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "default": "",
+            "title": "Description",
+            "type": "string"
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Display Name"
+          },
+          "id_short": {
+            "default": "scheme",
+            "title": "Id Short",
+            "type": "string"
+          },
+          "qualifiers": {
+            "default": [],
+            "items": {
+              "$ref": "#/$defs/Qualifier"
+            },
+            "title": "Qualifiers",
+            "type": "array"
+          },
+          "semantic_id": {
+            "default": "https://www.w3.org/2019/wot/security#SecurityScheme",
+            "title": "Semantic Id",
+            "type": "string"
+          },
+          "supplemental_semantic_ids": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Supplemental Semantic Ids",
+            "type": "array"
+          },
+          "value": {
+            "default": "",
+            "title": "Value",
+            "type": "string"
+          },
+          "value_id": {
+            "default": "",
+            "title": "Value Id",
+            "type": "string"
+          },
+          "value_type": {
+            "default": "xs:string",
+            "title": "Value Type",
+            "type": "string"
+          }
+        },
+        "title": "Scheme_security_scheme",
+        "type": "object"
+      },
       "Subprotocol": {
         "additionalProperties": false,
         "properties": {
@@ -14459,6 +14851,74 @@
           }
         },
         "title": "Title",
+        "type": "object"
+      },
+      "Title_td": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "default": "Provides a human-readable title of this interaction (e.g., display a text for UI representation)",
+            "title": "Description",
+            "type": "string"
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Display Name"
+          },
+          "id_short": {
+            "default": "title",
+            "title": "Id Short",
+            "type": "string"
+          },
+          "qualifiers": {
+            "default": [],
+            "items": {
+              "$ref": "#/$defs/Qualifier"
+            },
+            "title": "Qualifiers",
+            "type": "array"
+          },
+          "semantic_id": {
+            "default": "https://www.w3.org/2019/wot/td#title",
+            "title": "Semantic Id",
+            "type": "string"
+          },
+          "supplemental_semantic_ids": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Supplemental Semantic Ids",
+            "type": "array"
+          },
+          "value": {
+            "default": "",
+            "title": "Value",
+            "type": "string"
+          },
+          "value_id": {
+            "default": "",
+            "title": "Value Id",
+            "type": "string"
+          },
+          "value_type": {
+            "default": "xs:string",
+            "title": "Value Type",
+            "type": "string"
+          }
+        },
+        "title": "Title_td",
         "type": "object"
       },
       "Token": {
@@ -15553,7 +16013,7 @@
             "type": "string"
           },
           "semantic_id_list_element": {
-            "default": "",
+            "default": "https://www.w3.org/2019/wot/security#allOf",
             "title": "Semantic Id List Element",
             "type": "string"
           },
@@ -15566,20 +16026,15 @@
             "type": "array"
           },
           "type_value_list_element": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Type Value List Element"
+            "default": "ReferenceElement",
+            "title": "Type Value List Element",
+            "type": "string"
           },
           "value": {
             "default": [],
-            "items": {},
+            "items": {
+              "$ref": "#/$defs/ReferenceElement"
+            },
             "title": "Value",
             "type": "array"
           },
@@ -15628,6 +16083,7 @@
             "type": "string"
           },
           "in_": {
+            "aas_id_short": "in",
             "anyOf": [
               {
                 "$ref": "#/$defs/In"
@@ -16044,7 +16500,7 @@
             "type": "string"
           },
           "semantic_id_list_element": {
-            "default": "",
+            "default": "http://www.w3.org/2022/bacnet#NamedMember",
             "title": "Semantic Id List Element",
             "type": "string"
           },
@@ -16057,16 +16513,9 @@
             "type": "array"
           },
           "type_value_list_element": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Type Value List Element"
+            "default": "SubmodelElementCollection",
+            "title": "Type Value List Element",
+            "type": "string"
           },
           "value": {
             "default": [],
@@ -16220,7 +16669,7 @@
             "type": "string"
           },
           "semantic_id_list_element": {
-            "default": "",
+            "default": "http://www.w3.org/2022/bacnet#hasMapEntry",
             "title": "Semantic Id List Element",
             "type": "string"
           },
@@ -16233,16 +16682,9 @@
             "type": "array"
           },
           "type_value_list_element": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Type Value List Element"
+            "default": "SubmodelElementCollection",
+            "title": "Type Value List Element",
+            "type": "string"
           },
           "value": {
             "default": [],
@@ -16360,6 +16802,7 @@
             "type": "string"
           },
           "in_": {
+            "aas_id_short": "in",
             "anyOf": [
               {
                 "$ref": "#/$defs/In"
@@ -16485,6 +16928,7 @@
             "type": "string"
           },
           "in_": {
+            "aas_id_short": "in",
             "anyOf": [
               {
                 "$ref": "#/$defs/In"
@@ -16595,7 +17039,7 @@
             "type": "string"
           },
           "semantic_id_list_element": {
-            "default": "",
+            "default": "https://admin-shell.io/idta/AssetInterfacesDescription/1/2/CAN/enumeratedValue",
             "title": "Semantic Id List Element",
             "type": "string"
           },
@@ -16608,16 +17052,9 @@
             "type": "array"
           },
           "type_value_list_element": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Type Value List Element"
+            "default": "SubmodelElementCollection",
+            "title": "Type Value List Element",
+            "type": "string"
           },
           "value": {
             "default": [],
@@ -16753,7 +17190,7 @@
             "type": "string"
           },
           "semantic_id_list_element": {
-            "default": "",
+            "default": "https://admin-shell.io/idta/AssetInterfacesDescription/1/2/CAN/payloadMapping",
             "title": "Semantic Id List Element",
             "type": "string"
           },
@@ -16766,16 +17203,9 @@
             "type": "array"
           },
           "type_value_list_element": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Type Value List Element"
+            "default": "SubmodelElementCollection",
+            "title": "Type Value List Element",
+            "type": "string"
           },
           "value": {
             "default": [],
@@ -16997,6 +17427,7 @@
             "type": "string"
           },
           "in_": {
+            "aas_id_short": "in",
             "anyOf": [
               {
                 "$ref": "#/$defs/In"
@@ -17131,20 +17562,15 @@
             "type": "array"
           },
           "type_value_list_element": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Type Value List Element"
+            "default": "Property",
+            "title": "Type Value List Element",
+            "type": "string"
           },
           "value": {
             "default": [],
-            "items": {},
+            "items": {
+              "$ref": "#/$defs/Property"
+            },
             "title": "Value",
             "type": "array"
           },
@@ -17300,13 +17726,17 @@
           "contentType": {
             "anyOf": [
               {
+                "$ref": "#/$defs/ContentType_for_content_type"
+              },
+              {
                 "$ref": "#/$defs/ContentType"
               },
               {
                 "type": "null"
               }
             ],
-            "default": null
+            "default": null,
+            "title": "Contenttype"
           },
           "description": {
             "default": "Contains information about datapoint resource location. ",
@@ -17697,7 +18127,7 @@
             "type": "string"
           },
           "semantic_id_list_element": {
-            "default": "",
+            "default": "https://www.w3.org/2011/http#headers",
             "title": "Semantic Id List Element",
             "type": "string"
           },
@@ -17710,16 +18140,9 @@
             "type": "array"
           },
           "type_value_list_element": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Type Value List Element"
+            "default": "SubmodelElementCollection",
+            "title": "Type Value List Element",
+            "type": "string"
           },
           "value": {
             "default": [],
@@ -17855,7 +18278,7 @@
             "type": "string"
           },
           "semantic_id_list_element": {
-            "default": "",
+            "default": "https://admin-shell.io/idta/AssetInterfacesDescription/1/1/IO-Link/enumeratedValue",
             "title": "Semantic Id List Element",
             "type": "string"
           },
@@ -17868,16 +18291,9 @@
             "type": "array"
           },
           "type_value_list_element": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Type Value List Element"
+            "default": "SubmodelElementCollection",
+            "title": "Type Value List Element",
+            "type": "string"
           },
           "value": {
             "default": [],
@@ -18013,7 +18429,7 @@
             "type": "string"
           },
           "semantic_id_list_element": {
-            "default": "",
+            "default": "https://admin-shell.io/idta/AssetInterfacesDescription/1/1/IO-Link/payloadMapping",
             "title": "Semantic Id List Element",
             "type": "string"
           },
@@ -18026,16 +18442,9 @@
             "type": "array"
           },
           "type_value_list_element": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Type Value List Element"
+            "default": "SubmodelElementCollection",
+            "title": "Type Value List Element",
+            "type": "string"
           },
           "value": {
             "default": [],
@@ -18309,13 +18718,17 @@
           "title": {
             "anyOf": [
               {
+                "$ref": "#/$defs/Title_td"
+              },
+              {
                 "$ref": "#/$defs/Title"
               },
               {
                 "type": "null"
               }
             ],
-            "default": null
+            "default": null,
+            "title": "Title"
           },
           "type": {
             "anyOf": [
@@ -18578,7 +18991,7 @@
             "type": "string"
           },
           "semantic_id_list_element": {
-            "default": "",
+            "default": "https://www.w3.org/2019/wot/security#allOf",
             "title": "Semantic Id List Element",
             "type": "string"
           },
@@ -18591,20 +19004,15 @@
             "type": "array"
           },
           "type_value_list_element": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Type Value List Element"
+            "default": "ReferenceElement",
+            "title": "Type Value List Element",
+            "type": "string"
           },
           "value": {
             "default": [],
-            "items": {},
+            "items": {
+              "$ref": "#/$defs/ReferenceElement"
+            },
             "title": "Value",
             "type": "array"
           },
@@ -18655,13 +19063,17 @@
           "proxy": {
             "anyOf": [
               {
+                "$ref": "#/$defs/Proxy_security"
+              },
+              {
                 "$ref": "#/$defs/Proxy"
               },
               {
                 "type": "null"
               }
             ],
-            "default": null
+            "default": null,
+            "title": "Proxy"
           },
           "qualifiers": {
             "default": [],
@@ -18672,7 +19084,15 @@
             "type": "array"
           },
           "scheme": {
-            "$ref": "#/$defs/Scheme"
+            "anyOf": [
+              {
+                "$ref": "#/$defs/Scheme_security_scheme"
+              },
+              {
+                "$ref": "#/$defs/Scheme"
+              }
+            ],
+            "title": "Scheme"
           },
           "semantic_id": {
             "default": "http://opcfoundation.org/UA/WoT-Binding/OPCUASecurityAuthenticationScheme",
@@ -18740,13 +19160,17 @@
           "proxy": {
             "anyOf": [
               {
+                "$ref": "#/$defs/Proxy_security"
+              },
+              {
                 "$ref": "#/$defs/Proxy"
               },
               {
                 "type": "null"
               }
             ],
-            "default": null
+            "default": null,
+            "title": "Proxy"
           },
           "qualifiers": {
             "default": [],
@@ -18757,7 +19181,15 @@
             "type": "array"
           },
           "scheme": {
-            "$ref": "#/$defs/Scheme"
+            "anyOf": [
+              {
+                "$ref": "#/$defs/Scheme_security_scheme"
+              },
+              {
+                "$ref": "#/$defs/Scheme"
+              }
+            ],
+            "title": "Scheme"
           },
           "semantic_id": {
             "default": "http://opcfoundation.org/UA/WoT-Binding/OPCUASecurityChannelScheme",
@@ -18880,7 +19312,7 @@
             "additionalProperties": {
               "$ref": "#/$defs/property_name_json_schema"
             },
-            "default": {},
+            "idta_min_cardinality": 1,
             "title": "Property Name",
             "type": "object"
           },
@@ -19076,13 +19508,17 @@
           "title": {
             "anyOf": [
               {
+                "$ref": "#/$defs/Title_td"
+              },
+              {
                 "$ref": "#/$defs/Title"
               },
               {
                 "type": "null"
               }
             ],
-            "default": null
+            "default": null,
+            "title": "Title"
           },
           "type": {
             "anyOf": [
@@ -19221,13 +19657,17 @@
           "key": {
             "anyOf": [
               {
+                "$ref": "#/$defs/Key_asset_interfaces_description"
+              },
+              {
                 "$ref": "#/$defs/aas_pydantic__submodel_templates__asset_interfaces_description__Key"
               },
               {
                 "type": "null"
               }
             ],
-            "default": null
+            "default": null,
+            "title": "Key"
           },
           "lengthRange": {
             "anyOf": [
@@ -19297,13 +19737,17 @@
           "title": {
             "anyOf": [
               {
+                "$ref": "#/$defs/Title_td"
+              },
+              {
                 "$ref": "#/$defs/Title"
               },
               {
                 "type": "null"
               }
             ],
-            "default": null
+            "default": null,
+            "title": "Title"
           },
           "type": {
             "anyOf": [
@@ -19483,37 +19927,93 @@
             "type": "array"
           },
           "type_value_list_element": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Type Value List Element"
+            "default": "Property",
+            "title": "Type Value List Element",
+            "type": "string"
           },
           "value": {
             "default": [],
-            "items": {},
+            "items": {
+              "$ref": "#/$defs/scopesItem"
+            },
             "title": "Value",
             "type": "array"
           },
           "value_type_list_element": {
+            "default": "xs:string",
+            "title": "Value Type List Element",
+            "type": "string"
+          }
+        },
+        "title": "scopes",
+        "type": "object"
+      },
+      "scopesItem": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "default": "",
+            "title": "Description",
+            "type": "string"
+          },
+          "display_name": {
             "anyOf": [
               {
-                "type": "string"
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object"
               },
               {
                 "type": "null"
               }
             ],
             "default": null,
-            "title": "Value Type List Element"
+            "title": "Display Name"
+          },
+          "id_short": {
+            "default": "Property",
+            "title": "Id Short",
+            "type": "string"
+          },
+          "qualifiers": {
+            "default": [],
+            "items": {
+              "$ref": "#/$defs/Qualifier"
+            },
+            "title": "Qualifiers",
+            "type": "array"
+          },
+          "semantic_id": {
+            "default": "",
+            "title": "Semantic Id",
+            "type": "string"
+          },
+          "supplemental_semantic_ids": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Supplemental Semantic Ids",
+            "type": "array"
+          },
+          "value": {
+            "default": "",
+            "title": "Value",
+            "type": "string"
+          },
+          "value_id": {
+            "default": "",
+            "title": "Value Id",
+            "type": "string"
+          },
+          "value_type": {
+            "default": "xs:string",
+            "title": "Value Type",
+            "type": "string"
           }
         },
-        "title": "scopes",
+        "title": "scopesItem",
         "type": "object"
       },
       "security": {
@@ -19563,7 +20063,7 @@
             "type": "string"
           },
           "semantic_id_list_element": {
-            "default": "",
+            "default": "https://www.w3.org/2019/wot/td#definesSecurityScheme",
             "title": "Semantic Id List Element",
             "type": "string"
           },
@@ -19576,16 +20076,9 @@
             "type": "array"
           },
           "type_value_list_element": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Type Value List Element"
+            "default": "ReferenceElement",
+            "title": "Type Value List Element",
+            "type": "string"
           },
           "value": {
             "default": [],
@@ -19862,7 +20355,7 @@
         "additionalProperties": {
           "$ref": "#/$defs/InterfaceTemplateForCAN"
         },
-        "default": {},
+        "idta_min_cardinality": 1,
         "title": "Interfacetemplateforcan",
         "type": "object"
       },
@@ -19933,9 +20426,9 @@
                 "order_relevant": true,
                 "qualifiers": [],
                 "semantic_id": "https://www.w3.org/2019/wot/td#hasSecurityConfiguration",
-                "semantic_id_list_element": "",
+                "semantic_id_list_element": "https://www.w3.org/2019/wot/td#definesSecurityScheme",
                 "supplemental_semantic_ids": [],
-                "type_value_list_element": null,
+                "type_value_list_element": "ReferenceElement",
                 "value": [],
                 "value_type_list_element": null
               },
@@ -20015,7 +20508,7 @@
         "additionalProperties": {
           "$ref": "#/$defs/InterfaceTemplateForSNMP"
         },
-        "default": {},
+        "idta_min_cardinality": 1,
         "title": "Interfacetemplateforsnmp",
         "type": "object"
       },

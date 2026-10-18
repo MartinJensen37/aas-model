@@ -5,6 +5,7 @@ import os
 from pathlib import Path
 import subprocess
 import sys
+from typing import get_args
 
 import pytest
 
@@ -263,10 +264,174 @@ def test_generation_preserves_named_fields_and_source_provenance(tmp_path):
     assert generated.split("Source: ", 1)[1].splitlines()[0].endswith("template.json")
     assert "class InterfaceTemplateForMQTT(SubmodelElementCollection):" in generated
     assert "ManufacturerName: Optional[Property] = None" in generated
-    assert "in_: Optional[Property] = None" in generated
+    assert 'in_: Optional[Property] = Field(default=None, json_schema_extra={"aas_id_short": "in"})' in generated
     assert "InterfaceTemplateForMQTT_t: TypeAlias = InterfaceTemplateForMQTT" in generated
     assert "InterfaceTemplateForMQTT: InterfaceTemplateForMQTT_t" in generated
 
     first_output = generated
     generator.gen_template(str(template_path), str(output_dir))
     assert output_path.read_text() == first_output
+
+
+def _generate_fixture(tmp_path, children):
+    source = tmp_path / "fixture.json"
+    source.write_text(json.dumps({"submodels": [{
+        "modelType": "Submodel", "idShort": "ReviewModel",
+        "submodelElements": children,
+    }]}))
+    generator.gen_template(str(source), str(tmp_path))
+    spec = importlib.util.spec_from_file_location(
+        f"idta_fixture_{tmp_path.name.replace('-', '_')}",
+        tmp_path / "review_model.py",
+    )
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+def _element(name, kind="Property", sid=None, **extra):
+    return {
+        "modelType": kind, "idShort": name,
+        "semanticId": {"keys": [{"value": sid or f"urn:{name}"}]},
+        **extra,
+    }
+
+
+def test_sanitized_fields_keep_original_aas_id_short(tmp_path):
+    module = _generate_fixture(tmp_path, [
+        _element("in", valueType="xs:string"),
+        _element("Has-Hyphen"),
+    ])
+    model = module.ReviewModel(id_short="ReviewModel", in_={"value": "header"}, Has_Hyphen={"value": "yes"})
+    assert model.in_.id_short == "in"
+    assert model.Has_Hyphen.id_short == "Has-Hyphen"
+
+
+def test_aid_keyword_field_round_trips_with_original_id_short():
+    from aas_pydantic.convert_pydantic_model import create_submodel_element
+    from aas_pydantic.convert_aas_instance import _container_element_to_pydantic
+    from aas_pydantic.submodel_templates.asset_interfaces_description import (
+        In, Scheme, basic_sc,
+    )
+
+    security = basic_sc(scheme=Scheme(value="basic"), in_=In(value="header"))
+    basyx = create_submodel_element("basic_sc", security)
+    assert {child.id_short for child in basyx.value} == {"scheme", "in"}
+    assert _container_element_to_pydantic(basyx, basic_sc).in_.id_short == "in"
+
+
+def test_required_repeated_elements_can_be_validated_before_publishing(tmp_path):
+    from aas_pydantic import validate_idta_cardinality
+
+    module = _generate_fixture(tmp_path, [_element(
+        "Items", "Property", qualifiers=[
+            {"type": "SMT/Cardinality", "value": "TwoToMany"}
+        ]
+    )])
+    incomplete = module.ReviewModel(id_short="ReviewModel")
+    with pytest.raises(ValueError, match="ReviewModel.Items requires at least 2 entries"):
+        validate_idta_cardinality(incomplete)
+    with pytest.raises(ValueError, match="ReviewModel.Items requires at least 2 entries"):
+        validate_idta_cardinality(module.ReviewModel(
+            id_short="ReviewModel", Items={"First": module.Items()}
+        ))
+    validate_idta_cardinality(module.ReviewModel(id_short="ReviewModel", Items={
+        "First": module.Items(), "Second": module.Items(),
+    }))
+
+
+def test_list_declarations_not_example_defaults_are_authoritative(tmp_path):
+    from aas_pydantic.convert_aas_instance import convert_submodel_list_to_pydantic_model
+    from aas_pydantic.convert_pydantic_model import create_submodel_element
+
+    module = _generate_fixture(tmp_path, [_element(
+        "Readings", "SubmodelElementList", orderRelevant=False,
+        typeValueListElement="Property", valueTypeListElement="xs:int",
+        semanticIdListElement={"keys": [{"value": "urn:item"}]},
+        value=[{"modelType": "Property", "valueType": "xs:int"}],
+    )])
+    sml = module.Readings(value=[{"value": "4"}])
+    assert sml.type_value_list_element == "Property"
+    assert sml.value_type_list_element == "xs:int"
+    assert sml.semantic_id_list_element == "urn:item"
+    assert sml.order_relevant is False
+    assert sml.value[0].value_type == "xs:int"
+    exported = create_submodel_element("Readings", sml)
+    assert exported.value_type_list_element.__name__ == "Int"
+    assert exported.order_relevant is False
+    assert exported.semantic_id_list_element.key[0].value == "urn:item"
+    restored = convert_submodel_list_to_pydantic_model(exported, module.Readings)
+    assert restored.value_type_list_element == "xs:int"
+    assert restored.value[0].value_type == "xs:int"
+
+
+def test_distinct_leaf_metadata_does_not_share_a_class(tmp_path):
+    module = _generate_fixture(tmp_path, [
+        _element("First", "SubmodelElementCollection", value=[
+            _element("Attachment", "File", sid="urn:attachment", contentType="application/pdf")
+        ]),
+        _element("Second", "SubmodelElementCollection", value=[
+            _element("Attachment", "File", sid="urn:attachment", contentType="image/png")
+        ]),
+    ])
+    first = module.First.model_fields["Attachment"].annotation
+    second = module.Second.model_fields["Attachment"].annotation
+    assert first in get_args(second)
+    assert first.model_fields["content_type"].default == "application/pdf"
+    assert any(cls.model_fields["content_type"].default == "image/png" for cls in get_args(second))
+
+
+def test_class_name_conflicts_with_generic_leaf_keep_semantics(tmp_path):
+    module = _generate_fixture(tmp_path, [_element(
+        "File", "File", sid="urn:attachment", contentType="text/csv"
+    )])
+    leaf = get_args(module.ReviewModel.model_fields["File"].annotation)[0]
+    assert leaf.model_fields["semantic_id"].default == "urn:attachment"
+    assert leaf.model_fields["content_type"].default == "text/csv"
+
+
+def test_repeated_disambiguated_leaf_uses_one_definition(tmp_path):
+    def child():
+        return _element("Label", sid="urn:second-label")
+
+    module = _generate_fixture(tmp_path, [
+        _element("First", "SubmodelElementCollection", value=[
+            _element("Label", sid="urn:first-label")
+        ]),
+        _element("Second", "SubmodelElementCollection", value=[child()]),
+        _element("Wrapper", "SubmodelElementCollection", value=[
+            _element("Second", "SubmodelElementCollection", value=[child()])
+        ]),
+    ])
+    assert module.Second.model_fields["Label"].annotation is module.Wrapper.model_fields["Second"].annotation.model_fields["Label"].annotation
+
+
+def test_relationship_defaults_are_references_not_tuples(tmp_path):
+    reference = {"type": "ExternalReference", "keys": [
+        {"type": "GlobalReference", "value": "urn:target"}
+    ]}
+    module = _generate_fixture(tmp_path, [_element(
+        "Connects", "RelationshipElement", first=reference, second=reference
+    )])
+    assert module.Connects().first.key[0].value == "urn:target"
+
+
+def test_invalid_class_and_field_names_fail_with_context(tmp_path):
+    with pytest.raises(ValueError, match="Invalid class name.*class"):
+        _generate_fixture(tmp_path, [_element("class", "SubmodelElementCollection")])
+    with pytest.raises(ValueError, match="reserved.*semantic_id"):
+        _generate_fixture(tmp_path, [_element("semantic_id")])
+
+
+def test_unknown_element_types_are_not_silently_properties(tmp_path):
+    with pytest.raises(ValueError, match="BasicEventElement"):
+        _generate_fixture(tmp_path, [_element("Event", "BasicEventElement")])
+
+
+def test_same_name_semantic_id_with_different_element_kinds_fails(tmp_path):
+    with pytest.raises(ValueError, match="Duplicate or colliding idShorts.*Item"):
+        _generate_fixture(tmp_path, [
+            _element("Item", sid="urn:item"),
+            _element("Item", "SubmodelElementCollection", sid="urn:item", value=[]),
+        ])

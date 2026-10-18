@@ -25,8 +25,10 @@ BasyxModels = AssetAdministrationShell | Submodel | DictIdentifiableStore
 
 
 def string_does_start_with_a_character(v: str):
-    assert v, "value must not be an empty string"
-    assert v[0].isalpha(), "value must start with a character"
+    if not v:
+        raise ValueError("value must not be an empty string")
+    if not v[0].isalpha():
+        raise ValueError("value must start with a character")
     return v
 
 
@@ -62,7 +64,8 @@ class Identifiable(Referable):
                 "id": getattr(data, "id", ""),
                 "id_short": getattr(data, "id_short", ""),
             }
-        assert "id" in data or "id_short" in data, "Either id or id_short must be set"
+        if "id" not in data and "id_short" not in data:
+            raise ValueError("Either id or id_short must be set")
         if "id_short" not in data:
             data["id_short"] = data["id"]
         if "id" not in data:
@@ -133,7 +136,7 @@ class AAS(Identifiable):
             try:
                 Submodel.model_validate(getattr(self, field_name))
             except ValidationError:
-                assert False, f"Field '{field_name}' must be of type Submodel"
+                raise ValueError(f"Field '{field_name}' must be of type Submodel")
         return self
 
 
@@ -204,6 +207,33 @@ def _stamp_container_id_shorts(model: Any) -> None:
         for k, v in list(container.items()):
             if isinstance(v, SubmodelElement) and v.id_short != k:
                 container[k] = v.model_copy(update={"id_short": k})
+
+
+def _aas_field_name(cls: type, field_name: str) -> str:
+    extra = cls.model_fields[field_name].json_schema_extra
+    return extra.get("aas_id_short", field_name) if isinstance(extra, dict) else field_name
+
+
+def validate_idta_cardinality(model: BaseModel) -> None:
+    """Check required repeatable children when an authored model is complete.
+
+    Generator defaults remain empty so incomplete models can be authored and
+    serialized; call this before publishing a template-conformant instance.
+    """
+    for field_name, field in type(model).model_fields.items():
+        value = getattr(model, field_name)
+        extra = field.json_schema_extra
+        minimum = extra.get("idta_min_cardinality", 0) if isinstance(extra, dict) else 0
+        if minimum and len(value) < minimum:
+            raise ValueError(
+                f"{type(model).__name__}.{field_name} requires at least {minimum} entries"
+            )
+        if isinstance(value, BaseModel):
+            validate_idta_cardinality(value)
+        elif isinstance(value, (dict, list, tuple)):
+            for child in value.values() if isinstance(value, dict) else value:
+                if isinstance(child, BaseModel):
+                    validate_idta_cardinality(child)
 
 
 # Every concrete element class registers itself here (via
@@ -387,13 +417,14 @@ class SubmodelElementCollection(SubmodelElement):
                               "supplemental_semantic_ids"]:
                 continue
             el = getattr(self, field_name)
-            assert is_valid_submodel_element(el), \
-                f"Field {field_name} is not a valid SubmodelElement"
+            if not is_valid_submodel_element(el):
+                raise ValueError(f"Field {field_name} is not a valid SubmodelElement")
             # field name == id_short (single canonical name per element) —
             # a named-field child built from a config dict without an explicit
             # id_short would otherwise keep the class default.
-            if isinstance(el, SubmodelElement) and el.id_short != field_name:
-                setattr(self, field_name, el.model_copy(update={"id_short": field_name}))
+            aas_name = _aas_field_name(type(self), field_name)
+            if isinstance(el, SubmodelElement) and el.id_short != aas_name:
+                setattr(self, field_name, el.model_copy(update={"id_short": aas_name}))
         return self
 
 
@@ -433,8 +464,8 @@ class SubmodelElementList(SubmodelElement):
                               "semantic_id_list_element",
                               "order_relevant"]:
                 continue
-            assert is_valid_submodel_element(getattr(self, field_name)), \
-                f"Field {field_name} is not a valid SubmodelElement"
+            if not is_valid_submodel_element(getattr(self, field_name)):
+                raise ValueError(f"Field {field_name} is not a valid SubmodelElement")
         return self
 
 
@@ -467,11 +498,12 @@ class Entity(SubmodelElement):
                               "global_asset_id"]:
                 continue
             el = getattr(self, field_name)
-            assert is_valid_submodel_element(el), \
-                f"Field {field_name} is not a valid SubmodelElement"
+            if not is_valid_submodel_element(el):
+                raise ValueError(f"Field {field_name} is not a valid SubmodelElement")
             # field name == id_short (single canonical name per element).
-            if isinstance(el, SubmodelElement) and el.id_short != field_name:
-                setattr(self, field_name, el.model_copy(update={"id_short": field_name}))
+            aas_name = _aas_field_name(type(self), field_name)
+            if isinstance(el, SubmodelElement) and el.id_short != aas_name:
+                setattr(self, field_name, el.model_copy(update={"id_short": aas_name}))
         return self
 
 
@@ -637,15 +669,17 @@ class ModelReference(Reference):
         keys = [k for k in self.key if k.type_]
         if not keys:
             return self
-        assert keys[0].type_ in _AAS_IDENTIFIABLE_KEY_TYPES, (
-            "The first key of a ModelReference must be an Identifiable "
-            f"(AssetAdministrationShell/ConceptDescription/Submodel), got {keys[0].type_!r}"
-        )
-        for k in keys[1:]:
-            assert k.type_ in _AAS_FRAGMENT_KEY_TYPES, (
-                "Keys after the first of a ModelReference must be fragment "
-                f"element types, got {k.type_!r}"
+        if keys[0].type_ not in _AAS_IDENTIFIABLE_KEY_TYPES:
+            raise ValueError(
+                "The first key of a ModelReference must be an Identifiable "
+                f"(AssetAdministrationShell/ConceptDescription/Submodel), got {keys[0].type_!r}"
             )
+        for k in keys[1:]:
+            if k.type_ not in _AAS_FRAGMENT_KEY_TYPES:
+                raise ValueError(
+                    "Keys after the first of a ModelReference must be fragment "
+                    f"element types, got {k.type_!r}"
+                )
         return self
 
 
@@ -660,10 +694,11 @@ class ExternalReference(Reference):
         keys = [k for k in self.key if k.type_]
         if not keys:
             return self
-        assert len(keys) == 1 and keys[0].type_ == "GlobalReference", (
-            "An ExternalReference must have exactly one GlobalReference key, "
-            f"got {[k.type_ for k in keys]!r}"
-        )
+        if len(keys) != 1 or keys[0].type_ != "GlobalReference":
+            raise ValueError(
+                "An ExternalReference must have exactly one GlobalReference key, "
+                f"got {[k.type_ for k in keys]!r}"
+            )
         return self
 
 
@@ -1055,7 +1090,7 @@ def _coerce_container_data(cls: Any, data: Any) -> Any:
                     elem_tp = args[0]
             if isinstance(elem_tp, type) and issubclass(elem_tp, SubmodelElement):
                 data[key] = coerce_submodel_element(
-                    val, id_short=key, target_type=elem_tp
+                    val, id_short=_aas_field_name(cls, key), target_type=elem_tp
                 )
     return data
 
@@ -1098,9 +1133,10 @@ class Submodel(HasSemantics, Identifiable):
                               "supplemental_semantic_ids"]:
                 continue
             el = getattr(self, field_name)
-            assert is_valid_submodel_element(el), \
-                f"Field {field_name} is not a valid SubmodelElement"
+            if not is_valid_submodel_element(el):
+                raise ValueError(f"Field {field_name} is not a valid SubmodelElement")
             # field name == id_short (single canonical name per element).
-            if isinstance(el, SubmodelElement) and el.id_short != field_name:
-                setattr(self, field_name, el.model_copy(update={"id_short": field_name}))
+            aas_name = _aas_field_name(type(self), field_name)
+            if isinstance(el, SubmodelElement) and el.id_short != aas_name:
+                setattr(self, field_name, el.model_copy(update={"id_short": aas_name}))
         return self

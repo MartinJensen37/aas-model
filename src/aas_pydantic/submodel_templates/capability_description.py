@@ -8,6 +8,7 @@ from typing import Any, ClassVar, List, Dict, Optional, TypeAlias
 from aas_pydantic import (
     Capability, ExternalReference, File, Key, ModelReference, MultiLanguageProperty, Property, Range, ReferenceElement, RelationshipElement, Submodel, SubmodelElement, SubmodelElementCollection, SubmodelElementList,
 )
+from pydantic import Field
 from aas_pydantic.aas_model import AasIdString
 
 class CapabilityComment(MultiLanguageProperty):
@@ -23,12 +24,12 @@ class SameProperty(RelationshipElement):
         key=(
             Key(type_="GlobalReference", value="urn:example:capability-description:same-property:first"),
         ),
-    ),
+    )
     second: ExternalReference = ExternalReference(
         key=(
             Key(type_="GlobalReference", value="urn:example:capability-description:same-property:second"),
         ),
-    ),
+    )
 
 class PropertyRange(Range):
     id_short: AasIdString = "PropertyRange"
@@ -51,6 +52,7 @@ class PropertySubmodelList(SubmodelElementList):
     id_short: AasIdString = "PropertySubmodelList"
     semantic_id: str = "https://admin-shell.io/idta/CapabilityPropertyType/SubmodelElementList/1/0"
     description: str = "A list of one or more elements defined by only the enum type CapabilityPropertyType. "
+    type_value_list_element: str = "SubmodelElement"
     value: List[Any] = []
 
 class PropertyComment(MultiLanguageProperty):
@@ -73,7 +75,7 @@ class PropertySet(SubmodelElementCollection):
     id_short: AasIdString = "PropertySet"
     semantic_id: str = "https://admin-shell.io/idta/CapabilityDescription/PropertySet/1/0"
     description: str = "Set of properties describing the capability in more detail, if existing."
-    PropertyContainer: Dict[str, PropertyContainer_t] = {}
+    PropertyContainer: Dict[str, PropertyContainer_t] = Field(default_factory=dict, json_schema_extra={"idta_min_cardinality": 1})
 
 class CapabilityRealizedBy(RelationshipElement):
     id_short: AasIdString = "CapabilityRealizedBy"
@@ -86,12 +88,12 @@ class CapabilityRealizedBy(RelationshipElement):
             Key(type_="SubmodelElementCollection", value="CapabilityContainer"),
             Key(type_="Capability", value="Capability"),
         ),
-    ),
+    )
     second: ExternalReference = ExternalReference(
         key=(
             Key(type_="GlobalReference", value="urn:example:capability-description:capability-realized-by:skill"),
         ),
-    ),
+    )
 
 class CapabilityComposedOf(RelationshipElement):
     id_short: AasIdString = "CapabilityComposedOf"
@@ -104,7 +106,7 @@ class CapabilityComposedOf(RelationshipElement):
             Key(type_="SubmodelElementCollection", value="CapabilityContainer"),
             Key(type_="Capability", value="Capability"),
         ),
-    ),
+    )
     second: ModelReference = ModelReference(
         key=(
             Key(type_="Submodel", value="https://admin-shell.io/idta/CapabilityDescription/1/0/Submodel"),
@@ -112,7 +114,7 @@ class CapabilityComposedOf(RelationshipElement):
             Key(type_="SubmodelElementCollection", value="CapabilityContainer"),
             Key(type_="Capability", value="Capability"),
         ),
-    ),
+    )
 
 class ComposedOfComment(MultiLanguageProperty):
     id_short: AasIdString = "ComposedOfComment"
@@ -123,14 +125,14 @@ class ComposedOfContainer(SubmodelElementCollection):
     id_short: AasIdString = "ComposedOfContainer"
     semantic_id: str = "https://admin-shell.io/idta/CapabilityDescription/ComposedOfContainer/1/0"
     description: str = "Container corresponding to one composition for the Capability in the CapabilityContainer."
-    CapabilityComposedOf: Dict[str, CapabilityComposedOf_t] = {}
+    CapabilityComposedOf: Dict[str, CapabilityComposedOf_t] = Field(default_factory=dict, json_schema_extra={"idta_min_cardinality": 2})
     ComposedOfComment: Optional[ComposedOfComment_t] = None
 
 class ComposedOfSet(SubmodelElementCollection):
     id_short: AasIdString = "ComposedOfSet"
     semantic_id: str = "https://admin-shell.io/idta/CapabilityDescription/ComposedOfSet/1/0"
     description: str = "If composition(s) for the Capability element in the CapabilityContainer exists, this set has to be created."
-    ComposedOfContainer: Dict[str, ComposedOfContainer_t] = {}
+    ComposedOfContainer: Dict[str, ComposedOfContainer_t] = Field(default_factory=dict, json_schema_extra={"idta_min_cardinality": 1})
 
 class CapabilityGeneralizedBy(RelationshipElement):
     id_short: AasIdString = "CapabilityGeneralizedBy"
@@ -143,7 +145,7 @@ class CapabilityGeneralizedBy(RelationshipElement):
             Key(type_="SubmodelElementCollection", value="CapabilityContainer"),
             Key(type_="Capability", value="Capability"),
         ),
-    ),
+    )
     second: ModelReference = ModelReference(
         key=(
             Key(type_="Submodel", value="https://admin-shell.io/idta/CapabilityDescription/1/0/Submodel"),
@@ -151,13 +153,13 @@ class CapabilityGeneralizedBy(RelationshipElement):
             Key(type_="SubmodelElementCollection", value="CapabilityContainer"),
             Key(type_="Capability", value="Capability"),
         ),
-    ),
+    )
 
 class GeneralizedBySet(SubmodelElementCollection):
     id_short: AasIdString = "GeneralizedBySet"
     semantic_id: str = "https://admin-shell.io/idta/CapabilityDescription/GeneralizedBySet/1/0"
     description: str = "If generalization(s) for the Capability element in the CapabilityContainer exists, this set has to be created."
-    CapabilityGeneralizedBy: Dict[str, CapabilityGeneralizedBy_t] = {}
+    CapabilityGeneralizedBy: Dict[str, CapabilityGeneralizedBy_t] = Field(default_factory=dict, json_schema_extra={"idta_min_cardinality": 1})
 
 class BasicConstraint(Property):
     id_short: AasIdString = "BasicConstraint"
@@ -208,7 +210,7 @@ class ConstraintHasProperty(RelationshipElement):
             Key(type_="SubmodelElementCollection", value="PropertyConstraintContainer"),
             Key(type_="Property", value="BasicConstraint"),
         ),
-    ),
+    )
     second: ModelReference = ModelReference(
         key=(
             Key(type_="Submodel", value="https://admin-shell.io/idta/CapabilityDescription/1/0/Submodel"),
@@ -218,13 +220,13 @@ class ConstraintHasProperty(RelationshipElement):
             Key(type_="SubmodelElementCollection", value="PropertyContainer"),
             Key(type_="Property", value="PropertyProperty"),
         ),
-    ),
+    )
 
 class ConstraintPropertyRelations(SubmodelElementCollection):
     id_short: AasIdString = "ConstraintPropertyRelations"
     semantic_id: str = "https://admin-shell.io/idta/CapabilityDescription/ConstraintPropertyRelations/1/0"
     description: str = "Contains all relationships for the constraint in the PropertyConstraintContainer."
-    ConstraintHasProperty: Dict[str, ConstraintHasProperty_t] = {}
+    ConstraintHasProperty: Dict[str, ConstraintHasProperty_t] = Field(default_factory=dict, json_schema_extra={"idta_min_cardinality": 1})
 
 class PropertyConstraintContainer(SubmodelElementCollection):
     id_short: AasIdString = "PropertyConstraintContainer"
@@ -249,7 +251,7 @@ class TransitionConstrainedBy(RelationshipElement):
             Key(type_="SubmodelElementCollection", value="CapabilityContainer"),
             Key(type_="Capability", value="Capability"),
         ),
-    ),
+    )
     second: ModelReference = ModelReference(
         key=(
             Key(type_="Submodel", value="https://admin-shell.io/idta/CapabilityDescription/1/0/Submodel"),
@@ -257,7 +259,7 @@ class TransitionConstrainedBy(RelationshipElement):
             Key(type_="SubmodelElementCollection", value="CapabilityContainer"),
             Key(type_="Capability", value="Capability"),
         ),
-    ),
+    )
 
 class TransitionConditionalType(Property):
     id_short: AasIdString = "TransitionConditionalType"
@@ -301,7 +303,7 @@ class CapabilitySet(SubmodelElementCollection):
     id_short: AasIdString = "CapabilitySet"
     semantic_id: str = "https://admin-shell.io/idta/CapabilityDescription/CapabilitySet/1/0"
     description: str = "A Set of CapabilityContainer for a Use Case for the asset."
-    CapabilityContainer: Dict[str, CapabilityContainer_t] = {}
+    CapabilityContainer: Dict[str, CapabilityContainer_t] = Field(default_factory=dict, json_schema_extra={"idta_min_cardinality": 1})
 
 class CapabilityDescription(Submodel):
     id_short: AasIdString = "CapabilityDescription"
@@ -309,7 +311,7 @@ class CapabilityDescription(Submodel):
     description: str = "Definition of the Submodel CapabilityDescription identified by its semanticId. The Submodel idShort can be picked freely."
     VERSION: ClassVar[str] = "1"
     REVISION: ClassVar[str] = "0"
-    CapabilitySet: Dict[str, CapabilitySet_t] = {}
+    CapabilitySet: Dict[str, CapabilitySet_t] = Field(default_factory=dict, json_schema_extra={"idta_min_cardinality": 1})
 
 # alias so field ``SameProperty_t`` can name a class of the same id_short
 SameProperty_t: TypeAlias = SameProperty

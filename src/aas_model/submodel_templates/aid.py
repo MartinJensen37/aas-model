@@ -29,6 +29,8 @@ from __future__ import annotations
 
 from typing import ClassVar, Dict, List, Optional
 
+from pydantic import model_validator
+
 from aas_pydantic import (
     SubmodelElementCollection, SubmodelElementList, Property,
 )
@@ -150,6 +152,18 @@ class DmpResponseForm(SubmodelElementCollection):
 class DmpActionForm(DmpForm):
     """The form of an action: a form plus the optional WoT ``response``."""
     response: Optional[DmpResponseForm] = None
+
+
+def _validate_protocol_form(form: DmpForm, protocol: str) -> None:
+    prefixes = ("htv_", "modv_", "mqv_", "uav_", "bacv_", "iolv_", "canv_")
+    allowed = f"{protocol}_"
+    foreign = [
+        name for name in type(form).model_fields
+        if name.startswith(prefixes) and not name.startswith(allowed)
+        and getattr(form, name) is not None
+    ]
+    if foreign:
+        raise ValueError(f"{type(form).__name__} cannot use foreign protocol fields: {', '.join(foreign)}")
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -293,6 +307,11 @@ class MqttActionForm(DmpActionForm):
     ``mqv_controlPacket`` defaults to ``publish`` (WoT MQTT binding)."""
     mqv_responseTopic: Optional[MqvResponseTopic] = None
 
+    @model_validator(mode="after")
+    def validate_protocol_fields(self):
+        _validate_protocol_form(self, "mqv")
+        return self
+
 
 class MqttAction(DmpAction):
     forms: MqttActionForm = MqttActionForm()
@@ -320,10 +339,26 @@ class UavComponentOf(Property):
     description: str = "NodeId of the UA Object the method is defined in (the objectId of the UA Call service)."
 
 
+class OpcuaActionForm(DmpActionForm):
+    """OPC UA action form; permits OPC UA binding fields, not other protocols."""
+    @model_validator(mode="after")
+    def validate_protocol_fields(self):
+        _validate_protocol_form(self, "uav")
+        return self
+
+
 class OpcuaAction(DmpAction):
     """An OPC UA Method: the form ``href`` is ``/?id=<Method NodeId>``, input
     and output are its arguments."""
-    uav_componentOf: UavComponentOf = UavComponentOf()
+    uav_componentOf: Optional[UavComponentOf] = None
+    forms: OpcuaActionForm = OpcuaActionForm()
+
+    @model_validator(mode="after")
+    def validate_component_of(self):
+        value = self.uav_componentOf.value if self.uav_componentOf is not None else None
+        if not isinstance(value, str) or not value.strip():
+            raise ValueError("OPC UA actions require a non-empty uav_componentOf NodeId")
+        return self
 
 
 class OpcuaActions(DmpActions):
