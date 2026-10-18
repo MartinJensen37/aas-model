@@ -81,8 +81,6 @@ from aas_model.submodel_templates.aimc import (
     DmpResponseSource,
     DmpResponseSources,
     DmpResponseTransformation,
-    DmpStatusSource, DmpStatusSourceReference, DmpStatusSourceId, DmpStatusSources,
-    DmpStatusTransformation, DmpStatusTimeout,
     DmpExecutionSemantics,
     DmpTriggerSourceIds,
 )

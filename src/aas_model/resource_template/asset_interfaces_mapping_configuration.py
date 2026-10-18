@@ -1,32 +1,6 @@
-"""AIMC partial — mandatory Resource live-data mappings (Variables + Operations).
+"""AIMC reference paths and schema-preserving mapping construction.
 
-Maps the Resource's mandatory variables AND its skill operations via IDTA
-AIMC 2.1 MappingConfigurations:
-
-- **Variables** — ``PackMLState``/``OccupationState`` read from the AID
-  ``StationState`` property (``/DATA/State``); the Lua ``transformation``
-  picks the JSON field of the payload each variable maps to:
-
-      sources.StationState.State         → PackMLState
-      sources.StationState.ProcessQueue  → OccupationState
-
-- **Operations** — each skill's delegated Operation is ONE mapping (DMP v3,
-  one-MC authoring): the SOURCE references the skill's Operation
-  SubmodelElement in the CCI (``Skills/<name>/operation``), the SINK is the
-  skill's NATIVE command affordance in the AID (``interface_mqtt`` action),
-    and the ``Transformation`` is the request blob that packs the caller's
-    operation invocation into the native command message. The reply blob and
-    explicit response endpoint lists are optional; absent endpoint lists retain
-    the existing correlated-reply behavior. The management node classifies
-    these mappings as interactions from the
-  Operation-element source reference and derives the caller-facing REST
-  surface by convention (``/operations/{aas_id_short}/{skill}``).
-
-All references use the ``{aas_id}`` / ``{aas_id_short}`` macros (resolved by
-id_injector), so the AIMC always points at this AAS's own submodels.
-
-Named-field style: children are DIRECT named fields on the container (no
-``value``/``submodel_element`` wrapper).
+Fixed MQTT/PackML mappings are declared in ``operational.submodels``.
 """
 
 from __future__ import annotations
@@ -38,17 +12,15 @@ from aas_pydantic.submodel_templates.asset_interfaces_mapping_configuration impo
     SourcesItem as Source, SinksItem as Sink, Sources, Sinks,
     Source as SourceReference, Sink as SinkReference,
     SourceId, SinkId,
-    DefaultPollingInterval, PollingInterval,
+    DefaultPollingInterval,
 )
 
 from aas_model.submodel_templates import (
-    Aimc, AimcMappingConfiguration, AimcMappingConfigurations,
+    AimcMappingConfiguration,
     DmpResponseSink, DmpResponseSinkReference, DmpResponseSinkId,
     DmpResponseSinks, DmpResponseSource, DmpResponseSourceReference,
     DmpResponseSourceId, DmpResponseSources, DmpExecutionSemantics,
-    DmpTriggerSourceIds, DmpStatusSource, DmpStatusSourceReference,
-    DmpStatusSourceId, DmpStatusSources, DmpStatusTransformation,
-    DmpStatusTimeout, DmpResponseTransformation, Transformation,
+    DmpTriggerSourceIds, DmpResponseTransformation, Transformation,
 )
 
 # ── Reference paths (self-referential — {aas_id} resolved by id_injector) ──
@@ -123,7 +95,6 @@ def source(name: str, ref: ModelReference) -> Source:
         SourceId=SourceId(value=name),
     )
 
-
 def sink(name: str, ref: ModelReference) -> Sink:
     """A single sink: the submodel element reference + a stable sink id."""
     return Sink(
@@ -140,20 +111,6 @@ def response_source(source_id: str, ref: ModelReference) -> DmpResponseSource:
         id_short=source_id,
         Source=DmpResponseSourceReference(value=ref),
         SourceId=DmpResponseSourceId(value=source_id),
-    )
-
-
-def status_source(source_id: str, ref: ModelReference, *,
-                  polling_interval: float | None = None) -> DmpStatusSource:
-    """A status property or event of the action's AID under its Lua-visible
-    source id. A ``polling_interval`` (seconds) reads a property at that rate;
-    without one, a property or event is subscribed when its form allows."""
-    return DmpStatusSource(
-        id_short=source_id,
-        Source=DmpStatusSourceReference(value=ref),
-        PollingInterval=(PollingInterval(value=str(polling_interval))
-                         if polling_interval is not None else None),
-        SourceId=DmpStatusSourceId(value=source_id),
     )
 
 
@@ -175,13 +132,10 @@ def mapping_configuration(
     response_sources: list[DmpResponseSource] | None = None,
     response_sinks: list[DmpResponseSink] | None = None,
     trigger_source_ids: list[str] | None = None,
-    status_sources: list[DmpStatusSource] | None = None,
-    status_transformation: str | None = None,
-    status_timeout: float | None = None,
     response_transformation: str | None = None,
 ) -> AimcMappingConfiguration:
     """One MappingConfiguration: AID sources, AAS sinks and the Lua mapping.
-    The status and response arguments apply to operation mappings."""
+    The response arguments apply to operation mappings."""
     kwargs = dict(
         id_short=id_short,
         DefaultPollingInterval=DefaultPollingInterval(value="0.0"),
@@ -193,12 +147,6 @@ def mapping_configuration(
         kwargs["ResponseSources"] = DmpResponseSources(value=response_sources)
     if response_sinks is not None:
         kwargs["ResponseSinks"] = DmpResponseSinks(value=response_sinks)
-    if status_sources is not None:
-        kwargs["StatusSources"] = DmpStatusSources(value=status_sources)
-    if status_transformation is not None:
-        kwargs["StatusTransformation"] = DmpStatusTransformation(value=status_transformation)
-    if status_timeout is not None:
-        kwargs["StatusTimeout"] = DmpStatusTimeout(value=str(status_timeout))
     if response_transformation is not None:
         kwargs["ResponseTransformation"] = DmpResponseTransformation(value=response_transformation)
     if trigger_source_ids is not None:

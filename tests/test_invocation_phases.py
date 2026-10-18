@@ -1,6 +1,6 @@
-"""Operation-mapping phases (DMP PLAN P3): command, optional status, response.
-MQTT event affordances in the AID extension and the AIMC ``Status*`` and
-``Response*`` additions, serialized to AAS JSON as the DMP projects them."""
+"""Operation mappings: the command (IDTA Sources/Transformation/Sinks) and the
+response (the AIMC ``Response*`` additions), and MQTT event affordances in
+the AID extension, serialized to AAS JSON as the DMP projects them."""
 
 from __future__ import annotations
 
@@ -12,11 +12,11 @@ from basyx.aas.adapter.json import json_serialization
 
 from aas_model._serde import parse_submodel_dict
 from aas_model.constants import (
-    AID_EVENT_DATA, AID_EVENT_DEFINITION, AIMC_STATUS_TIMEOUT, AIMC_STATUS_TRANSFORMATION, BASE_URL,
+    AID_EVENT_DATA, AID_EVENT_DEFINITION, AIMC_RESPONSE_TRANSFORMATION, BASE_URL,
 )
 from aas_model.resource_template import ResourceTypeAAS
 from aas_model.resource_template.asset_interfaces_mapping_configuration import (
-    mapping_configuration, response_sink, response_source, sink, source, status_source,
+    mapping_configuration, response_sink, response_source, sink, source,
 )
 from aas_model.submodel_templates import Aimc, AimcMappingConfigurations
 from aas_model.submodel_templates.aid import DmpAssetInterfacesDescription
@@ -70,45 +70,32 @@ def test_interfaces_without_events_serialize_no_events_container():
     assert "events" not in {child["idShort"] for child in interaction["value"]}
 
 
-STATUS_LUA = """
-function aimc_main(sources, invocation)
-  if sources.Done == invocation.baseline.Done then return "running" end
-  return "done"
-end
-"""
 RESPONSE_LUA = """
-function aimc_main(sources, invocation)
-  return { Start = { Result = sources.Result }, Reset = false }
+function aimc_main(sources)
+  return { Start = { Result = sources.Result }, LastResult = sources.Result }
 end
 """
 AID = "{aas_id}/submodels/AssetInterfacesDescription"
 # DMP additions to the IDTA MappingConfiguration: none may claim an IDTA semantic id.
-EXTENSION_FIELDS = {"StatusSources", "StatusTransformation", "StatusTimeout", "ResponseSources",
-                    "ResponseTransformation", "ResponseSinks", "ExecutionSemantics"}
+EXTENSION_FIELDS = {"ResponseSources", "ResponseTransformation", "ResponseSinks", "ExecutionSemantics"}
 
 
-def _modbus(*path: str):
-    return aimc_ref(AID, "interface_modbus", "InteractionMetadata", *path)
+def _mqtt(*path: str):
+    return aimc_ref(AID, "interface_mqtt", "InteractionMetadata", *path)
 
 
 def _start_mapping():
-    """Modbus: write Speed, set the start coil, poll Done or wait for Finished,
-    read Result once, reset the start coil."""
+    """MQTT 5 request/reply: the command, the reply's Result member, and a
+    best-effort copy of it into the AAS."""
     return mapping_configuration(
         id_short="Start",
         sources=[source("Start", aimc_ref("{aas_id}/submodels/ControlComponentInstance",
                                           "Skills", "Start", "operation"))],
-        sinks=[sink("Speed", _modbus("properties", "Speed")), sink("Start", _modbus("actions", "Start"))],
-        transformation="function aimc_main(sources) return { Speed = sources.Start.Speed, Start = true } end",
-        status_sources=[
-            status_source("Done", _modbus("properties", "Done"), polling_interval=0.2),
-            status_source("Finished", aimc_ref(AID, "interface_mqtt", "InteractionMetadata", "events", "Finished")),
-        ],
-        status_transformation=STATUS_LUA,
-        status_timeout=30,
-        response_sources=[response_source("Result", _modbus("properties", "Result"))],
+        sinks=[sink("Start", _mqtt("actions", "Start"))],
+        transformation="function aimc_main(sources) return { Start = sources.Start } end",
+        response_sources=[response_source("Result", _mqtt("actions", "Start", "output", "Result"))],
         response_transformation=RESPONSE_LUA,
-        response_sinks=[response_sink("Reset", _modbus("properties", "StartCoil"))],
+        response_sinks=[response_sink("LastResult", aimc_ref("{aas_id}/submodels/Variables", "LastResult"))],
     )
 
 
@@ -121,24 +108,18 @@ def _serialized_mapping() -> dict:
     return _child(_serialized_aimc(), "MappingConfigurations")["value"][0]
 
 
-def test_operation_mapping_serializes_command_status_and_response_phases():
+def test_operation_mapping_serializes_command_and_response():
     entry = _serialized_mapping()
-    assert [_child(item, "SinkId")["value"] for item in _child(entry, "Sinks")["value"]] == ["Speed", "Start"]
-    timeout = _child(entry, "StatusTimeout")
-    assert _semantic(timeout) == AIMC_STATUS_TIMEOUT
-    assert (timeout["valueType"], timeout["value"]) == ("xs:double", "30.0")
-    assert _semantic(_child(entry, "StatusTransformation")) == AIMC_STATUS_TRANSFORMATION
-    done, finished = _child(entry, "StatusSources")["value"]
-    assert _child(done, "PollingInterval")["value"] == "0.2"
-    assert "PollingInterval" not in {child["idShort"] for child in finished["value"]}
-    assert _child(finished, "Source")["value"]["keys"][-1]["value"] == "Finished"
-    assert "PollingInterval" not in {child["idShort"] for child in _child(entry, "ResponseSources")["value"][0]["value"]}
+    assert [_child(item, "SinkId")["value"] for item in _child(entry, "Sinks")["value"]] == ["Start"]
+    assert _semantic(_child(entry, "ResponseTransformation")) == AIMC_RESPONSE_TRANSFORMATION
+    result = _child(entry, "ResponseSources")["value"][0]
+    assert _child(result, "Source")["value"]["keys"][-1]["value"] == "Result"
+    assert {child["idShort"] for child in entry["value"]}.isdisjoint(
+        {"StatusSources", "StatusTransformation", "StatusTimeout"})
 
     back = parse_submodel_dict(_serialized_aimc(), Aimc).MappingConfigurations.value[0]
-    assert float(back.StatusTimeout.value) == 30
-    assert [item.SourceId.value for item in back.StatusSources.value] == ["Done", "Finished"]
-    assert float(back.StatusSources.value[0].PollingInterval.value) == 0.2
-    assert back.ResponseSinks.value[0].SinkId.value == "Reset"
+    assert [item.SourceId.value for item in back.ResponseSources.value] == ["Result"]
+    assert back.ResponseSinks.value[0].SinkId.value == "LastResult"
 
 
 def test_every_dmp_addition_uses_the_project_namespace():
@@ -147,7 +128,7 @@ def test_every_dmp_addition_uses_the_project_namespace():
     def walk(element: dict, inside_extension: bool):
         extension = inside_extension or element.get("idShort") in EXTENSION_FIELDS
         if extension and "semanticId" in element:
-            assert _semantic(element).startswith(f"{BASE_URL}/aimc/") or element.get("idShort") == "PollingInterval", \
+            assert _semantic(element).startswith(f"{BASE_URL}/aimc/"), \
                 f"{element.get('idShort')} has the non-project semantic id {_semantic(element)}"
         for child in element.get("value", []) if isinstance(element.get("value"), list) else []:
             walk(child, extension)

@@ -85,21 +85,11 @@ AID_OPCUA_EVENT_FIELD = f"{BASE_URL}/aid/OpcuaEventField/1/0"
 # ═══════════════════════════════════════════════════════════════════════════════
 # IDTA AIMC 2.0 defines Sources, Sinks, Transformation and DefaultPollingInterval.
 # Everything an operation mapping adds lives in this project's namespace, so a
-# standard AIMC consumer can tell the additions apart (DMP PLAN P3). Per
-# invocation: command (IDTA Sources/Transformation/Sinks) → optional status
-# phase (Status*) → response phase (Response*).
+# standard AIMC consumer can tell the additions apart. Per invocation:
+# command (IDTA Sources/Transformation/Sinks) → response (Response*).
 
-# Status phase: status properties/events of the action's AID, the Lua that
-# decides "running"/"done"/"failed", and how long to wait for it (seconds).
-AIMC_STATUS_SOURCES = f"{BASE_URL}/aimc/StatusSources/1/0"
-AIMC_STATUS_SOURCE = f"{BASE_URL}/aimc/StatusSource/1/0"
-AIMC_STATUS_SOURCE_REFERENCE = f"{BASE_URL}/aimc/StatusSource/Source/1/0"
-AIMC_STATUS_SOURCE_ID = f"{BASE_URL}/aimc/StatusSource/SourceId/1/0"
-AIMC_STATUS_TRANSFORMATION = f"{BASE_URL}/aimc/StatusTransformation/1/0"
-AIMC_STATUS_TIMEOUT = f"{BASE_URL}/aimc/StatusTimeout/1/0"
-
-# Response phase: the elements read once after the command (or status phase),
-# the Lua that builds the caller's reply, and the elements it writes.
+# Response: members of the action's output, the Lua that builds the caller's
+# reply, and the elements it writes.
 AIMC_RESPONSE_SOURCES = f"{BASE_URL}/aimc/ResponseSources/1/0"
 AIMC_RESPONSE_SOURCE = f"{BASE_URL}/aimc/ResponseSource/1/0"
 AIMC_RESPONSE_SOURCE_REFERENCE = f"{BASE_URL}/aimc/ResponseSource/Source/1/0"
