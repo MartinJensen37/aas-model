@@ -74,3 +74,16 @@ PYTHONPATH=src python scripts/dmp_contract_fixtures.py \
 
 Regenerate after changing the builders, a resource or a template, and review
 every changed compile outcome in the DMP; never edit the generated JSON.
+
+# Resource export
+
+`export_resource.py` writes a Python-authored `Resource` as the JSON the
+registration service loads (stations publish it on the registration topic). The
+service validates the export as a plain `Resource`, so the script rejects a
+factory whose export would not load without loss, such as a subclass that adds
+fields.
+
+```bash
+PYTHONPATH=src python scripts/export_resource.py \
+    aas_model.resource_instances.stopperingModule:syntegon_stoppering > stoppering.json
+```
