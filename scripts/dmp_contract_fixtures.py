@@ -1,5 +1,9 @@
 """Generate the aas-camel-dmp model contract fixtures from aas-model.
 
+TESTING ONLY. The output is test input for the DMP's model contract tests; it
+is not a deployment artifact and nothing at runtime reads it. Arbitrary
+submodels are generated with ``idta_generate.py``, not with this script.
+
 Every fixture is authored here with aas-model's builders and serialized the way
 registration publishes it; the JSON files are never edited by hand (the DMP's
 contract test checks their hashes). Run from the aas-model root:
@@ -24,6 +28,8 @@ import hashlib
 import json
 import shutil
 import sys
+import types
+import uuid
 from pathlib import Path
 
 from basyx.aas import model
@@ -36,10 +42,11 @@ from aas_model.resource_template.asset_interfaces_mapping_configuration import o
 from aas_model.submodel_templates.aid import DmpActionInput
 from aas_model.testing import (
     aimc_mapping, aimc_ref, aimc_sink, aimc_source, build_aid, build_aimc,
-    http_interface, modbus_interface, mqtt_interface, opcua_interface,
+    http_interface, modbus_interface, mqtt_interface, opcua_interface, snmp_interface,
 )
 from aas_pydantic import Key, ModelReference
 from aas_pydantic.convert_pydantic_model import convert_model_to_submodel
+from aas_pydantic import convert_util
 from aas_pydantic.convert_util import strip_temp_id_short_attributes
 
 AID_ID = "a/submodels/AID"
@@ -53,6 +60,14 @@ CCI_SEMANTIC = "https://admin-shell.io/idta/ControlComponent/Instance/2/0"
 # --------------------------------------------------------------------------- #
 # Serialization (as registration publishes)
 # --------------------------------------------------------------------------- #
+def _deterministic_ids(case: str) -> None:
+    """The converter names data specifications with random UUIDs; derive them from
+    the case instead (UUIDv5 of case and allocation order), so regenerating an
+    unchanged model reproduces its files byte for byte."""
+    counter = iter(range(1, 1_000_000))
+    convert_util.uuid = types.SimpleNamespace(
+        uuid4=lambda: uuid.uuid5(uuid.NAMESPACE_URL, f"runtime-model-contracts/{case}/{next(counter)}"))
+
 def _submodel_json(submodel: model.Submodel) -> dict:
     store = model.DictIdentifiableStore([submodel])
     strip_temp_id_short_attributes(store)
@@ -195,6 +210,14 @@ def synthetic_cases():
                                      {"Level": NESTED_SCHEMA})), \
         [], True, "references into HTTP and OPC UA schemas"
 
+    yield "snmp", build_aimc(aimc_mapping(
+        id_short="Snmp", sources=[aimc_source("Uptime", _aid_ref("interface_snmp", "properties", "Uptime"))],
+        sinks=[_kpi_sink("Out"), aimc_sink("Contact", _aid_ref("interface_snmp", "properties", "Contact"))],
+        transformation="function aimc_main(sources) return { Out = sources.Uptime, Contact = 'ops@example.com' } end",
+        default_polling_interval=2.5)),         build_aid(snmp=snmp_interface("snmp://10.0.0.5:161/", properties={
+            "Uptime": "1.3.6.1.2.1.1.3.0",
+            "Contact": ("1.3.6.1.2.1.1.4.0", {"pduType": "snmpv:SetRequestPDU"})})),         [_kpi("contractAAS/submodels/KPI", "Out")], True, "an SNMP object read with GET, another written with SET"
+
     states = [aimc_source(key, _aid_ref("interface_mqtt", "properties", key)) for key in ("State", "Mode")]
     yield "fan-in-out", build_aimc(aimc_mapping(
         id_short="Fan", sources=states, sinks=[_kpi_sink("Out"), _kpi_sink("Mirror")],
@@ -272,6 +295,8 @@ def station_cases():
     for factory_name, factory in RESOURCE_FACTORIES.items():
         if factory_name in ("planarShuttle2", "planarShuttle3"):
             continue  # the same model as planarShuttle1
+        name = "stoppering" if factory_name == "syntegonStoppering" else f"station-{factory_name}"
+        _deterministic_ids(name)
         resource = factory()
         store = build_from_model(resource)
         strip_temp_id_short_attributes(store)
@@ -282,7 +307,6 @@ def station_cases():
             continue
         by_id = {s["id"]: s for s in submodels}
         dependencies = [by_id[i] for i in _referenced_submodels(aimc) if i in by_id and i not in (aimc["id"], aid["id"])]
-        name = "stoppering" if factory_name == "syntegonStoppering" else f"station-{factory_name}"
         yield name, aimc, aid, dependencies, {"aas_id": resource.id, "aas_id_short": resource.id_short}, \
             f"the {factory_name} resource of aas-model"
 
@@ -329,7 +353,15 @@ def generate(root: Path) -> None:
         cases.append({"name": name, "description": description, "aimc": f"{name}/aimc.json", "aid": f"{name}/aid.json",
                       "expected": f"{name}/expected.json", "dependencies": dependency_index, "compiles": compiles})
 
-    for name, aimc, aid, dependencies, compiles, description in synthetic_cases():
+    cases_iter = synthetic_cases()
+    while True:
+        # The case's own builders run while the generator advances; name its ids before.
+        _deterministic_ids(f"synthetic-{len(cases)}")
+        try:
+            name, aimc, aid, dependencies, compiles, description = next(cases_iter)
+        except StopIteration:
+            break
+        _deterministic_ids(name)
         emit(name, _authored(aimc, AIMC_ID), _authored(aid, AID_ID), dependencies, CONTEXT, compiles, description)
     for name, aimc, aid, dependencies, context, description in station_cases():
         emit(name, aimc, aid, dependencies, context, True, description)

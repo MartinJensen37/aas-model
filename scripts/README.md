@@ -54,7 +54,11 @@ release importable. Review generated diffs and run the focused generator tests
 before adopting an upstream template release. Do not generate into the package
 directory while another integration is preparing its target-model changes.
 
-# DMP contract fixtures
+# DMP contract fixtures (testing only)
+
+This script only produces test input for aas-camel-dmp; nothing deployed reads
+its output, and it is not a general submodel generator (see `idta_generate.py`
+above for that).
 
 `dmp_contract_fixtures.py` writes the model fixtures of aas-camel-dmp
 (`dmp.component/src/test/resources/runtime-model-contracts/`): synthetic AIDs
