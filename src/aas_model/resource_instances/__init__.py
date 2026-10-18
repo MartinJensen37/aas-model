@@ -1,18 +1,33 @@
-"""Concrete Resource definitions, with one Python module per resource.
+"""Concrete resource factories; every call returns a newly authored instance."""
 
-Shared defaults belong in ``resource_template``; station-specific authoring
-belongs here, for example in ``stopperingModule.py``. Each factory returns a
-fresh Resource that supports the same JSON and AAS build APIs::
+from .software import orchestrator, production_planner
+from .stations import (
+    cytiva_capping, ima_dispensing, ima_loading, omron_camera,
+    optima_unloading, syntegon_stoppering,
+)
+from .systems import aau_filling_line, planar_table
+from .transport import planar_shuttle_1, planar_shuttle_2, planar_shuttle_3
 
-    from aas_model import Resource, build_from_model
-    from aas_model.resource_instances.stopperingModule import syntegon_stoppering
 
-    resource = syntegon_stoppering()
-    config_json = resource.model_dump_json(indent=2)
-    restored = Resource.model_validate_json(config_json)
-    store = build_from_model(restored)
-"""
+RESOURCE_FACTORIES = {
+    "syntegonStoppering": syntegon_stoppering,
+    "cytivaCapping": cytiva_capping,
+    "imaDispensing": ima_dispensing,
+    "imaLoadingSystem": ima_loading,
+    "optimaUnloading": optima_unloading,
+    "omronCamera": omron_camera,
+    "planarShuttle1": planar_shuttle_1,
+    "planarShuttle2": planar_shuttle_2,
+    "planarShuttle3": planar_shuttle_3,
+    "planarTable": planar_table,
+    "orchestrator": orchestrator,
+    "productionPlanner": production_planner,
+    "aauFillingLine": aau_filling_line,
+}
 
-from .stopperingModule import syntegon_stoppering
-
-__all__ = ["syntegon_stoppering"]
+__all__ = [
+    "syntegon_stoppering", "cytiva_capping", "ima_dispensing", "ima_loading",
+    "optima_unloading", "omron_camera", "planar_shuttle_1", "planar_shuttle_2",
+    "planar_shuttle_3", "planar_table", "orchestrator", "production_planner",
+    "aau_filling_line", "RESOURCE_FACTORIES",
+]

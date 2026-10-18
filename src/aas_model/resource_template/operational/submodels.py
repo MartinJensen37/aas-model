@@ -101,7 +101,7 @@ class MqttInterfaces(DmpAssetInterfacesDescription):
                 security=security_t(), securityDefinitions=securityDefinitions(),
             ),
             InteractionMetadata=MqttInteractionMetadata(
-                actions=MqttActions(), properties=DmpProperties(),
+                actions=MqttActions(), properties=OperationalProperties(),
             ),
         ),
     }
