@@ -43,6 +43,9 @@ def test_all_pinned_templates_emit_parseable_modules(tmp_path):
     modules = list(tmp_path.glob("*.py"))
     assert len(modules) == len(generator.TEMPLATES)
     for module in modules:
+        assert module.read_bytes() == (Path(generator.OUTPUT_ROOT) / module.name).read_bytes(), (
+            f"Regeneration changed the checked-in {module.name}"
+        )
         tree = ast.parse(module.read_text())
         if module.name == "asset_interfaces_description.py":
             forms = next(
@@ -217,9 +220,25 @@ def test_repeated_concept_fields_merge_by_presence_and_cardinality(tmp_path):
 
 def test_repeated_concept_with_conflicting_field_types_fails():
     with pytest.raises(ValueError, match=r"Incompatible field types for Forms\.value"):
-        generator._merge_field_bodies("Forms", [
-            ["    value: List[Property] = []"],
-            ["    value: List[ReferenceElement] = []"],
+        generator.merge_fields("Forms", [
+            [generator.FieldSpec("value", ("Property",), shape="list")],
+            [generator.FieldSpec("value", ("ReferenceElement",), shape="list")],
+        ])
+
+
+def test_field_specs_merge_without_parsing_rendered_source():
+    first = generator.FieldSpec("child", ("Original",), required=True)
+    second = generator.FieldSpec("child", ("Variant",))
+    merged = generator.merge_fields(
+        "Parent", [[first], [second]], compatible=lambda a, b: True,
+    )
+    assert merged == [generator.FieldSpec("child", ("Original", "Variant"))]
+    assert merged[0].render(set()) == "    child: Optional[Union[Original, Variant]] = None"
+
+    with pytest.raises(ValueError, match="Incompatible repeatable defaults"):
+        generator.merge_fields("Parent", [
+            [generator.FieldSpec("items", ("Item",), shape="map", minimum=1)],
+            [generator.FieldSpec("items", ("Item",), shape="map")],
         ])
 
 
