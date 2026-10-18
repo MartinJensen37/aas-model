@@ -30,23 +30,29 @@ from aas_model.constants import BASE_URL
 
 # Placeholders injected by id_preprocessor before validation.
 _PLACEHOLDER_RE = re.compile(r"^elem\d+$")
+# The id_short defaults of the generic element classes in aas_pydantic.aas_model.
+_GENERIC_ID_SHORTS = frozenset({
+    "SubmodelElementCollection", "SubmodelElementList", "Entity", "Operation",
+    "Capability", "Property", "MultiLanguageProperty", "Range",
+    "ReferenceElement", "RelationshipElement", "File", "Blob",
+})
 
 
 def _should_rename_id_short(instance: Any, field_name: str) -> bool:
     """Whether to set id_short from *field_name* on *instance*.
 
     Renames when the current id_short is empty, is a preprocessor placeholder
-    (``elemN``), or is a meaningless class-default equal to the type name
-    (``Property``, ``File``, ``Blob``, ...).  Meaningful explicit/default
-    id_shorts (e.g. ``Parameters``, ``X``) are preserved.
+    (``elemN``), or is the meaningless default of a generic element base class
+    (``Property``, ``File``, ``SubmodelElementCollection``, ...). The template
+    idShorts that generated classes carry as defaults (``Nameplate``,
+    ``mqv_qos``) and explicit id_shorts are preserved.
     """
     current = getattr(instance, "id_short", None)
     if not current:
         return True
     if _PLACEHOLDER_RE.match(current):
         return True
-    default = type(instance).model_fields["id_short"].default
-    return isinstance(default, str) and current == default and current == type(instance).__name__
+    return current in _GENERIC_ID_SHORTS
 
 
 def _is_aas_type(obj: Any) -> bool:

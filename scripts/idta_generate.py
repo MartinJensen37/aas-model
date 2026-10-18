@@ -42,6 +42,20 @@ def safe_name(name: str) -> str:
     return re.sub(r"[^0-9a-zA-Z_]", "_", name)
 
 
+_CONCRETE_ID_SHORT = re.compile(r"[A-Za-z][A-Za-z0-9_-]*")
+
+
+def id_short_default(el: dict) -> list:
+    """The class-level ``id_short`` default: the template's idShort when it is
+    a concrete name. Placeholders (``{property_name}``, ``Mode__00__``) and
+    missing idShorts (SML items) get none, since the instance name is chosen
+    by the author (a dict key or a list position)."""
+    raw = el.get("idShort") or ""
+    if not _CONCRETE_ID_SHORT.fullmatch(raw) or re.search(r"__\d+__$", raw):
+        return []
+    return [f"    id_short: AasIdString = {json.dumps(raw)}"]
+
+
 def snake(name: str) -> str:
     s = re.sub(r"(?<!^)(?=[A-Z])", "_", name)
     return s.replace("-", "_").lower()
@@ -551,7 +565,7 @@ def gen_template(template_path: str, output_dir: str):
                 name = _disambiguated_leaf_name(elem_name, sid, leaf_cls)
             else:
                 name = elem_name
-        meta = [f'    semantic_id: str = {json.dumps(sid)}']
+        meta = id_short_default(c) + [f'    semantic_id: str = {json.dumps(sid)}']
         desc = extract_description(c)
         if desc:
             meta.append(f'    description: str = {json.dumps(desc)}')
@@ -690,7 +704,7 @@ def gen_template(template_path: str, output_dir: str):
         # fields directly (no ``value``/``submodel_element``/``statements``
         # wrapper).  Required children have NO default — pydantic enforces they
         # are provided.
-        meta = [f'    semantic_id: str = {json.dumps(extract_semantic_id(el))}']
+        meta = id_short_default(el) + [f'    semantic_id: str = {json.dumps(extract_semantic_id(el))}']
         desc = extract_description(el)
         if desc:
             meta.append(f'    description: str = {json.dumps(desc)}')
@@ -715,7 +729,7 @@ def gen_template(template_path: str, output_dir: str):
         cname = resolve_class_name(safe_name(c.get("idShort", "")),
                                    extract_semantic_id(c))
         item_kids = children_of(c)
-        sub_meta = [f'    semantic_id: str = {json.dumps(extract_semantic_id(c))}']
+        sub_meta = id_short_default(c) + [f'    semantic_id: str = {json.dumps(extract_semantic_id(c))}']
         desc = extract_description(c)
         if desc:
             sub_meta.append(f'    description: str = {json.dumps(desc)}')
@@ -757,7 +771,7 @@ def gen_template(template_path: str, output_dir: str):
             sml_body = ["    value: List[Any] = []"]
         register(cname, sub_meta, sml_body, is_sml=True)
 
-    sm_meta = [f'    semantic_id: str = {json.dumps(extract_semantic_id(sm))}']
+    sm_meta = id_short_default(sm) + [f'    semantic_id: str = {json.dumps(extract_semantic_id(sm))}']
     desc = extract_description(sm)
     if desc:
         sm_meta.append(f'    description: str = {json.dumps(desc)}')
@@ -850,6 +864,8 @@ def gen_template(template_path: str, output_dir: str):
     lines.append(')')
     if "Field(default_factory" in all_src:
         lines.append('from pydantic import Field')
+    if ": AasIdString" in all_src:
+        lines.append('from aas_pydantic.aas_model import AasIdString')
     lines.append('')
 
     lines.extend(body)

@@ -8,22 +8,27 @@ from typing import Any, ClassVar, List, Dict, Optional, TypeAlias
 from aas_pydantic import (
     Property, ReferenceElement, Submodel, SubmodelElement, SubmodelElementCollection, SubmodelElementList,
 )
+from aas_pydantic.aas_model import AasIdString
 
 class InterfaceProfile(Property):
+    id_short: AasIdString = "InterfaceProfile"
     semantic_id: str = "https://admin-shell.io/idta/ControlComponent/Type/Interface/Profile/2/0"
     description: str = "The profile according to which the referred control interface operates."
     value_type: str = "xs:string"
 
 class InterfaceProfileSupplement(Property):
+    id_short: AasIdString = "InterfaceProfileSupplement"
     semantic_id: str = "https://admin-shell.io/idta/ControlComponent/Type/Interface/ProfileSupplement/2/0"
     description: str = "Supplemental information to further specify the interface."
     value_type: str = "xs:string"
 
 class InterfaceReference(ReferenceElement):
+    id_short: AasIdString = "InterfaceReference"
     semantic_id: str = "https://admin-shell.io/idta/ControlComponent/Type/Interface/Reference/2/0"
     description: str = "A reference to a control interface supported by the component type and described by the interfaceProfile and the optional supplement"
 
 class Interface(SubmodelElementCollection):
+    id_short: AasIdString = "Interface"
     semantic_id: str = "https://admin-shell.io/idta/ControlComponent/Type/Interface/2/0"
     description: str = "An interface description"
     InterfaceProfile: InterfaceProfile_t
@@ -31,26 +36,31 @@ class Interface(SubmodelElementCollection):
     InterfaceReference: Optional[InterfaceReference_t] = None
 
 class Interfaces(SubmodelElementCollection):
+    id_short: AasIdString = "Interfaces"
     semantic_id: str = "https://admin-shell.io/idta/ControlComponent/Type/Interfaces/2/0"
     description: str = "Collection of references to control interfaces supported by the component type, e.g. to elements of the Interface Metadata SMC of the Asset Interface Description submodel, the MTP submodel or OPC UA Server Datasheet submodel."
     Interface: Dict[str, Interface_t] = {}
 
 class ErrorCode(Property):
+    id_short: AasIdString = "ErrorCode"
     semantic_id: str = "https://admin-shell.io/idta/ControlComponent/Type/Error/Code/2/0"
     description: str = "The error code."
     value_type: str = "xs:string"
 
 class Error(SubmodelElementCollection):
+    id_short: AasIdString = "Error"
     semantic_id: str = "https://admin-shell.io/idta/ControlComponent/Type/Error/2/0"
     description: str = "A container representing an error."
     ErrorCode: ErrorCode_t
 
 class Errors(SubmodelElementCollection):
+    id_short: AasIdString = "Errors"
     semantic_id: str = "https://admin-shell.io/idta/ControlComponent/Type/Errors/2/0"
     description: str = "Collection of all possible error codes that may appear in components of this type."
     Error: Dict[str, Error_t] = {}
 
 class Disabled(Property):
+    id_short: AasIdString = "Disabled"
     semantic_id: str = "https://admin-shell.io/idta/ControlComponent/Skill/Disabled/2/0"
     description: str = "Boolean property that defines if the skill is (currently) disabled, e.g. not licensed, tested, suitable."
     value_type: str = "xs:boolean"
@@ -61,26 +71,31 @@ class Mode(Property):
     value_type: str = "xs:string"
 
 class Modes(SubmodelElementCollection):
+    id_short: AasIdString = "Modes"
     semantic_id: str = "https://admin-shell.io/idta/ControlComponent/Skill/Modes/2/0"
     description: str = "Collection of operation, operating, operational or execution modes (depending on the standard), in which the skill is available/allowed to execute."
     Mode: Dict[str, Mode_t] = {}
 
 class Direction(Property):
+    id_short: AasIdString = "Direction"
     semantic_id: str = "https://admin-shell.io/idta/ControlComponent/Skill/Parameter/Direction/2/0"
     description: str = "Indicates whether the parameter is an input (In) or an output (Out) of the skill. An InOut parameter can be set from outside and can also be changed from skill itself. "
     value_type: str = "xs:string"
 
 class Type(Property):
+    id_short: AasIdString = "Type"
     semantic_id: str = "https://admin-shell.io/idta/ControlComponent/Skill/Parameter/Type/2/0"
     description: str = "Data type as string used to interpret the parameter. "
     value_type: str = "xs:string"
 
 class Values(SubmodelElementCollection):
+    id_short: AasIdString = "Values"
     semantic_id: str = "https://admin-shell.io/idta/ControlComponent/Skill/Parameter/Values/2/0"
     description: str = "Collection of properties of the accepted values that the parameter may take."
     pass
 
 class Parameter(SubmodelElementCollection):
+    id_short: AasIdString = "Parameter"
     semantic_id: str = "https://admin-shell.io/idta/ControlComponent/Skill/Parameter/2/0"
     description: str = "Parameter used for the configuration of the skill."
     Direction: Direction_t
@@ -88,6 +103,7 @@ class Parameter(SubmodelElementCollection):
     Values: Values_t
 
 class Parameters(SubmodelElementCollection):
+    id_short: AasIdString = "Parameters"
     semantic_id: str = "https://admin-shell.io/idta/ControlComponent/Skill/Parameters/2/0"
     description: str = "Collection of parameters used for the configuration of the skill."
     Parameter: Dict[str, Parameter_t] = {}
@@ -97,6 +113,7 @@ class ErrorReference(ReferenceElement):
     description: str = "A reference to an SMC \u201cError\u201d (Table 5) that that can be "
 
 class Errors_skill(SubmodelElementCollection):
+    id_short: AasIdString = "Errors"
     semantic_id: str = "https://admin-shell.io/idta/ControlComponent/Skill/Errors/2/0"
     description: str = "Collection of references to the error codes of the component that may be raised by this skill."
     ErrorReference: Dict[str, ErrorReference_t] = {}
@@ -106,11 +123,13 @@ class SkillReference(ReferenceElement):
     description: str = "A reference to an SMC \u201cSkill\u201d (Table 7) of this or another "
 
 class Uses(SubmodelElementCollection):
+    id_short: AasIdString = "Uses"
     semantic_id: str = "https://admin-shell.io/idta/ControlComponent/Skill/Uses/2/0"
     description: str = "Collection of references to other skills, that this skill uses."
     SkillReference: Dict[str, SkillReference_t] = {}
 
 class Skill(SubmodelElementCollection):
+    id_short: AasIdString = "Skill"
     semantic_id: str = "https://admin-shell.io/idta/ControlComponent/Skill/2/0"
     description: str = "Contains the basic information to call (request the execution of) a skill, e.g. its signature"
     Disabled: Disabled_t
@@ -120,11 +139,13 @@ class Skill(SubmodelElementCollection):
     Uses: Uses_t
 
 class Skills(SubmodelElementCollection):
+    id_short: AasIdString = "Skills"
     semantic_id: str = "https://admin-shell.io/idta/ControlComponent/Skills/2/0"
     description: str = "Collection of skills offered by the component type"
     Skill: Dict[str, Skill_t] = {}
 
 class ControlComponentType(Submodel):
+    id_short: AasIdString = "ControlComponentType"
     semantic_id: str = "https://admin-shell.io/idta/ControlComponent/Type/2/0"
     VERSION: ClassVar[str] = "2"
     REVISION: ClassVar[str] = "0"

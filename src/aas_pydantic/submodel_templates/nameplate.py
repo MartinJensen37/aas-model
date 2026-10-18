@@ -8,37 +8,47 @@ from typing import Any, ClassVar, List, Dict, Optional, TypeAlias
 from aas_pydantic import (
     File, MultiLanguageProperty, Property, Submodel, SubmodelElement, SubmodelElementCollection, SubmodelElementList,
 )
+from aas_pydantic.aas_model import AasIdString
 
 class URIOfTheProduct(Property):
+    id_short: AasIdString = "URIOfTheProduct"
     semantic_id: str = "0112/2///61987#ABN590#002"
     supplemental_semantic_ids: List[str] = ["0173-1#02-ABH173#003"]
     value_type: str = "xs:anyURI"
 
 class ManufacturerName(MultiLanguageProperty):
+    id_short: AasIdString = "ManufacturerName"
     semantic_id: str = "0112/2///61987#ABA565#009"
     supplemental_semantic_ids: List[str] = ["0173-1#02-AAO677#004"]
 
 class ManufacturerProductDesignation(MultiLanguageProperty):
+    id_short: AasIdString = "ManufacturerProductDesignation"
     semantic_id: str = "0112/2///61987#ABA567#009"
     supplemental_semantic_ids: List[str] = ["0173-1#02-AAW338#003"]
 
 class Street(MultiLanguageProperty):
+    id_short: AasIdString = "Street"
     semantic_id: str = "0173-1#02-AAO128#002"
 
 class Zipcode(MultiLanguageProperty):
+    id_short: AasIdString = "Zipcode"
     semantic_id: str = "0173-1#02-AAO129#002"
 
 class CityTown(MultiLanguageProperty):
+    id_short: AasIdString = "CityTown"
     semantic_id: str = "0173-1#02-AAO132#002"
 
 class NationalCode(MultiLanguageProperty):
+    id_short: AasIdString = "NationalCode"
     semantic_id: str = "0173-1#02-AAO134#002"
 
 class AddressOfAdditionalLink(Property):
+    id_short: AasIdString = "AddressOfAdditionalLink"
     semantic_id: str = "0173-1#02-AAQ326#002"
     value_type: str = "xs:string"
 
 class AddressInformation(SubmodelElementCollection):
+    id_short: AasIdString = "AddressInformation"
     semantic_id: str = "https://admin-shell.io/zvei/nameplate/1/0/ContactInformations/AddressInformation"
     description: str = "Note: this set of information is defined by SMT drop-in \"Address Information\""
     supplemental_semantic_ids: List[str] = ["https://admin-shell.io/smt-dropin/smt-dropin-use/1/0", "0112/2///61360_7#AAS002#001", "0173-1#02-AAQ837#008/0173-1#01-ADR448#008"]
@@ -49,102 +59,122 @@ class AddressInformation(SubmodelElementCollection):
     AddressOfAdditionalLink: Optional[AddressOfAdditionalLink_t] = None
 
 class ManufacturerProductRoot(MultiLanguageProperty):
+    id_short: AasIdString = "ManufacturerProductRoot"
     semantic_id: str = "0112/2///61360_7#AAS011#001"
     supplemental_semantic_ids: List[str] = ["0173-1#02-AAU732#003"]
 
 class ManufacturerProductFamily(MultiLanguageProperty):
+    id_short: AasIdString = "ManufacturerProductFamily"
     semantic_id: str = "0112/2///61987#ABP464#002"
     supplemental_semantic_ids: List[str] = ["0173-1#02-AAU731#003"]
 
 class ManufacturerProductType(Property):
+    id_short: AasIdString = "ManufacturerProductType"
     semantic_id: str = "0112/2///61987#ABA300#008"
     supplemental_semantic_ids: List[str] = ["0173-1#02-AAO057#004"]
     value_type: str = "xs:string"
 
 class OrderCodeOfManufacturer(Property):
+    id_short: AasIdString = "OrderCodeOfManufacturer"
     semantic_id: str = "0112/2///61987#ABA950#008"
     supplemental_semantic_ids: List[str] = ["0173-1#02-AAO227#004"]
     value_type: str = "xs:string"
 
 class ProductArticleNumberOfManufacturer(Property):
+    id_short: AasIdString = "ProductArticleNumberOfManufacturer"
     semantic_id: str = "0112/2///61987#ABA581#007"
     supplemental_semantic_ids: List[str] = ["0173-1#02-AAO676#005"]
     value_type: str = "xs:string"
 
 class SerialNumber(Property):
+    id_short: AasIdString = "SerialNumber"
     semantic_id: str = "0112/2///61987#ABA951#009"
     supplemental_semantic_ids: List[str] = ["0173-1#02-AAM556#004"]
     value_type: str = "xs:string"
 
 class YearOfConstruction(Property):
+    id_short: AasIdString = "YearOfConstruction"
     semantic_id: str = "0112/2///61987#ABP000#002"
     supplemental_semantic_ids: List[str] = ["0173-1#02-AAP906#003"]
     value_type: str = "xs:string"
 
 class DateOfManufacture(Property):
+    id_short: AasIdString = "DateOfManufacture"
     semantic_id: str = "0112/2///61987#ABB757#007"
     supplemental_semantic_ids: List[str] = ["0173-1#02-AAR972#004"]
     value_type: str = "xs:date"
 
 class HardwareVersion(Property):
+    id_short: AasIdString = "HardwareVersion"
     semantic_id: str = "0112/2///61987#ABA926#008"
     supplemental_semantic_ids: List[str] = ["0173-1#02-AAN270#004"]
     value_type: str = "xs:string"
 
 class FirmwareVersion(Property):
+    id_short: AasIdString = "FirmwareVersion"
     semantic_id: str = "0112/2///61987#ABA302#006"
     supplemental_semantic_ids: List[str] = ["0173-1#02-AAM985#004"]
     value_type: str = "xs:string"
 
 class SoftwareVersion(Property):
+    id_short: AasIdString = "SoftwareVersion"
     semantic_id: str = "0112/2///61987#ABA601#008"
     supplemental_semantic_ids: List[str] = ["0173-1#02-AAM737#004"]
     value_type: str = "xs:string"
 
 class CountryOfOrigin(Property):
+    id_short: AasIdString = "CountryOfOrigin"
     semantic_id: str = "0112/2///61987#ABP462#001"
     description: str = "Note: Country codes defined accord. to DIN EN ISO 3166-1 alpha-2 codes"
     supplemental_semantic_ids: List[str] = ["0173-1#02-AAO259#007"]
     value_type: str = "xs:string"
 
 class UniqueFacilityIdentifier(Property):
+    id_short: AasIdString = "UniqueFacilityIdentifier"
     semantic_id: str = "https://admin-shell.io/idta/nameplate/3/0/UniqueFacilityIdentifier"
     value_type: str = "xs:string"
 
 class CompanyLogo(File):
+    id_short: AasIdString = "CompanyLogo"
     semantic_id: str = "0112/2///61987#ABP463#001"
     supplemental_semantic_ids: List[str] = ["0173-1#02-ABI776#002"]
     content_type: str = "image/png"
 
 class MarkingName(Property):
+    id_short: AasIdString = "MarkingName"
     semantic_id: str = "0112/2///61987#ABA231#009"
     supplemental_semantic_ids: List[str] = ["0173-1#02-ABI190#003"]
     value_type: str = "xs:string"
 
 class DesignationOfCertificateOrApproval(Property):
+    id_short: AasIdString = "DesignationOfCertificateOrApproval"
     semantic_id: str = "0112/2///61987#ABH783#003"
     description: str = "Note: Approval identifier, reference to the certificate number, to be entered without spaces "
     supplemental_semantic_ids: List[str] = ["0173-1#02-ABI975#002"]
     value_type: str = "xs:string"
 
 class IssueDate(Property):
+    id_short: AasIdString = "IssueDate"
     semantic_id: str = "0112/2///61987#ABO097#001"
     description: str = "Note: format by lexical representation: CCYY-MM-DD Note: to be specified to the day "
     supplemental_semantic_ids: List[str] = ["0173-1#02-ABL774#001"]
     value_type: str = "xs:date"
 
 class ExpiryDate(Property):
+    id_short: AasIdString = "ExpiryDate"
     semantic_id: str = "0112/2///61987#ABH830#002"
     description: str = "Note: format by lexical representation: CCYY-MM-DD Note: to be specified to the day "
     supplemental_semantic_ids: List[str] = ["0173-1#02-ABL775#001"]
     value_type: str = "xs:date"
 
 class MarkingFile(File):
+    id_short: AasIdString = "MarkingFile"
     semantic_id: str = "0112/2///61987#ABO100#002"
     supplemental_semantic_ids: List[str] = ["0173-1#02-ABI191#003"]
     content_type: str = "image/png"
 
 class MarkingAdditionalText(Property):
+    id_short: AasIdString = "MarkingAdditionalText"
     semantic_id: str = "0112/2///61987#ABB146#007"
     supplemental_semantic_ids: List[str] = ["0173-1#02-ABI192#003"]
     value_type: str = "xs:string"
@@ -161,6 +191,7 @@ class MarkingsItem(SubmodelElementCollection):
     MarkingAdditionalText: Dict[str, MarkingAdditionalText_t] = {}
 
 class Markings(SubmodelElementList):
+    id_short: AasIdString = "Markings"
     semantic_id: str = "0112/2///61360_7#AAS006#001"
     description: str = "Note: CE marking is declared as mandatory according to EU Blue Guide"
     supplemental_semantic_ids: List[str] = ["0173-1#02-ABI563#003/0173-1#01-AHF849#003"]
@@ -168,20 +199,24 @@ class Markings(SubmodelElementList):
     value: List[MarkingsItem] = []
 
 class ArbitraryProperty(Property):
+    id_short: AasIdString = "ArbitraryProperty"
     semantic_id: str = "https://admin-shell.io/SMT/General/ArbitraryProp"
     description: str = "Note: Every property can be used. Note: The idShort is arbitrary Note: The use of a displayName is recommended."
     value_type: str = "xs:string"
 
 class ArbitraryMLP(MultiLanguageProperty):
+    id_short: AasIdString = "ArbitraryMLP"
     semantic_id: str = "https://admin-shell.io/SMT/General/ArbitraryMLP"
     description: str = "Note: Every multilanguage property can be used. Note: The idShort is arbitrary Note: The use of a displayName is recommended."
 
 class ArbitraryFile(File):
+    id_short: AasIdString = "ArbitraryFile"
     semantic_id: str = "https://admin-shell.io/SMT/General/ArbitraryFile"
     description: str = "Note: Every file can be used. The idShort is arbitrary Note: The use of a displayName is recommended."
     content_type: str = "application/pdf"
 
 class GuidelineForConformityDeclaration(Property):
+    id_short: AasIdString = "GuidelineForConformityDeclaration"
     semantic_id: str = "0173-1#02-AAO856#002"
     value_type: str = "xs:string"
 
@@ -193,11 +228,13 @@ class GuidelineSpecificPropertiesItem(SubmodelElementCollection):
     ArbitraryMLP: Dict[str, ArbitraryMLP_t] = {}
 
 class GuidelineSpecificProperties(SubmodelElementList):
+    id_short: AasIdString = "GuidelineSpecificProperties"
     semantic_id: str = "0173-1#02-ABI219#003/0173-1#01-AHD205#004"
     item_type: ClassVar = GuidelineSpecificPropertiesItem
     value: List[GuidelineSpecificPropertiesItem] = []
 
 class AssetSpecificProperties(SubmodelElementCollection):
+    id_short: AasIdString = "AssetSpecificProperties"
     semantic_id: str = "0173-1#02-ABI218#003/0173-1#01-AGZ672#004"
     ArbitraryProperty: Dict[str, ArbitraryProperty_t] = {}
     ArbitraryMLP: Dict[str, ArbitraryMLP_t] = {}
@@ -205,6 +242,7 @@ class AssetSpecificProperties(SubmodelElementCollection):
     GuidelineSpecificProperties: Optional[GuidelineSpecificProperties_t] = None
 
 class Nameplate(Submodel):
+    id_short: AasIdString = "Nameplate"
     semantic_id: str = "https://admin-shell.io/idta/nameplate/3/0/Nameplate"
     description: str = "Contains the nameplate information attached to the product"
     VERSION: ClassVar[str] = "3"

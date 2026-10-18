@@ -8,27 +8,33 @@ from typing import Any, ClassVar, List, Optional, TypeAlias
 from aas_pydantic import (
     Blob, Property, ReferenceElement, Submodel, SubmodelElement, SubmodelElementCollection, SubmodelElementList,
 )
+from aas_pydantic.aas_model import AasIdString
 
 class DefaultPollingInterval(Property):
+    id_short: AasIdString = "DefaultPollingInterval"
     semantic_id: str = "https://admin-shell.io/idta/AssetInterfacesMappingConfiguration/2/0/MappingConfiguration/DefaultPollingInterval"
     description: str = "The DefaultPollingInterval defines the default time interval in seconds for fetching new data from the synchronous data sources defined in this MappingConfiguration. It must be greater than zero for synchronous protocols (e.g. HTTP) that need polling and is ignored for asynchronous protocols (e.g. MQTT)."
     value_type: str = "xs:double"
 
 class Transformation(Blob):
+    id_short: AasIdString = "Transformation"
     semantic_id: str = "https://admin-shell.io/idta/AssetInterfacesMappingConfiguration/2/0/MappingConfiguration/Transformation"
     description: str = "The transformation allows for transforming incoming data before writing it to the sinks. The transformation must contain an \"aimc_main(sources)\" entrypoint function in Lua."
     content_type: str = "text/plain"
 
 class Source(ReferenceElement):
+    id_short: AasIdString = "Source"
     semantic_id: str = "https://admin-shell.io/idta/AssetInterfacesMappingConfiguration/2/0/MappingConfiguration/Source/Source"
     description: str = "This holds a reference to the respective SubmodelElement used as data source. A data source can be any SubmodelElement including those defined in the InteractionMetadata of AID Submodels for fetching live-data from assets."
 
 class PollingInterval(Property):
+    id_short: AasIdString = "PollingInterval"
     semantic_id: str = "https://admin-shell.io/idta/AssetInterfacesMappingConfiguration/2/0/MappingConfiguration/Source/PollingInterval"
     description: str = "The PollingInterval defines the time interval in seconds for fetching new data from the given synchronous data source. It must be greater than zero for synchronous protocols (e.g. HTTP) that need polling and is ignored for asynchronous protocols (e.g. MQTT). It overwrites the DefaultPollingInterval of the respective MappingConfiguration of this source."
     value_type: str = "xs:double"
 
 class SourceId(Property):
+    id_short: AasIdString = "SourceId"
     semantic_id: str = "https://admin-shell.io/idta/AssetInterfacesMappingConfiguration/2/0/MappingConfiguration/Source/SourceId"
     description: str = "This is a unique and non-empty identifier that facilitates data access in the Lua transformation or establishes a relationship to a corresponding sink when no transformation is given. It must only be unique with respect to the Sources-list of the parent MappingConfiguration and not globally."
     value_type: str = "xs:string"
@@ -41,16 +47,19 @@ class SourcesItem(SubmodelElementCollection):
     SourceId: SourceId_t
 
 class Sources(SubmodelElementList):
+    id_short: AasIdString = "Sources"
     semantic_id: str = "https://admin-shell.io/idta/AssetInterfacesMappingConfiguration/2/0/MappingConfiguration/Sources"
     description: str = "This list includes all data sources that are used in this MappingConfiguration."
     item_type: ClassVar = SourcesItem
     value: List[SourcesItem] = []
 
 class Sink(ReferenceElement):
+    id_short: AasIdString = "Sink"
     semantic_id: str = "https://admin-shell.io/idta/AssetInterfacesMappingConfiguration/2/0/MappingConfiguration/Sink/Sink"
     description: str = "This holds a reference to the respective SubmodelElement used as data sink for live-data."
 
 class SinkId(Property):
+    id_short: AasIdString = "SinkId"
     semantic_id: str = "https://admin-shell.io/idta/AssetInterfacesMappingConfiguration/2/0/MappingConfiguration/Sink/SinkId"
     description: str = "This is a unique and non-empty identifier that facilitates data writing in the Lua transformation or establishes a relationship to a corresponding source when no transformation is given. It must only be unique with respect to the Sinks-list of the containing MappingConfiguration and not globally."
     value_type: str = "xs:string"
@@ -62,6 +71,7 @@ class SinksItem(SubmodelElementCollection):
     SinkId: SinkId_t
 
 class Sinks(SubmodelElementList):
+    id_short: AasIdString = "Sinks"
     semantic_id: str = "https://admin-shell.io/idta/AssetInterfacesMappingConfiguration/2/0/MappingConfiguration/Sinks"
     description: str = "This list includes all data sinks that are used in this MappingConfiguration."
     item_type: ClassVar = SinksItem
@@ -76,12 +86,14 @@ class MappingConfigurationsItem(SubmodelElementCollection):
     Sinks: Sinks_t
 
 class MappingConfigurations(SubmodelElementList):
+    id_short: AasIdString = "MappingConfigurations"
     semantic_id: str = "https://admin-shell.io/idta/AssetInterfacesMappingConfiguration/1/0/MappingConfigurations"
     description: str = "List of MappingConfigurations that each map and transform data from their sources to their sinks."
     item_type: ClassVar = MappingConfigurationsItem
     value: List[MappingConfigurationsItem] = []
 
 class AssetInterfacesMappingConfiguration(Submodel):
+    id_short: AasIdString = "AssetInterfacesMappingConfiguration"
     semantic_id: str = "https://admin-shell.io/idta/AssetInterfacesMappingConfiguration/2/0/Submodel"
     description: str = "The AIMC 2.0 is used to describe how data is mapped from asset to AAS or from AAS to AAS."
     VERSION: ClassVar[str] = "2"
