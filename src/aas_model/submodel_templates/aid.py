@@ -493,8 +493,15 @@ class DmpSnmpInterface(_BaseSnmpInterface):
 
 
 class DmpCanInterface(_BaseCanInterface):
-    """AID 1.2 CAN interface: base ``can://`` (the bus), forms addressing a
-    frame by its identifier and a datapoint by ``canv_offset``/``canv_length``."""
+    """AID 1.2 CAN interface (Annex E.2): forms address a frame by its 29-bit
+    identifier (``can://0x1f2b3a00``) and a datapoint by the generated
+    ``canv_*`` terms; ``base`` is unused for CAN.
+
+    The DMP does not consume CAN (it is not IP-based; a gateway at the bus
+    does), but an asset's AID describes all its interfaces, and a CAN AID is
+    what configures such a gateway. Like every other interface it carries the
+    extended interaction metadata (``op``, ``readOnly``/``writeOnly``,
+    actions and events) rather than the bare generated template."""
     title: Title = Title()
     EndpointMetadata: EndpointMetadata_t = _endpoint_metadata()
     InteractionMetadata: DmpInteractionMetadata = DmpInteractionMetadata()
