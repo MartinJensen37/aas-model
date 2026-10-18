@@ -27,7 +27,7 @@ resource messages (``MQTTSchemas/*.json``) don't have to be hand-built.
 ``$ref`` / ``allOf`` / ``anyOf`` / ``oneOf`` resolution is delegated to
 :class:`schema_parser.SchemaParser` via :func:`load_schema`; pass the result
 to :func:`datapoint_from_schema` (new instance) or :func:`populate_datapoint`
-(fill an existing instance, e.g. an ``MqttProperty`` whose forms / schema
+(fill an existing instance, e.g. a ``DmpProperty`` whose forms / schema
 URLs are already set).
 
 Named-field style: datapoint children are DIRECT named fields on the
@@ -306,8 +306,8 @@ def _fill_form(
 
     ``href`` is the topic/URI the message comes from.  Fields are only set when
     the form's class declares them (the generic ``forms`` template lacks
-    ``op`` — that lives on the MQTT ``MqttForm`` extension), so this composes
-    with both the generated form and a caller-supplied ``MqttForm``."""
+    ``op`` — that lives on the ``DmpForm`` extension), so this composes
+    with both the generated form and a caller-supplied ``DmpForm``."""
     for fname, value in (
         ("href", href),
         ("op", op),
@@ -315,6 +315,10 @@ def _fill_form(
         ("subprotocol", subprotocol),
     ):
         if value is None or fname not in type(forms).model_fields:
+            continue
+        if fname == "op":
+            from aas_model.submodel_templates.aid import op as _op
+            forms.op = _op(value)
             continue
         _child(forms, fname, Property).value = value
 
@@ -332,7 +336,7 @@ def populate_datapoint(
     subprotocol: Optional[str] = None,
 ) -> None:
     """Fill an existing datapoint instance (``property_name`` or a subclass
-    like ``MqttProperty``, or a nested ``property_name_json_schema``) from a
+    like ``DmpProperty``, or a nested ``property_name_json_schema``) from a
     dereferenced JSON Schema dict.
 
     Only the fields the schema describes are touched — fields the caller
@@ -371,7 +375,7 @@ def populate_datapoint(
 
     # ``property_name.forms`` is mandatory (missing qualifier → One).  The
     # schema itself carries no form info — the caller supplies the transport
-    # binding: either a ready ``forms`` instance (e.g. ``MqttForm``) or the
+    # binding: either a ready ``forms`` instance (e.g. ``DmpForm``) or the
     # WoT form fields (``href`` = the topic the message comes from, ``op``,
     # ``content_type``, ``subprotocol``).  A caller-supplied form replaces the
     # empty required-structure one; an already-set forms (MQTT builders) is
@@ -449,7 +453,7 @@ def datapoint_from_schema(
     The ``forms`` container is mandatory and carries the transport binding
     (the topic the message comes from).  Pass the WoT form fields directly —
     ``href`` (topic/URI), ``op`` (e.g. ``observeProperty``), ``content_type``,
-    ``subprotocol`` — or a ready ``forms`` instance (e.g. ``MqttForm`` from
+    ``subprotocol`` — or a ready ``forms`` instance (e.g. ``DmpForm`` from
     ``aas_model.submodel_templates.aid``) to include MQTT qualifiers.
 
     ``schema_url`` (the JSON Schema URL) is recorded as a supplemental

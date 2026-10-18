@@ -12,7 +12,7 @@ from basyx.aas.adapter.json import json_serialization
 
 from aas_model._serde import parse_submodel_dict
 from aas_model.constants import (
-    AID_EVENT_DATA, AIMC_STATUS_TIMEOUT, AIMC_STATUS_TRANSFORMATION, BASE_URL,
+    AID_EVENT_DATA, AID_EVENT_DEFINITION, AIMC_STATUS_TIMEOUT, AIMC_STATUS_TRANSFORMATION, BASE_URL,
 )
 from aas_model.resource_template import ResourceTypeAAS
 from aas_model.resource_template.asset_interfaces_mapping_configuration import (
@@ -52,10 +52,10 @@ def test_mqtt_event_affordance_serializes_as_a_wot_event_with_its_data_schema():
     events = _child(interaction, "events")
     finished = _child(events, "Finished")
     assert _semantic(events) == "https://www.w3.org/2019/wot/td#EventAffordance"
-    assert _semantic(finished) == "https://www.w3.org/2019/wot/td#EventAffordance"
+    assert _semantic(finished) == AID_EVENT_DEFINITION
     assert _semantic(_child(finished, "data")) == AID_EVENT_DATA
     assert _child(_child(finished, "data"), "type")["value"] == "object"
-    assert _child(_child(finished, "forms"), "op")["value"] == "subscribeevent"
+    assert "op" not in {child["idShort"] for child in _child(finished, "forms")["value"]}
 
     back = parse_submodel_dict(serialized, DmpAssetInterfacesDescription)
     parsed = back.InterfaceTemplateForMQTT["interface_mqtt"].InteractionMetadata.events

@@ -31,49 +31,54 @@ INVOCATION_ORIGIN = "http://dmp:8080"
 CSSX = "http://www.w3id.org/aau-ra/cssx"
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# MQTT Asset Interfaces Description — extended fields
+# AID extension (docs/aid-extension.md) — WoT TD terms AID 1.2 does not carry.
+# IRIs are those of the TD 1.1 JSON-LD context (td:, hctl:, jsonschema:).
 # ═══════════════════════════════════════════════════════════════════════════════
 
-AID_MQTT_RESPONSE_FORM = f"{BASE_URL}/aid/MqttResponseForm/1/0"
-AID_MQTT_RETAIN = f"{BASE_URL}/aid/MqttRetain/1/0"
-AID_MQTT_CONTROL_PACKET = f"{BASE_URL}/aid/MqttControlPacket/1/0"
-AID_MQTT_QOS = f"{BASE_URL}/aid/MqttQos/1/0"
-# WoT MQTT binding (MQTT 5) request/reply correlation: ``requestReply``
-# marks the action as a correlated request/reply interaction and
-# ``responseTopic`` names the MQTT 5 Response Topic the reply is
-# delivered on (the requester sets it as the PUBLISH response-topic
-# property; the responder echoes the request's Correlation Data).
-AID_MQTT_REQUEST_REPLY = f"{BASE_URL}/aid/MqttRequestReply/1/0"
+WOT_TD = "https://www.w3.org/2019/wot/td#"
+WOT_HCTL = "https://www.w3.org/2019/wot/hypermedia#"
+WOT_JSONSCHEMA = "https://www.w3.org/2019/wot/json-schema#"
+
+# Affordance members. AID gives a property member its own id
+# (``…/1/0/PropertyDefinition``) and the TD class to the container; actions
+# and events follow the same pattern with ids in this project's namespace.
+AID_ACTION_DEFINITION = f"{BASE_URL}/aid/ActionDefinition/1/0"
+AID_EVENT_DEFINITION = f"{BASE_URL}/aid/EventDefinition/1/0"
+AID_WOT_NAME = f"{WOT_TD}name"
+
+# ActionAffordance
+AID_ACTION_INPUT = f"{WOT_TD}hasInputSchema"
+AID_ACTION_OUTPUT = f"{WOT_TD}hasOutputSchema"
+AID_WOT_SAFE = f"{WOT_TD}isSafe"
+AID_WOT_IDEMPOTENT = f"{WOT_TD}isIdempotent"
+AID_SYNCHRONOUS = f"{WOT_TD}isSynchronous"
+
+# EventAffordance
+AID_EVENT_SUBSCRIPTION = f"{WOT_TD}hasSubscriptionSchema"
+AID_EVENT_DATA = f"{WOT_TD}hasNotificationSchema"
+AID_EVENT_DATA_RESPONSE = f"{WOT_TD}hasNotificationResponseSchema"
+AID_EVENT_CANCELLATION = f"{WOT_TD}hasCancellationSchema"
+
+# PropertyAffordance (AID marks readOnly/writeOnly EXTERNAL)
+AID_WOT_READ_ONLY = f"{WOT_JSONSCHEMA}readOnly"
+AID_WOT_WRITE_ONLY = f"{WOT_JSONSCHEMA}writeOnly"
+
+# Form
+AID_WOT_OPERATION_TYPE = f"{WOT_HCTL}hasOperationType"
+AID_WOT_RESPONSE_FORM = f"{WOT_HCTL}returns"
+
+# MQTT 5 request/reply. The WoT MQTT binding has no request/reply; the request
+# carries this topic as its Response Topic and the reply echoes the request's
+# Correlation Data.
 AID_MQTT_RESPONSE_TOPIC = f"{BASE_URL}/aid/MqttResponseTopic/1/0"
-AID_INPUT_SCHEMA = f"{BASE_URL}/aid/InputSchema/1/0"
-AID_OUTPUT_SCHEMA = f"{BASE_URL}/aid/OutputSchema/1/0"
-AID_SYNCHRONOUS = "https://www.w3.org/2019/wot/td#synchronous"
-AID_WOT_SAFE = "https://www.w3.org/2019/wot/td#safe"
-AID_WOT_IDEMPOTENT = "https://www.w3.org/2019/wot/td#idempotent"
 
-# WoT Thing Description 2.0 ``ActionAffordance.input`` / ``.output`` vocabulary
-# (w3.org — kept inline per the constants policy).  Shared by the MQTT and the
-# generic (Dmp) action DataSchemas.
-AID_ACTION_INPUT = "https://www.w3.org/2019/wot/td#hasInput"
-# WoT TD 1.1 §5.3.1.5 EventAffordance: ``subscription`` (payload of the
-# subscribe request), ``data`` (each notification), ``dataResponse`` (the
-# consumer's answer to a notification), ``cancellation`` (payload of the
-# unsubscribe request). TD 2.0 (Working Draft) keeps the same terms.
-AID_EVENT_SUBSCRIPTION = "https://www.w3.org/2019/wot/td#hasSubscriptionSchema"
-AID_EVENT_DATA = "https://www.w3.org/2019/wot/td#hasNotificationSchema"
-AID_EVENT_DATA_RESPONSE = "https://www.w3.org/2019/wot/td#hasNotificationResponseSchema"
-AID_EVENT_CANCELLATION = "https://www.w3.org/2019/wot/td#hasCancellationSchema"
-AID_EVENT_AFFORDANCE = "https://www.w3.org/2019/wot/td#EventAffordance"
-
-# OPC UA events. OPC 10101 (WoT Binding for OPC UA, v1.00) defines no event
-# vocabulary, so these terms live in this project's namespace: the EventType a
+# OPC UA. OPC 10101 v1.00 defines uav:componentOf but no event vocabulary, so
+# the event terms live in this project's namespace: the EventType a
 # subscription is filtered to (where clause, OfType) and, per data-schema
 # property, the field's browse path relative to the event (select clause).
+AID_OPCUA_COMPONENT_OF = "http://opcfoundation.org/UA/WoT-Binding/componentOf"
 AID_OPCUA_EVENT_TYPE = f"{BASE_URL}/aid/OpcuaEventType/1/0"
 AID_OPCUA_EVENT_FIELD = f"{BASE_URL}/aid/OpcuaEventField/1/0"
-AID_ACTION_OUTPUT = "https://www.w3.org/2019/wot/td#hasOutput"
-AID_WOT_OPERATION_TYPE = "https://www.w3.org/2019/wot/td#hasOperationType"
-AID_WOT_RESPONSE_FORM = "https://www.w3.org/2019/wot/hypermedia#response"
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # AIMC — DMP extensions of the IDTA MappingConfiguration

@@ -1,41 +1,29 @@
-"""Asset Interfaces Description partial — mandatory Resource actions/properties.
+"""AID schema conversion and event authoring over the generated models.
 
-Built on the DMP-extended AID (``aas_model.submodel_templates.aid``), which
-inherits from the generated IDTA AssetInterfacesDescription.  Every Resource
-must expose the Halt / Occupy / Release actions and a StationState property.
-
-Named-field style: children are DIRECT named fields (no ``value`` wrapper);
-dynamic action/property maps are ``Dict[str, X]`` fields on the ``actions`` /
-``properties`` containers.
+Fixed operational defaults are declared in ``operational.submodels``.
 """
 
 from __future__ import annotations
 
 from typing import Any, Dict, Optional
 
-from ..constants import (
-    BROKER, SITE, SCHEMA_BASE, AID_SYNCHRONOUS,
-    AID_MQTT_REQUEST_REPLY, AID_MQTT_RESPONSE_TOPIC,
-)
+from ..constants import SCHEMA_BASE
 from aas_model.json_schema_aid import datapoint_from_schema, load_schema, populate_datapoint
-from aas_pydantic import Property
 from aas_model.submodel_templates.aid import (
-    DmpAssetInterfacesDescription, DmpActionInput, DmpActionOutput,
-    MqttAction, MqttProperty, MqttResponseForm,
+    DmpAssetInterfacesDescription, DmpActionInput, DmpActionOutput, DmpEvent, DmpEventData,
+    DmpEvents, DmpProperty, MqttAction, MqvResponseTopic,
+    OpcuaEvent, OpcuaEventData, OpcuaEventField, OpcuaEventFields, OpcuaEvents,
+    ReadOnly, Synchronous, UavEventField, UavEventType,
 )
 from aas_pydantic.submodel_templates.asset_interfaces_description import (
+    ContentType as AIDContentType,
     Key as AIDKey,
+    MqvQos,
+    MqvRetain,
+    Observable,
     Title as AIDTitle,
 )
 from ._helpers import put
-
-# The StationState payload is described by ``stationState.schema.json`` — embed
-# its object-schema structure (State enum, ProcessQueue array, TimeStamp) into
-# the AID so the interface describes the message instead of only pointing at
-# the schema URL.  The schema URL rides as a supplemental semantic id on the
-# DataSchema it represents (the property itself for a property; the
-# ``input``/``output`` DataSchemas for an action).
-_STATION_STATE_SCHEMA = load_schema(f"{SCHEMA_BASE}/stationState.schema.json")
 
 # Action command/response payloads — embedded as the WoT ``input``/``output``
 # DataSchemas of every MQTT action (Halt / Occupy / Release / Stoppering).
@@ -68,11 +56,9 @@ def mqtt_action(
     semantic id on the DataSchema it represents (``input`` / ``output``),
     not as a separate URL Property.
     """
-    action = MqttAction()
+    action = MqttAction(id_short=name)
     action.title = AIDTitle(id_short="title", value=name)
-    action.synchronous = Property(
-        id_short="synchronous", semantic_id=AID_SYNCHRONOUS,
-        value=str(synchronous).lower())
+    action.synchronous = Synchronous(value=str(synchronous).lower())
     if input_schema is not None:
         action.input = datapoint_from_schema(
             input_schema, cls=DmpActionInput, schema_url=input_schema_url
@@ -83,41 +69,31 @@ def mqtt_action(
             output_schema, cls=DmpActionOutput, schema_url=output_schema_url
         )
         action.output.id_short = "output"
+    # op (invokeaction), mqv_controlPacket (publish) and mqv_retain (false)
+    # are the WoT MQTT binding defaults for an action and are not authored.
     forms = action.forms
-    forms.href.value = f"/CMD/{name}"
-    forms.op.value = "invokeaction"
-    forms.mqv_retain.value = "false"
-    forms.mqv_control_packet.value = "subscribe"
-    forms.mqv_qos.value = "2"
+    forms.href.value = f"CMD/{name}"
+    forms.mqv_qos = MqvQos(value="2")
     if has_response:
-        # MQTT 5 request/reply correlation (WoT MQTT binding): the action is
-        # a correlated request/reply exchange; the reply is delivered on the
-        # declared response topic (the requester publishes the command with
-        # the response-topic + correlation-data properties).
-        forms.mqv_request_reply = Property(
-            id_short="mqv_request_reply", semantic_id=AID_MQTT_REQUEST_REPLY, value="true")
-        forms.mqv_response_topic = Property(
-            id_short="mqv_response_topic", semantic_id=AID_MQTT_RESPONSE_TOPIC,
-            value=f"/DATA/{name}")
-        # Build on the class defaults so the children keep their semanticIds
-        # (href → hasTarget, content_type → forContentType, …) — constructing
-        # bare ``Property(value=...)`` instances would strip them.
-        resp = MqttResponseForm()
-        resp.id_short = "response"
-        resp.href.value = f"/DATA/{name}"
-        resp.contentType.value = "application/json"
-        resp.mqv_control_packet.value = "publish"
-        resp.mqv_retain.value = "false"
-        forms.response = resp
+        # MQTT 5 request/reply: the request carries this topic as its
+        # Response Topic, and the result echoes the Correlation Data.
+        forms.mqv_responseTopic = MqvResponseTopic(value=f"DATA/{name}")
     return action
 
 
 def mqtt_property(
     name: str, href: str, *, retain: bool = True, qos: int = 0,
+    writable: bool = False,
     schema: Optional[Dict[str, Any]] = None,
     schema_url: str = STATION_STATE_SCHEMA_URL,
-) -> MqttProperty:
-    """Build a standard MQTT property with default form settings.
+) -> DmpProperty:
+    """Build an MQTT property the device publishes on ``href``.
+
+    It is ``observable`` (AID recommends it for every MQTT property) and,
+    unless ``writable``, ``readOnly``. The control packet is not authored:
+    the WoT MQTT binding defaults (subscribe to read and observe, publish to
+    write) apply per operation. ``retain`` marks a retained topic, which
+    makes the current value readable.
 
     ``schema`` (an already-dereferenced JSON Schema dict, e.g. from
     :func:`~templates.json_schema_aid.load_schema`) embeds the payload's
@@ -125,17 +101,98 @@ def mqtt_property(
     into the property via ``populate_datapoint``, leaving the forms untouched.
     The schema URL rides as a supplemental semantic id on the property itself.
     """
-    prop = MqttProperty()
+    prop = DmpProperty(id_short=name)
     prop.key = AIDKey(id_short="key", value=name)
     prop.title = AIDTitle(id_short="title", value=name)
+    prop.observable = Observable(value="true")
+    if not writable:
+        prop.readOnly = ReadOnly(value="true")
     forms = prop.forms
     forms.href.value = href
-    forms.mqv_retain.value = str(retain).lower()
-    forms.mqv_control_packet.value = "publish"
-    forms.mqv_qos.value = str(qos)
+    if retain:
+        forms.mqv_retain = MqvRetain(value="true")
+    forms.mqv_qos = MqvQos(value=str(qos))
     if schema is not None:
         populate_datapoint(prop, schema, schema_url=schema_url)
     return prop
+
+def mqtt_event(
+    name: str, href: str, *, qos: int = 1,
+    schema: Optional[Dict[str, Any]] = None,
+    schema_url: Optional[str] = None,
+) -> DmpEvent:
+    """Build an MQTT event affordance the device publishes on ``href``.
+
+    ``op`` (subscribeevent, unsubscribeevent) and ``mqv_controlPacket``
+    (subscribe) are the WoT defaults and are not authored; an event is not
+    retained, since it has no current value. ``schema`` (an
+    already-dereferenced JSON Schema dict) embeds the WoT ``data``
+    DataSchema of each notification; ``schema_url`` rides as a supplemental
+    semantic id on it. Add the result to an interface with :func:`add_event`.
+    """
+    event = DmpEvent(id_short=name)
+    event.title = AIDTitle(id_short="title", value=name)
+    if schema is not None:
+        event.data = datapoint_from_schema(schema, cls=DmpEventData, schema_url=schema_url)
+        event.data.id_short = "data"
+    forms = event.forms
+    forms.href.value = href
+    forms.mqv_qos = MqvQos(value=str(qos))
+    return event
+
+
+def opcua_event(
+    name: str, notifier: str, fields: Dict[str, Any], *,
+    event_type: Optional[str] = None,
+) -> OpcuaEvent:
+    """Build an OPC UA event affordance on the event notifier ``notifier``
+    (a NodeId, e.g. ``i=2253`` for the Server object).
+
+    ``fields`` maps each notification field to its JSON Schema, or to
+    ``(schema, browse_path)`` when the field is not the namespace-0
+    BrowseName of the same name (e.g. ``"0:ToState/0:Id"``); each becomes a
+    property of the ``data`` schema (the select clauses). ``event_type`` (an
+    EventType NodeId, e.g. ``i=2378`` ProgramTransitionEventType) filters
+    the subscription to that type and its subtypes. Both terms are DMP
+    terms: OPC 10101 defines no event vocabulary.
+    """
+    schemas = {n: (v[0] if isinstance(v, tuple) else v) for n, v in fields.items()}
+    data = datapoint_from_schema({"type": "object", "properties": schemas}, cls=OpcuaEventData)
+    data.id_short = "data"
+    selected = {}
+    for alias, generic in data.properties.property_name.items():
+        spec = fields[generic.key.value if generic.key is not None else alias]
+        field = OpcuaEventField(**{f: getattr(generic, f) for f in type(generic).model_fields})
+        if isinstance(spec, tuple):
+            field.uav_eventField = UavEventField(id_short="uav_eventField", value=spec[1])
+        selected[alias] = field
+    data.properties = OpcuaEventFields(id_short="properties", property_name=selected)
+    event = OpcuaEvent(id_short=name)
+    event.title = AIDTitle(id_short="title", value=name)
+    event.data = data
+    if event_type is not None:
+        event.uav_eventType = UavEventType(id_short="uav_eventType", value=event_type)
+    forms = event.forms
+    forms.href.value = f"/?id={notifier}"
+    forms.contentType = AIDContentType(id_short="contentType", value="application/octet-stream")
+    return event
+
+
+def add_event(interface: Any, event: DmpEvent) -> None:
+    """Add ``event`` to an MQTT or OPC UA interface's ``events``, creating the
+    container on first use (an interface without events serializes none)."""
+    im = interface.InteractionMetadata
+    if im.events is None:
+        im.events = (OpcuaEvents if isinstance(event, OpcuaEvent) else DmpEvents)(id_short="events")
+    put(im.events.property_name, event.id_short, event)
+
+
+def mqtt_interfaces() -> DmpAssetInterfacesDescription:
+    """Compatibility entry point backed by the typed MQTT interface."""
+    from .operational import MqttInterfaces
+
+    return MqttInterfaces(id_short="AssetInterfacesDescription")
+
 
 def asset_interfaces_description() -> DmpAssetInterfacesDescription:
     """Compatibility entry point backed by the operational MQTT template."""

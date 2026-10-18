@@ -179,23 +179,21 @@ def test_resource_mapping_configuration_accepts_trigger_source_ids():
 
 
 def test_protocol_specific_endpoint_and_form_terms_round_trip():
-    """The generated IDTA template defines per-protocol vocabulary (modv_*,
-    uav_*, opcua schemes) but wires none of it into the generic
-    EndpointMetadata/forms — the DMP extension subclasses do, so a
-    hand-authored protocol AID parses COMPLETELY (OPC-10101 §6.3.3/§6.5.3,
-    WoT Modbus binding)."""
+    """The AID's own protocol vocabulary (modv_*, uav_*, OPC UA security
+    schemes) on the extended forms and endpoint metadata survives a round
+    trip. The Modbus interface is authored as AID Annex B describes it: the
+    unit ID in the base, the register address and quantity in the href."""
     from aas_model.submodel_templates.aid import (
-        DmpModbusInterface, DmpOpcuaInterface, ModbusForm, OpcuaForm,
-        OpcuaSecurityDefinitions,
+        DmpActionForm, DmpModbusInterface, DmpOpcuaInterface,
     )
     from aas_model.testing import modbus_interface, opcua_interface
     from aas_pydantic import Property
 
     aid = DmpAssetInterfacesDescription(id_short="AssetInterfacesDescription")
     modbus = modbus_interface(
-        "modbus://192.168.0.70:502",
-        properties={"Coil1": "/Coil,1"},
-        actions={"WriteCoil": ("/Coil,1", "POST")})
+        "modbus+tcp://192.168.0.70:502/1/",
+        properties={"Coil1": "0?quantity=1"},
+        actions={"WriteCoil": ("0?quantity=1", None)})
     modbus.EndpointMetadata.modv_mostSignificantByte = Property(
         semantic_id="https://www.w3.org/2019/wot/modbus#hasMostSignificantByte",
         value="false")
@@ -230,13 +228,12 @@ def test_protocol_specific_endpoint_and_form_terms_round_trip():
     assert isinstance(mb, DmpModbusInterface)
     assert mb.EndpointMetadata.modv_mostSignificantByte.value == "false"
     action = mb.InteractionMetadata.actions.property_name["WriteCoil"]
-    assert isinstance(action.forms, ModbusForm)
+    assert isinstance(action.forms, DmpActionForm)
     assert action.forms.modv_function.value == "writeSingleCoil"
 
     oc = back.InterfaceTemplateForOPCUA["interface_opcua"]
     assert isinstance(oc, DmpOpcuaInterface)
     security = oc.EndpointMetadata.securityDefinitions
-    assert isinstance(security, OpcuaSecurityDefinitions)
     assert security.opcua_channel_sc.uav_securityMode.value == "SignAndEncrypt"
     assert security.opcua_channel_sc.uav_securityPolicy.value == "Basic256Sha256"
 

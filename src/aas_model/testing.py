@@ -13,19 +13,19 @@ from aas_pydantic import Key, ModelReference, Property
 
 from aas_pydantic.submodel_templates.asset_interfaces_description import (
     Title, EndpointMetadata, security_t, securityDefinitions,
-    Base, ContentType, Href, Subprotocol, Type as AIDType, Observable as AIDObservable,
-    forms as _BaseForm, property_name as _BaseProperty,
-    properties as _BaseProperties,
-    InteractionMetadata as _BaseInteractionMetadata,
+    Base, ContentType, Href, HtvMethodName, MqvControlPacket, MqvQos, MqvRetain,
+    Subprotocol, Observable as AIDObservable, UavBrowsePath,
 )
 
 from aas_model.submodel_templates.aid import (
-    DmpAssetInterfacesDescription, MqttInterface, MqttInteractionMetadata,
-    MqttProperties, MqttProperty, MqttForm, MqttActions, MqttAction,
-    MqttResponseForm, MqttEvent, MqttEvents, DmpEventData,
-    DmpForm, DmpGenericInteractionMetadata, DmpHttpInterface,
-    DmpModbusInterface, DmpBacnetInterface, DmpOpcuaInterface, OpcuaForm,
-    MqttActionForm,
+    DmpAssetInterfacesDescription, DmpAction, DmpActionForm, DmpActions,
+    DmpEvent, DmpEventData, DmpEvents, DmpForm, DmpInteractionMetadata,
+    DmpProperties, DmpProperty, DmpHttpInterface, DmpModbusInterface,
+    DmpBacnetInterface, DmpOpcuaInterface, MqttAction, MqttActionForm,
+    MqttActions, MqttInteractionMetadata, MqttInterface, MqvResponseTopic,
+    OpcuaAction, OpcuaActions, OpcuaEvent, OpcuaEventData, OpcuaEventField,
+    OpcuaEventFields, OpcuaEvents, OpcuaInteractionMetadata, Synchronous,
+    UavComponentOf, UavEventField, UavEventType, op as _op,
 )
 from aas_model.submodel_templates import (
     Aimc, AimcMappingConfiguration, AimcMappingConfigurations, Transformation,
@@ -39,16 +39,6 @@ from aas_pydantic.submodel_templates.asset_interfaces_mapping_configuration impo
 )
 
 
-def _prop(value: str) -> Property:
-    return Property(value=value)
-
-
-def _op(value: str) -> Property:
-    """A form ``op`` (td#hasOperationType), e.g. ``subscribeevent``."""
-    from aas_model.constants import AID_WOT_OPERATION_TYPE
-    return Property(semantic_id=AID_WOT_OPERATION_TYPE, value=value)
-
-
 def _endpoint(base: str, content_type: str = "application/json") -> EndpointMetadata:
     return EndpointMetadata(
         base=Base(value=base),
@@ -59,88 +49,62 @@ def _endpoint(base: str, content_type: str = "application/json") -> EndpointMeta
 
 
 # --------------------------------------------------------------------------- #
-# AID
+# AID — only what differs from the WoT defaults is authored
 # --------------------------------------------------------------------------- #
-def mqtt_property(name: str, href: str, *, qos: int = 0,
-                  control_packet: str = "publish", retain: bool = True,
-                  op: str | None = None, response: str | None = None) -> MqttProperty:
-    form_kwargs = dict(
-        href=Href(value=href),
-        mqv_retain=_prop(str(retain).lower()),
-        mqv_qos=_prop(str(qos)),
-        mqv_control_packet=_prop(control_packet),
-    )
+def mqtt_property(name: str, href: str, *, qos: int = 0, retain: bool = True,
+                  control_packet: str | None = None, op: str | None = None) -> DmpProperty:
+    """An observable MQTT property on ``href``."""
+    form = DmpForm(href=Href(value=href), mqv_qos=MqvQos(value=str(qos)))
+    if retain:
+        form.mqv_retain = MqvRetain(value="true")
+    if control_packet is not None:
+        form.mqv_controlPacket = MqvControlPacket(value=control_packet)
     if op is not None:
-        form_kwargs["op"] = _prop(op)
-    if response is not None:
-        form_kwargs["response"] = MqttResponseForm(
-            href=Href(value=response), contentType=ContentType(value="application/json"),
-            mqv_retain=_prop("false"), mqv_control_packet=_prop("publish"),
-        )
-        form_kwargs["mqv_request_reply"] = _prop("true")
-        form_kwargs["mqv_response_topic"] = _prop(response)
-    return MqttProperty(forms=MqttForm(**form_kwargs))
+        form.op = _op(op)
+    return DmpProperty(title=Title(value=name), observable=AIDObservable(value="true"), forms=form)
 
 
 def mqtt_action(name: str, href: str, *, synchronous: bool = False,
                 response: str | None = None) -> MqttAction:
-    form_kwargs = dict(
-        href=Href(value=href),
-        op=_prop("invokeaction"),
-        mqv_retain=_prop("false"),
-        mqv_qos=_prop("2"),
-        mqv_control_packet=_prop("subscribe"),
-    )
+    """An MQTT action requested on ``href``; ``response`` is the MQTT 5
+    response topic of a request/reply action."""
+    form = MqttActionForm(href=Href(value=href), mqv_qos=MqvQos(value="2"))
     if response is not None:
-        form_kwargs["response"] = MqttResponseForm(
-            href=Href(value=response), contentType=ContentType(value="application/json"),
-            mqv_retain=_prop("false"), mqv_control_packet=_prop("publish"),
-        )
-        form_kwargs["mqv_request_reply"] = _prop("true")
-        form_kwargs["mqv_response_topic"] = _prop(response)
-    return MqttAction(
-        synchronous=_prop(str(synchronous).lower()),
-        forms=MqttActionForm(**form_kwargs),
-    )
+        form.mqv_responseTopic = MqvResponseTopic(value=response)
+    return MqttAction(title=Title(value=name), synchronous=Synchronous(value=str(synchronous).lower()),
+                      forms=form)
 
 
 def mqtt_event(name: str, href: str, data_schema: dict | None = None, *,
-               qos: int = 1) -> MqttEvent:
+               qos: int = 1) -> DmpEvent:
     """An MQTT event affordance published on ``href``; ``data_schema`` is the
     JSON Schema of each notification."""
     from aas_model.json_schema_aid import datapoint_from_schema
-    return MqttEvent(
+    return DmpEvent(
         title=Title(value=name),
         data=(datapoint_from_schema(data_schema, key="data", cls=DmpEventData)
               if data_schema is not None else None),
-        forms=MqttForm(href=Href(value=href), op=_op("subscribeevent"),
-                       mqv_retain=_prop("false"), mqv_qos=_prop(str(qos)),
-                       mqv_control_packet=_prop("subscribe")),
+        forms=DmpForm(href=Href(value=href), mqv_qos=MqvQos(value=str(qos))),
     )
 
 
 def mqtt_interface(base: str, *, properties=None, actions=None, events=None) -> MqttInterface:
-    """``events`` maps a name to an href or to ``(href, data_schema)``."""
-    meta = MqttInteractionMetadata(events=MqttEvents(property_name={
-        n: mqtt_event(n, *(v if isinstance(v, tuple) else (v,))) for n, v in events.items()
-    }) if events else None)
-    props = {}
-    for n, v in (properties or {}).items():
-        if isinstance(v, tuple):
-            # (href, response[, op]) — a property form with explicit
-            # request/reply transport terms (legacy fixture convenience).
-            props[n] = mqtt_property(n, v[0], response=v[1] if len(v) > 1 else None,
-                                     op=v[2] if len(v) > 2 else None)
-        else:
-            props[n] = mqtt_property(n, v)
-    meta.properties = MqttProperties(property_name=props)
-    acts = {}
-    for n, v in (actions or {}).items():
-        if isinstance(v, tuple):
-            acts[n] = mqtt_action(n, v[0], response=v[1] if len(v) > 1 else None)
-        else:
-            acts[n] = mqtt_action(n, v)
-    meta.actions = MqttActions(property_name=acts)
+    """``properties`` maps a name to an href or ``(href, op)``; ``actions`` to
+    an href or ``(href, response_topic)``; ``events`` to an href or
+    ``(href, data_schema)``."""
+    props = {n: mqtt_property(n, *(v if isinstance(v, tuple) else (v,))[:1],
+                              op=v[1] if isinstance(v, tuple) and len(v) > 1 else None)
+             for n, v in (properties or {}).items()}
+    acts = {n: mqtt_action(n, v[0] if isinstance(v, tuple) else v,
+                           response=v[1] if isinstance(v, tuple) and len(v) > 1 else None)
+            for n, v in (actions or {}).items()}
+    meta = MqttInteractionMetadata(
+        properties=DmpProperties(property_name=props),
+        actions=MqttActions(property_name=acts),
+        events=DmpEvents(property_name={
+            n: mqtt_event(n, *(v if isinstance(v, tuple) else (v,))) for n, v in events.items()
+        }) if events else None,
+    )
     return MqttInterface(
         title=Title(value="mqtt"),
         EndpointMetadata=_endpoint(base),
@@ -148,89 +112,41 @@ def mqtt_interface(base: str, *, properties=None, actions=None, events=None) -> 
     )
 
 
-def _gen_property(name: str, href: str | None = None, *, observable: bool = False,
-                  subprotocol: str | None = None, op: str | None = None) -> _BaseProperty:
-    form_kwargs = {"href": Href(value=href or ""), "security": security_t()}
-    if op:
-        form_kwargs["op"] = __import__("aas_pydantic", fromlist=["Property"]).Property(value=op)
-    form = _BaseForm(**form_kwargs)
-    if subprotocol is not None:
-        form.subprotocol = Subprotocol(value=subprotocol)
-    data = {"forms": form}
-    if observable:
-        data["observable"] = AIDObservable(value="true")
-    return _BaseProperty(**data)
-
-
-def _gen_interface(template_cls, base: str, *, properties=None, events=None,
-                   actions=None, observable=(False, None), op: str | None = None,
-                   meta_cls=None, actions_cls=None, action_cls=None, form_cls=None,
-                   action_form_cls=None, properties_cls=None, property_cls=None,
+def _gen_interface(template_cls, base: str, *, properties=None, actions=None,
+                   observable: bool = False, subprotocol: str | None = None,
+                   op: str | None = None, meta_cls=DmpInteractionMetadata,
+                   actions_cls=DmpActions, action_cls=DmpAction,
                    form_extras=None, action_extras=None):
-    """Compose an interface from its protocol classes.
-
-    ``meta_cls``/``actions_cls``/``action_cls``/``form_cls``/
-    ``properties_cls``/``property_cls`` default to the generic DMP layer;
-    protocol helpers pass their specialised classes so the affordances are
-    built BEFORE interface validation (the after-validator stamps
-    ``id_short`` = field name on every named-field child — post-construction
-    assignment would leave the class defaults in place). ``form_extras(n,
-    spec)`` returns extra form-field values for protocol-specific form terms
-    (e.g. the OPC UA ``uav_browsePath``); ``action_extras(n, spec)`` returns
-    affordance-level values (e.g. the OPC UA ``uav_componentOf``)."""
-    from aas_model.submodel_templates.aid import DmpAction, DmpActions
-    from aas_pydantic.submodel_templates.asset_interfaces_description import (
-        HtvMethodName,
-    )
-    meta = (meta_cls or DmpGenericInteractionMetadata)()
-    # ``properties`` is optional on the interaction metadata: start it empty.
-    properties_cls = properties_cls or _BaseProperties
+    """Compose an interface. ``actions`` values are ``(href, method, …)``
+    tuples or an href (POST); ``form_extras(n, spec)``/``action_extras(n,
+    spec)`` add protocol terms to an action's form or to the action itself
+    (e.g. OPC UA ``uav_browsePath``/``uav_componentOf``). The affordances
+    are built before the interface, whose validator stamps the idShorts."""
+    meta = meta_cls()
     if properties:
-        meta.properties = properties_cls(property_name={})
-    actions_cls = actions_cls or DmpActions
-    action_cls = action_cls or DmpAction
-    form_cls = form_cls or DmpForm
-    action_form_cls = action_form_cls or form_cls
-    property_cls = property_cls or _BaseProperty
-    obs_flags = observable if isinstance(observable, tuple) else (False, None)
-    for n, h in (properties or {}).items():
-        if property_cls is _BaseProperty:
-            meta.properties.property_name[n] = _gen_property(
-                n, h, observable=obs_flags[0], subprotocol=obs_flags[1], op=op)
-        else:
-            prop = property_cls(
-                title=Title(value=n),
-                forms=form_cls(
-                    href=Href(value=h or ""), security=security_t(),
-                    contentType=ContentType(value="application/json")))
-            if obs_flags[0] and hasattr(prop, "observable"):
-                prop.observable = AIDObservable(value="true")
-            if obs_flags[1] is not None:
-                prop.forms.subprotocol = Subprotocol(value=obs_flags[1])
-            if op is not None and hasattr(prop.forms, "op"):
-                prop.forms.op = Property(value=op)
-            meta.properties.property_name[n] = prop
+        props = {}
+        for n, h in properties.items():
+            form = DmpForm(href=Href(value=h or ""), contentType=ContentType(value="application/json"))
+            if subprotocol is not None:
+                form.subprotocol = Subprotocol(value=subprotocol)
+            if op is not None:
+                form.op = _op(op)
+            props[n] = DmpProperty(title=Title(value=n), forms=form,
+                                   observable=AIDObservable(value="true") if observable else None)
+        meta.properties = DmpProperties(property_name=props)
     if actions:
-        acts = actions_cls(property_name={})
+        acts = {}
         for n, spec in actions.items():
             href, method = (spec[0], spec[1]) if isinstance(spec, tuple) else (spec, "POST")
-            form = action_form_cls(
-                href=Href(value=href), security=security_t(),
-                op=Property(
-                    semantic_id="https://www.w3.org/2019/wot/td#hasOperationType",
-                    value="invokeaction"),
-                contentType=ContentType(value="application/json"),
-                htv_methodName=HtvMethodName(value=method))
-            if form_extras:
-                for fname, val in (form_extras(n, spec) or {}).items():
-                    current = getattr(form, fname, None)
-                    if isinstance(val, str) and current is not None and hasattr(current, "value"):
-                        current.value = val
-                    else:
-                        setattr(form, fname, val)
-            acts.property_name[n] = action_cls(title=Title(value=n), forms=form,
-                                               **((action_extras(n, spec) or {}) if action_extras else {}))
-        meta.actions = acts
+            # htv_methodName is an HTTP term: other protocols' forms carry none.
+            http = template_cls is DmpHttpInterface
+            form = DmpActionForm(href=Href(value=href), contentType=ContentType(value="application/json"),
+                                 htv_methodName=HtvMethodName(value=method) if method and http else None)
+            for fname, val in ((form_extras(n, spec) or {}) if form_extras else {}).items():
+                setattr(form, fname, val)
+            acts[n] = action_cls(title=Title(value=n), forms=form,
+                                 **((action_extras(n, spec) or {}) if action_extras else {}))
+        meta.actions = actions_cls(property_name=acts)
     return template_cls(
         title=Title(value="iface"),
         EndpointMetadata=_endpoint(base),
@@ -239,25 +155,18 @@ def _gen_interface(template_cls, base: str, *, properties=None, events=None,
 
 
 def _opcua_action_extras(n, spec):
-    """OPC-10101 §7.1.3: the owning Object NodeId (mandatory) is an
+    """OPC 10101 §7.1.3: the owning Object NodeId (mandatory) is an
     affordance-level term of the action."""
-    from aas_model.submodel_templates.aid import UavComponentOf
     return {"uav_componentOf": UavComponentOf(value=spec[2])} if len(spec) >= 3 and spec[2] else {}
 
 
 def _opcua_form_extras(n, spec):
-    """OPC-10101 §6.5.3: the optional browsePath rides the protocol form."""
-    extras = {}
-    if len(spec) >= 4 and spec[3]:
-        from aas_pydantic.submodel_templates.asset_interfaces_description import (
-            UavBrowsePath,
-        )
-        extras["uav_browsePath"] = UavBrowsePath(value=spec[3])
-    return extras
+    """The optional absolute browse path of the Method."""
+    return {"uav_browsePath": UavBrowsePath(value=spec[3])} if len(spec) >= 4 and spec[3] else {}
 
 
 def opcua_event(name: str, notifier: str, fields: dict, *,
-                event_type: str | None = None):
+                event_type: str | None = None) -> OpcuaEvent:
     """An OPC UA event affordance on the event notifier ``notifier`` (a
     NodeId, e.g. ``i=2253`` for the Server object). ``fields`` maps each
     notification field to its JSON Schema, or to ``(schema, browse_path)``
@@ -265,10 +174,6 @@ def opcua_event(name: str, notifier: str, fields: dict, *,
     (e.g. ``0:ToState/0:Id``); ``event_type`` is the EventType NodeId the
     subscription is filtered to."""
     from aas_model.json_schema_aid import datapoint_from_schema
-    from aas_model.submodel_templates.aid import (
-        OpcuaEvent, OpcuaEventData, OpcuaEventField, OpcuaEventFields, OpcuaForm,
-        UavEventField, UavEventType,
-    )
     schemas = {n: (v[0] if isinstance(v, tuple) else v) for n, v in fields.items()}
     data = datapoint_from_schema({"type": "object", "properties": schemas},
                                  key="data", cls=OpcuaEventData)
@@ -284,9 +189,8 @@ def opcua_event(name: str, notifier: str, fields: dict, *,
         title=Title(value=name),
         uav_eventType=UavEventType(value=event_type) if event_type else None,
         data=data,
-        forms=OpcuaForm(href=Href(value=f"/?id={notifier}"), security=security_t(),
-                        op=_op("subscribeevent"),
-                        contentType=ContentType(value="application/octet-stream")),
+        forms=DmpForm(href=Href(value=f"/?id={notifier}"),
+                      contentType=ContentType(value="application/octet-stream")),
     )
 
 
@@ -295,19 +199,14 @@ def opcua_interface(base: str, *, properties=None, actions=None, events=None,
                     op: str | None = None) -> DmpOpcuaInterface:
     """OPC UA interface. ``actions`` values are ``(href, method)`` or
     ``(href, method, componentOf[, browsePath])`` tuples — OPC UA actions
-    carry the MANDATORY ``uav_componentOf`` owning-Object NodeId
-    (OPC-10101 §7.1.3). ``events`` values are ``(notifier, fields[,
+    carry the mandatory ``uav_componentOf`` owning-Object NodeId
+    (OPC 10101 §7.1.3). ``events`` values are ``(notifier, fields[,
     event_type])`` tuples (see :func:`opcua_event`)."""
-    from aas_model.submodel_templates.aid import (
-        OpcuaAction, OpcuaActions, OpcuaEvents, OpcuaForm,
-        OpcuaInteractionMetadata, OpcuaProperties, OpcuaProperty,
-    )
     interface = _gen_interface(
         DmpOpcuaInterface, base, properties=properties, actions=actions,
-        observable=(observable, subprotocol), op=op,
+        observable=observable, subprotocol=subprotocol, op=op,
         meta_cls=OpcuaInteractionMetadata, actions_cls=OpcuaActions,
-        action_cls=OpcuaAction, form_cls=OpcuaForm,
-        properties_cls=OpcuaProperties, property_cls=OpcuaProperty,
+        action_cls=OpcuaAction,
         form_extras=_opcua_form_extras, action_extras=_opcua_action_extras)
     if events:
         # Assigned after validation, so the container is named here.
@@ -322,27 +221,11 @@ def http_interface(base: str, *, properties=None, actions=None) -> DmpHttpInterf
 
 
 def modbus_interface(base: str, *, properties=None, actions=None) -> DmpModbusInterface:
-    from aas_model.submodel_templates.aid import (
-        ModbusAction, ModbusActions, ModbusForm, ModbusInteractionMetadata,
-        ModbusProperties, ModbusProperty,
-    )
-    return _gen_interface(
-        DmpModbusInterface, base, properties=properties, actions=actions,
-        meta_cls=ModbusInteractionMetadata, actions_cls=ModbusActions,
-        action_cls=ModbusAction, form_cls=ModbusForm,
-        properties_cls=ModbusProperties, property_cls=ModbusProperty)
+    return _gen_interface(DmpModbusInterface, base, properties=properties, actions=actions)
 
 
 def bacnet_interface(base: str, *, properties=None, actions=None) -> DmpBacnetInterface:
-    from aas_model.submodel_templates.aid import (
-        BacnetAction, BacnetActions, BacnetForm, BacnetInteractionMetadata,
-        BacnetProperties, BacnetProperty,
-    )
-    return _gen_interface(
-        DmpBacnetInterface, base, properties=properties, actions=actions,
-        meta_cls=BacnetInteractionMetadata, actions_cls=BacnetActions,
-        action_cls=BacnetAction, form_cls=BacnetForm,
-        properties_cls=BacnetProperties, property_cls=BacnetProperty)
+    return _gen_interface(DmpBacnetInterface, base, properties=properties, actions=actions)
 
 
 def build_aid(*, mqtt: MqttInterface | None = None,

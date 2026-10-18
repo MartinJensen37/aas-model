@@ -16,9 +16,9 @@ from aas_model.submodel_templates.aid import (
     DmpActionInput,
     DmpActionOutput,
     DmpAssetInterfacesDescription,
-    MqttProperty,
+    DmpProperty,
 )
-from aas_model.testing import build_aid
+from aas_model.testing import build_aid, mqtt_interface
 from aas_pydantic import Qualifier
 
 from test_serde import _roundtrip
@@ -78,7 +78,7 @@ def test_action_input_and_output_round_trip_supported_keywords():
 
 
 def test_property_object_qualifier_empty_and_repopulation_preserves_others():
-    prop = MqttProperty()
+    prop = DmpProperty()
     prop.qualifiers = [Qualifier(type_="Custom", value="keep")]
     populate_datapoint(prop, {"type": "object", "required": ["part,one"],
                               "properties": {"part,one": {"type": "null"}}})
@@ -105,7 +105,7 @@ def test_only_mirrored_keywords_are_reconstructed():
 
 
 def test_qualifiers_survive_aas_json_serialization_and_parse():
-    aid = build_aid()
+    aid = build_aid(mqtt=mqtt_interface("mqtt://broker.example:1883/"))
     action = aid.InterfaceTemplateForMQTT["interface_mqtt"].InteractionMetadata.actions.property_name
     from aas_model.resource_template.asset_interfaces_description import (
         mqtt_action, mqtt_property,
@@ -161,7 +161,7 @@ def test_json_scalar_consts_and_arbitrary_member_names_serialize_and_round_trip(
             "precision": {"type": "number", "const": 1.25},
         },
     }
-    aid = build_aid()
+    aid = build_aid(mqtt=mqtt_interface("mqtt://broker.example:1883/"))
     actions = aid.InterfaceTemplateForMQTT["interface_mqtt"].InteractionMetadata.actions
     actions.property_name["Send"] = mqtt_action("Send", input_schema=schema)
 

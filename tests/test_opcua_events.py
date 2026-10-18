@@ -11,9 +11,9 @@ from basyx.aas.adapter.json import AASToJsonEncoder
 
 from aas_model._serde import parse_submodel_dict
 from aas_model.constants import (
-    AID_EVENT_AFFORDANCE, AID_EVENT_CANCELLATION, AID_EVENT_DATA, AID_EVENT_DATA_RESPONSE,
+    AID_EVENT_DEFINITION, AID_EVENT_CANCELLATION, AID_EVENT_DATA, AID_EVENT_DATA_RESPONSE,
     AID_EVENT_SUBSCRIPTION, AID_OPCUA_EVENT_FIELD, AID_OPCUA_EVENT_TYPE,
-    AID_WOT_OPERATION_TYPE, BASE_URL,
+    BASE_URL,
 )
 from aas_model.submodel_templates import DmpEvent
 from aas_model.submodel_templates.aid import DmpAssetInterfacesDescription
@@ -63,11 +63,10 @@ def test_event_affordance_carries_every_wot_event_term():
 
 def test_opcua_event_names_notifier_event_type_and_selected_fields():
     event = _event(_serialized())
-    assert _semantic(event) == AID_EVENT_AFFORDANCE
+    assert _semantic(event) == AID_EVENT_DEFINITION
     forms = _child(event, "forms")
     assert _child(forms, "href")["value"] == "/?id=i=2253"
-    assert _child(forms, "op")["value"] == "subscribeevent"
-    assert _semantic(_child(forms, "op")) == AID_WOT_OPERATION_TYPE
+    assert "op" not in {child["idShort"] for child in forms["value"]}  # default: subscribeevent
     assert _child(forms, "contentType")["value"] == "application/octet-stream"
 
     event_type = _child(event, "uav_eventType")
