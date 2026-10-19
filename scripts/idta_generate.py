@@ -812,7 +812,8 @@ def gen_template(template_path: str, output_dir: str):
         if os.path.commonpath((TEMPLATE_ROOT, template_abs)) == TEMPLATE_ROOT
         else _ROOT
     )
-    source_path = os.path.relpath(template_abs, relative_to)
+    # The same on every platform: the checked-in modules are compared with a regeneration.
+    source_path = os.path.relpath(template_abs, relative_to).replace(os.sep, "/")
     lines.append(f'"""{sm_name} - generated from IDTA template.')
     lines.append(f"Source: {source_path}")
     lines.append('"""')
