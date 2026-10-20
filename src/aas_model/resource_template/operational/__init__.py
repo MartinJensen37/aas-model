@@ -1,11 +1,15 @@
-"""Reusable typed defaults for operational MQTT resources."""
+"""Reusable typed defaults for operational resources, per native protocol."""
 
 from .submodels import (
-    MqttInterfaces, OperationalControlComponent, OperationalMqttInterfaces,
-    OperationalMqttMappings, OperationalVariables,
+    PACKML_SKILLS, INVOKE_ONLY_SKILLS, OPCUA_STATION, OperationalVariables,
+    action_member_ref, command_reply,
+    MqttInterfaces, OperationalMqttInterfaces, OperationalMqttControlComponent, OperationalMqttMappings,
+    OpcuaInterfaces, OperationalOpcuaInterfaces, OperationalOpcuaControlComponent, OperationalOpcuaMappings,
 )
 
 __all__ = [
-    "MqttInterfaces", "OperationalControlComponent", "OperationalMqttInterfaces",
-    "OperationalMqttMappings", "OperationalVariables",
+    "PACKML_SKILLS", "INVOKE_ONLY_SKILLS", "OPCUA_STATION", "OperationalVariables",
+    "action_member_ref", "command_reply",
+    "MqttInterfaces", "OperationalMqttInterfaces", "OperationalMqttControlComponent", "OperationalMqttMappings",
+    "OpcuaInterfaces", "OperationalOpcuaInterfaces", "OperationalOpcuaControlComponent", "OperationalOpcuaMappings",
 ]

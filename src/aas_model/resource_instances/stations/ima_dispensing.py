@@ -1,7 +1,8 @@
-"""IMA dispensing station instance."""
+"""IMA dispensing station instance: the PackML contract, a Dispensing skill
+with a configurable volume and the scale's live weight, all over OPC UA."""
 
-from aas_model.constants import SCHEMA_BASE
-from aas_model.constants import BASE_URL, BROKER, SITE
+from aas_pydantic import Property
+from aas_model.constants import BASE_URL, CSSX, INVOCATION_ORIGIN, SCHEMA_BASE
 from aas_model.resource_instances.site import SITE_ADDRESS
 from aas_pydantic.submodel_templates.nameplate import (
     Nameplate, URIOfTheProduct, ManufacturerName, ManufacturerProductDesignation,
@@ -12,23 +13,39 @@ from aas_pydantic.submodel_templates.hierarchical_structures import (
     ArcheType, EntryNode, HierarchicalStructures, IsPartOf, Node,
 )
 from aas_model.resource_template.operational import (
-    OperationalMqttInterfaces, OperationalControlComponent,
-    OperationalMqttMappings, OperationalVariables,
+    OPCUA_STATION, OperationalOpcuaInterfaces, OperationalOpcuaControlComponent,
+    OperationalOpcuaMappings, OperationalVariables,
 )
 from aas_model.resource_template.stations import DispensingStation
-from aas_model.constants import CSSX, INVOCATION_ORIGIN
 from aas_pydantic import ExternalReference, Key, ModelReference, Qualifier, ReferenceElement
-from aas_pydantic.submodel_templates.asset_interfaces_mapping_configuration import SourcesItem, SinksItem, Source, SourceId, Sink, SinkId, Sources, Sinks, DefaultPollingInterval
-from aas_model.resource_template.control_component_instance import native_action_ref, skill_ref
-from aas_model.resource_template.asset_interfaces_mapping_configuration import operation_ref, _mqtt_action_ref
-from aas_model.resource_template.asset_interfaces_mapping_configuration import _property_ref, _variable_ref
-from aas_model.resource_template.asset_interfaces_description import mqtt_action, mqtt_property
-from aas_model.submodel_templates.control_component_instance import EXTENDED_SKILL_INTERFACE_REF, ExtendedSkill, SkillOperation, SkillInterfaceRelationship, OperationVariableProp
-from aas_model.submodel_templates import AimcMappingConfiguration, Transformation
+from aas_pydantic.submodel_templates.asset_interfaces_mapping_configuration import SourcesItem, SinksItem, Source, SourceId, Sink, SinkId, Sources, Sinks, DefaultPollingInterval, PollingInterval
+from aas_model.resource_template.control_component_instance import skill_ref
+from aas_model.resource_template.asset_interfaces_mapping_configuration import (
+    operation_ref, response_sink, response_source, variable_ref,
+)
+from aas_model.resource_template.operational import action_member_ref
+from aas_model.resource_template.asset_interfaces_description import (
+    OPCUA_INTERFACE, affordance_ref, opcua_action, opcua_property,
+)
+from aas_model.submodel_templates.control_component_instance import EXTENDED_SKILL_INTERFACE_REF, ExtendedSkill, SkillOperation, SkillInterfaceRelationship, OptionalVariable
+from aas_model.submodel_templates import (
+    AimcMappingConfiguration, DmpResponseSinks, DmpResponseSources, DmpResponseTransformation, Transformation,
+)
 from aas_pydantic.submodel_templates.capability_description import CapabilityRelations, CapabilityRealizedBy
-from aas_model.json_schema_aid import load_schema, datapoint_from_schema, populate_datapoint
+from aas_model.json_schema_aid import load_schema
 from aas_model.submodel_templates.variables import VariableProp
 from aas_model.invocation_authoring import finalize_invocation_addresses
+
+
+# The Dispensing Method's InputArguments: the command plus the volume to fill.
+DISPENSE_COMMAND = {
+    "type": "object",
+    "properties": {
+        "Uuid": {"type": "string", "description": "The UUID of the command"},
+        "Volume": {"type": "number", "minimum": 0, "unit": "ml", "description": "The volume to dispense"},
+    },
+    "required": ["Uuid", "Volume"],
+}
 
 
 def ima_dispensing() -> DispensingStation:
@@ -60,72 +77,87 @@ def ima_dispensing() -> DispensingStation:
                 )},
             ),
         ),
-        asset_interfaces_description=OperationalMqttInterfaces(id_short="AssetInterfacesDescription"),
-        control_component_instance=OperationalControlComponent(id_short="ControlComponentInstance"),
-        asset_interfaces_mapping_configuration=OperationalMqttMappings(
+        asset_interfaces_description=OperationalOpcuaInterfaces(id_short="AssetInterfacesDescription"),
+        control_component_instance=OperationalOpcuaControlComponent(id_short="ControlComponentInstance"),
+        asset_interfaces_mapping_configuration=OperationalOpcuaMappings(
             id_short="AssetInterfacesMappingConfiguration",
         ),
         variables=OperationalVariables(id_short="Variables"),
     )
-    mqtt = resource.asset_interfaces_description.InterfaceTemplateForMQTT["interface_mqtt"]
-    mqtt.title.value = "IMA Dispensing System"
-    mqtt.EndpointMetadata.base.value = f"{BROKER}/{SITE}/Dispensing/"
+    opcua = resource.asset_interfaces_description.InterfaceTemplateForOPCUA[OPCUA_INTERFACE]
+    opcua.title.value = "IMA Dispensing System"
+    opcua.EndpointMetadata.base.value = "opc.tcp://dispensing-station:4840/dispensing/"
     resource.parameters.parameter["Location"].x.parameter.value = 240.0
+    interaction = opcua.InteractionMetadata
+    mappings = resource.asset_interfaces_mapping_configuration.MappingConfigurations.value
+
+    # Dispensing: the Method Station.Dispensing(Uuid, Volume) -> commandResponse.
     name = "Dispensing"
-    interaction = resource.asset_interfaces_description.InterfaceTemplateForMQTT[
-        "interface_mqtt"
-    ].InteractionMetadata
-    # The native IMA command only carries Uuid; process-domain parameters are
-    # not silently inferred from the Dispensing capability.
-    input_url = f"{SCHEMA_BASE}/command.schema.json"
-    output_url = f"{SCHEMA_BASE}/commandResponse.schema.json"
-    interaction.actions.property_name[name] = mqtt_action(
-        name, synchronous=True,
-        input_schema=load_schema(input_url), input_schema_url=input_url,
-        output_schema=load_schema(output_url), output_schema_url=output_url,
+    interaction.actions.property_name[name] = opcua_action(
+        name, f"{OPCUA_STATION}.{name}", OPCUA_STATION,
+        input_schema=DISPENSE_COMMAND, input_schema_url=None,
     )
     cci = resource.control_component_instance
-    skill = ExtendedSkill(
+    cci.Skills.Skill[name] = ExtendedSkill(
         id_short=name, interface_reference=ReferenceElement(
-            semantic_id=EXTENDED_SKILL_INTERFACE_REF, value=native_action_ref(name),
+            semantic_id=EXTENDED_SKILL_INTERFACE_REF, value=affordance_ref(OPCUA_INTERFACE, "actions", name),
         ),
         operation=SkillOperation(
             id_short="operation", qualifiers=[
                 Qualifier(type_="invocationDelegation", value=f"{INVOCATION_ORIGIN}/operations/{{aas_id_short}}/{{skill}}", value_type="xs:string", kind="ConceptQualifier"),
                 Qualifier(type_="Synchronous", value="true", value_type="xs:string", kind="ConceptQualifier"),
             ],
-            in_output_variable=[OperationVariableProp(id_short="Uuid", description="The UUID of the command")],
+            input_variable=[Property(id_short="Volume", value="1.0", value_type="xs:double", description="The volume to dispense in ml")],
+            in_output_variable=[Property(id_short="Uuid", description="The UUID of the command")],
             output_variable=[
-                OperationVariableProp(id_short="State", description="The state of the command being executed"),
-                OperationVariableProp(id_short="Outcome", value="0", value_type="xs:integer"),
+                Property(id_short="State", description="The state of the command being executed"),
+                Property(id_short="Outcome", value="0", value_type="xs:integer", qualifiers=[OptionalVariable()]),
             ],
         ),
     )
-    cci.Skills.Skill[name] = skill
-    cci.Endpoints.Endpoint[name] = SkillInterfaceRelationship(id_short=name, first=skill_ref(name), second=native_action_ref(name))
-    mappings = resource.asset_interfaces_mapping_configuration.MappingConfigurations.value
+    cci.Endpoints.Endpoint[name] = SkillInterfaceRelationship(
+        id_short=name, first=skill_ref(name), second=affordance_ref(OPCUA_INTERFACE, "actions", name),
+    )
+    # The mapping addresses the members of the Method's arguments: each
+    # InputArgument is a Sink, each OutputArgument a ResponseSource, and the
+    # Operation (its InOut and output variables) is the ResponseSink.
+    command = ("Uuid", "Volume")
+    reply = ("Uuid", "State", "Outcome")
     mappings.append(AimcMappingConfiguration(
         id_short=name, DefaultPollingInterval=DefaultPollingInterval(value="0.0"),
         Sources=Sources(value=[SourcesItem(id_short=name, Source=Source(value=operation_ref(name)), SourceId=SourceId(value=name))]),
-        Sinks=Sinks(value=[SinksItem(id_short=name, Sink=Sink(value=_mqtt_action_ref(name)), SinkId=SinkId(value=name))]),
+        Sinks=Sinks(value=[SinksItem(
+            id_short=member, SinkId=SinkId(value=member),
+            Sink=Sink(value=action_member_ref(OPCUA_INTERFACE, name, "input", member)),
+        ) for member in command]),
         Transformation=Transformation(value=(
             f"function aimc_main(sources) local op = sources.{name} "
-            f"return {{ {name} = {{ Uuid = op.Uuid }} }} end"
+            f"return {{ Uuid = op.Uuid, Volume = op.Volume }} end"
         )),
+        ResponseSources=DmpResponseSources(value=[
+            response_source(member, action_member_ref(OPCUA_INTERFACE, name, "output", member))
+            for member in reply]),
+        # Outcome is an Optional output (as in the commandResponse): a nil Outcome is left out.
+        ResponseTransformation=DmpResponseTransformation(value=(
+            "function aimc_main(sources) return { Outputs = { Uuid = sources.Uuid, "
+            "State = sources.State, Outcome = sources.Outcome } } end"
+        )),
+        ResponseSinks=DmpResponseSinks(value=[response_sink("Outputs", operation_ref(name))]),
     ))
     container = resource.capability_description.CapabilitySet["Processing"].CapabilityContainer[name]
-    container.CapabilityRelations = CapabilityRelations(id_short="CapabilityRelations", CapabilityRealizedBy={f"RealizedBy_{name}": CapabilityRealizedBy(id_short=f"RealizedBy_{name}", first=ModelReference(key=(Key(type_="Submodel", value="{aas_id}/submodels/CapabilityDescription"), Key(type_="SubmodelElementCollection", value="Processing"), Key(type_="SubmodelElementCollection", value=name), Key(type_="Capability", value="Capability"))), second=ExternalReference(key=(Key(type_="GlobalReference", value=f"{{aas_id}}/submodels/ControlComponentInstance/Skills/{name}"),)))})
+    container.CapabilityRelations = CapabilityRelations(id_short="CapabilityRelations", CapabilityRealizedBy={f"RealizedBy_{name}": CapabilityRealizedBy(id_short=f"RealizedBy_{name}", first=ModelReference(key=(Key(type_="Submodel", value="{aas_id}/submodels/CapabilityDescription"), Key(type_="SubmodelElementCollection", value="Processing"), Key(type_="SubmodelElementCollection", value=name), Key(type_="Capability", value="Capability"))), second=skill_ref(name))})
 
-    weight_schema = f"{SCHEMA_BASE}/weight.schema.json"
-    interaction.properties.property_name["Weight"] = mqtt_property(
-        "Weight", "DATA/Weight", schema=load_schema(weight_schema), schema_url=weight_schema,
+    # Weight: the scale's reading, sampled every 100 ms while it changes.
+    weight = load_schema(f"{SCHEMA_BASE}/weight.schema.json")["properties"]["Weight"]
+    interaction.properties.property_name["Weight"] = opcua_property(
+        "Weight", f"{OPCUA_STATION}.Weight", schema={**weight, "unit": "g"},
     )
     resource.variables.variable["Weight"] = VariableProp(id_short="Weight", value_type="xs:double", value="0.0", supplemental_semantic_ids=[f"{CSSX}#Weight"])
     mappings.append(AimcMappingConfiguration(
         id_short="ObserveWeight", DefaultPollingInterval=DefaultPollingInterval(value="0.0"),
-        Sources=Sources(value=[SourcesItem(id_short="Weight", Source=Source(value=_property_ref("Weight")), SourceId=SourceId(value="Weight"))]),
-        Sinks=Sinks(value=[SinksItem(id_short="Weight", Sink=Sink(value=_variable_ref("Weight")), SinkId=SinkId(value="Weight"))]),
-        Transformation=Transformation(value="function aimc_main(sources) return { Weight = sources.Weight.Weight } end"),
+        Sources=Sources(value=[SourcesItem(id_short="Weight", Source=Source(value=affordance_ref(OPCUA_INTERFACE, "properties", "Weight")), SourceId=SourceId(value="Weight"), PollingInterval=PollingInterval(value="0.1"))]),
+        Sinks=Sinks(value=[SinksItem(id_short="Weight", Sink=Sink(value=variable_ref("Weight")), SinkId=SinkId(value="Weight"))]),
+        Transformation=Transformation(value="function aimc_main(sources) return { Weight = sources.Weight } end"),
     ))
     finalize_invocation_addresses(resource)
     return resource

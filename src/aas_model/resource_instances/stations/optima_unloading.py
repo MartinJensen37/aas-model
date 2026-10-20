@@ -1,5 +1,6 @@
 """Optima unloading station instance."""
 
+from aas_pydantic import Property
 from aas_model.constants import BASE_URL, BROKER, SITE
 from aas_model.resource_instances.site import SITE_ADDRESS
 from aas_pydantic.submodel_templates.nameplate import (
@@ -11,18 +12,18 @@ from aas_pydantic.submodel_templates.hierarchical_structures import (
     ArcheType, EntryNode, HierarchicalStructures, IsPartOf, Node,
 )
 from aas_model.resource_template.operational import (
-    OperationalMqttInterfaces, OperationalControlComponent,
-    OperationalMqttMappings, OperationalVariables,
+    OperationalMqttInterfaces, OperationalMqttControlComponent,
+    OperationalMqttMappings, OperationalVariables, command_reply,
 )
 from aas_model.resource_template.stations import UnloadingStation
 from aas_model.constants import INVOCATION_ORIGIN, SCHEMA_BASE
 from aas_model.json_schema_aid import load_schema
 from aas_pydantic import ExternalReference, Key, ModelReference, Qualifier, ReferenceElement
 from aas_model.submodel_templates import AimcMappingConfiguration, Transformation
-from aas_model.resource_template.asset_interfaces_description import mqtt_action
+from aas_model.resource_template.asset_interfaces_description import MQTT_INTERFACE, affordance_ref, mqtt_action
 from aas_model.submodel_templates.control_component_instance import EXTENDED_SKILL_INTERFACE_REF
 from aas_model.submodel_templates.control_component_instance import (
-    ExtendedSkill, SkillOperation, SkillInterfaceRelationship, OperationVariableProp,
+    ExtendedSkill, SkillOperation, SkillInterfaceRelationship, OptionalVariable,
 )
 from aas_pydantic.submodel_templates.asset_interfaces_mapping_configuration import (
     Sources, Sinks, SourcesItem, SinksItem, Source, SourceId, Sink, SinkId,
@@ -30,8 +31,8 @@ from aas_pydantic.submodel_templates.asset_interfaces_mapping_configuration impo
 )
 from aas_pydantic.submodel_templates.capability_description import CapabilityRelations, CapabilityRealizedBy
 from aas_model.invocation_authoring import finalize_invocation_addresses
-from aas_model.resource_template.control_component_instance import native_action_ref, skill_ref
-from aas_model.resource_template.asset_interfaces_mapping_configuration import operation_ref, _mqtt_action_ref
+from aas_model.resource_template.control_component_instance import skill_ref
+from aas_model.resource_template.asset_interfaces_mapping_configuration import operation_ref
 
 
 def optima_unloading() -> UnloadingStation:
@@ -64,7 +65,7 @@ def optima_unloading() -> UnloadingStation:
             ),
         ),
         asset_interfaces_description=OperationalMqttInterfaces(id_short="AssetInterfacesDescription"),
-        control_component_instance=OperationalControlComponent(id_short="ControlComponentInstance"),
+        control_component_instance=OperationalMqttControlComponent(id_short="ControlComponentInstance"),
         asset_interfaces_mapping_configuration=OperationalMqttMappings(
             id_short="AssetInterfacesMappingConfiguration",
         ),
@@ -90,25 +91,26 @@ def optima_unloading() -> UnloadingStation:
         operation = SkillOperation(id_short="operation", qualifiers=[
             Qualifier(type_="invocationDelegation", value=f"{INVOCATION_ORIGIN}/operations/{{aas_id_short}}/{{skill}}", value_type="xs:string", kind="ConceptQualifier"),
             Qualifier(type_="Synchronous", value="true", value_type="xs:string", kind="ConceptQualifier"),
-        ], in_output_variable=[OperationVariableProp(id_short="Uuid", description="The UUID of the command")], output_variable=[
-            OperationVariableProp(id_short="State", description="The state of the command being executed"),
-            OperationVariableProp(id_short="Outcome", value="0", value_type="xs:integer"),
+        ], in_output_variable=[Property(id_short="Uuid", description="The UUID of the command")], output_variable=[
+            Property(id_short="State", description="The state of the command being executed"),
+            Property(id_short="Outcome", value="0", value_type="xs:integer", qualifiers=[OptionalVariable()]),
         ])
         skill = ExtendedSkill(id_short=name, interface_reference=ReferenceElement(
-            semantic_id=EXTENDED_SKILL_INTERFACE_REF, value=native_action_ref(name),
+            semantic_id=EXTENDED_SKILL_INTERFACE_REF, value=affordance_ref(MQTT_INTERFACE, "actions", name),
         ), operation=operation)
         cci.Skills.Skill[name] = skill
-        cci.Endpoints.Endpoint[name] = SkillInterfaceRelationship(id_short=name, first=skill_ref(name), second=native_action_ref(name))
+        cci.Endpoints.Endpoint[name] = SkillInterfaceRelationship(id_short=name, first=skill_ref(name), second=affordance_ref(MQTT_INTERFACE, "actions", name))
         mappings.append(AimcMappingConfiguration(
             id_short=name, DefaultPollingInterval=DefaultPollingInterval(value="0.0"),
             Sources=Sources(value=[SourcesItem(id_short=name, Source=Source(value=operation_ref(name)), SourceId=SourceId(value=name))]),
-            Sinks=Sinks(value=[SinksItem(id_short=name, Sink=Sink(value=_mqtt_action_ref(name)), SinkId=SinkId(value=name))]),
+            Sinks=Sinks(value=[SinksItem(id_short=name, Sink=Sink(value=affordance_ref(MQTT_INTERFACE, "actions", name)), SinkId=SinkId(value=name))]),
             Transformation=Transformation(value=(
                 f"function aimc_main(sources) local op = sources.{name} "
                 f"return {{ {name} = {{ Uuid = op.Uuid }} }} end"
             )),
+            **command_reply(MQTT_INTERFACE, name, outputs=("Uuid", "State", "Outcome")),
         ))
         container = resource.capability_description.CapabilitySet["Handling"].CapabilityContainer[name]
-        container.CapabilityRelations = CapabilityRelations(id_short="CapabilityRelations", CapabilityRealizedBy={f"RealizedBy_{name}": CapabilityRealizedBy(id_short=f"RealizedBy_{name}", first=ModelReference(key=(Key(type_="Submodel", value="{aas_id}/submodels/CapabilityDescription"), Key(type_="SubmodelElementCollection", value="Handling"), Key(type_="SubmodelElementCollection", value=name), Key(type_="Capability", value="Capability"))), second=ExternalReference(key=(Key(type_="GlobalReference", value=f"{{aas_id}}/submodels/ControlComponentInstance/Skills/{name}"),)))})
+        container.CapabilityRelations = CapabilityRelations(id_short="CapabilityRelations", CapabilityRealizedBy={f"RealizedBy_{name}": CapabilityRealizedBy(id_short=f"RealizedBy_{name}", first=ModelReference(key=(Key(type_="Submodel", value="{aas_id}/submodels/CapabilityDescription"), Key(type_="SubmodelElementCollection", value="Handling"), Key(type_="SubmodelElementCollection", value=name), Key(type_="Capability", value="Capability"))), second=skill_ref(name))})
     finalize_invocation_addresses(resource)
     return resource

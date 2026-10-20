@@ -25,17 +25,19 @@ from aas_pydantic.submodel_templates.nameplate import (
     YearOfConstruction, CountryOfOrigin,
 )
 from aas_model.resource_template.software import MqttSoftwareResource
-from aas_model.resource_template.asset_interfaces_description import mqtt_action, mqtt_property
+from aas_model.resource_template.asset_interfaces_description import MQTT_INTERFACE, affordance_ref, mqtt_action, mqtt_property
 from aas_model.submodel_templates.control_component_instance import (
-    ExtendedSkill, SkillOperation, SkillInterfaceRelationship, OperationVariableProp,
+    ExtendedSkill, SkillOperation, SkillInterfaceRelationship,
 )
 from aas_model.submodel_templates.variables import VariableProp
 from aas_model.submodel_templates.aimc import DmpMappingConfiguration
 from aas_model.submodel_templates import Transformation
 from aas_model.resource_template.asset_interfaces_mapping_configuration import (
-    _property_ref, _variable_ref, operation_ref, _mqtt_action_ref,
+    variable_ref, operation_ref,
 )
 from aas_model.invocation_authoring import finalize_invocation_addresses
+from aas_model.resource_template.control_component_instance import skill_ref
+from aas_model.resource_template.operational import command_reply
 from aas_model.submodel_templates.aid import (
     DmpAction, DmpActionInput, DmpActionOutput, DmpActions, DmpForm, DmpHttpInterface,
 )
@@ -93,15 +95,16 @@ def orchestrator() -> MqttSoftwareResource:
         skill.operation = SkillOperation(id_short="operation", qualifiers=[
             Qualifier(type_="invocationDelegation", value=f"{INVOCATION_ORIGIN}/operations/{{aas_id_short}}/{{skill}}", value_type="xs:string", kind="ConceptQualifier"),
             Qualifier(type_="Synchronous", value="true", value_type="xs:string", kind="ConceptQualifier"),
-        ], in_output_variable=[OperationVariableProp(id_short="Uuid", description="The UUID of the command")], output_variable=[OperationVariableProp(id_short="State", description="The state of the command being executed")])
+        ], in_output_variable=[Property(id_short="Uuid", description="The UUID of the command")], output_variable=[Property(id_short="State", description="The state of the command being executed")])
         mapping = DmpMappingConfiguration(
             id_short=name, DefaultPollingInterval=DefaultPollingInterval(value="0.0"),
             Transformation=Transformation(value=f"function aimc_main(sources) local op = sources.{name} return {{ {name} = {{ Uuid = op.Uuid }} }} end"),
             Sources=Sources(value=[SourcesItem(id_short=name, Source=SourceReference(value=operation_ref(name)), SourceId=SourceId(value=name))]),
-            Sinks=Sinks(value=[SinksItem(id_short=name, Sink=SinkReference(value=_mqtt_action_ref(name)), SinkId=SinkId(value=name))]),
+            Sinks=Sinks(value=[SinksItem(id_short=name, Sink=SinkReference(value=affordance_ref(MQTT_INTERFACE, "actions", name)), SinkId=SinkId(value=name))]),
+            **command_reply(MQTT_INTERFACE, name),
         )
         if name in ("Start", "Unsuspend"):
-            skill.operation.input_variable = [OperationVariableProp(id_short="Process")]
+            skill.operation.input_variable = [Property(id_short="Process")]
             mapping.Transformation.value = (
                 f"function aimc_main(sources) local op = sources.{name} "
                 f"return {{ {name} = {{ Uuid = op.Uuid, Process = op.Process }} }} end"
@@ -112,7 +115,7 @@ def orchestrator() -> MqttSoftwareResource:
     resource.capability_description.CapabilitySet = {
         "Coordination": CapabilitySet(id_short="Coordination", CapabilityContainer={
             "Orchestrate": CapabilityContainer(id_short="Orchestrate", Capability=Capability(id_short="Capability", semantic_id=f"{CSSX}#Orchestrate"), CapabilityRelations=CapabilityRelations(id_short="CapabilityRelations", CapabilityRealizedBy={
-                "RealizedBy_Start": CapabilityRealizedBy(id_short="RealizedBy_Start", first=ModelReference(key=(Key(type_="Submodel", value="{aas_id}/submodels/CapabilityDescription"), Key(type_="SubmodelElementCollection", value="Coordination"), Key(type_="SubmodelElementCollection", value="Orchestrate"), Key(type_="Capability", value="Capability"))), second=ExternalReference(key=(Key(type_="GlobalReference", value="{aas_id}/submodels/ControlComponentInstance/Skills/Start"),))),
+                "RealizedBy_Start": CapabilityRealizedBy(id_short="RealizedBy_Start", first=ModelReference(key=(Key(type_="Submodel", value="{aas_id}/submodels/CapabilityDescription"), Key(type_="SubmodelElementCollection", value="Coordination"), Key(type_="SubmodelElementCollection", value="Orchestrate"), Key(type_="Capability", value="Capability"))), second=skill_ref("Start")),
             }))
         })
     }
@@ -122,7 +125,7 @@ def orchestrator() -> MqttSoftwareResource:
     state = mqtt_property("State", "DATA/State", schema=load_schema(state_url), schema_url=state_url)
     interaction.properties.property_name["State"] = state
     # Software doesn't have station ProcessQueue; declare only actual telemetry.
-    mappings.append(DmpMappingConfiguration(id_short="ObserveState", DefaultPollingInterval=DefaultPollingInterval(value="0.0"), Transformation=Transformation(value="function aimc_main(sources) return { PackMLState = sources.State.State } end"), Sources=Sources(value=[SourcesItem(id_short="State", Source=SourceReference(value=_property_ref("State")), SourceId=SourceId(value="State"))]), Sinks=Sinks(value=[SinksItem(id_short="PackMLState", Sink=SinkReference(value=_variable_ref("PackMLState")), SinkId=SinkId(value="PackMLState"))])))
+    mappings.append(DmpMappingConfiguration(id_short="ObserveState", DefaultPollingInterval=DefaultPollingInterval(value="0.0"), Transformation=Transformation(value="function aimc_main(sources) return { PackMLState = sources.State.State } end"), Sources=Sources(value=[SourcesItem(id_short="State", Source=SourceReference(value=affordance_ref(MQTT_INTERFACE, "properties", "State")), SourceId=SourceId(value="State"))]), Sinks=Sinks(value=[SinksItem(id_short="PackMLState", Sink=SinkReference(value=variable_ref("PackMLState")), SinkId=SinkId(value="PackMLState"))])))
 
     http = DmpHttpInterface(
         id_short="interface_http",

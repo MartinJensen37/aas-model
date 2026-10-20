@@ -1,5 +1,6 @@
 """Typed, independently copied defaults of the AAU planar-shuttle type."""
 
+from aas_pydantic import Property
 from aas_pydantic import Capability, ExternalReference, Key, ModelReference, Qualifier, ReferenceElement
 from aas_pydantic.submodel_templates.capability_description import (
     CapabilityContainer, CapabilityDescription, CapabilityRealizedBy,
@@ -8,25 +9,26 @@ from aas_pydantic.submodel_templates.capability_description import (
 
 from aas_model.constants import CSSX, INVOCATION_ORIGIN, SCHEMA_BASE
 from aas_model.json_schema_aid import load_schema
-from aas_model.resource_template.asset_interfaces_description import mqtt_action, mqtt_property
-from aas_model.resource_template.asset_interfaces_mapping_configuration import (
-    _mqtt_action_ref, _property_ref, _variable_ref, mapping_configuration,
-    operation_ref, sink, source,
+from aas_model.resource_template.asset_interfaces_description import (
+    MQTT_INTERFACE, affordance_ref, mqtt_action, mqtt_property,
 )
-from aas_model.resource_template.control_component_instance import native_action_ref, skill_ref
+from aas_model.resource_template.asset_interfaces_mapping_configuration import (
+    mapping_configuration, operation_ref, sink, source, variable_ref,
+)
+from aas_model.resource_template.control_component_instance import skill_ref
 from aas_model.resource_template.operational import (
-    OperationalControlComponent, OperationalMqttInterfaces,
-    OperationalMqttMappings, OperationalVariables,
+    OperationalMqttControlComponent, OperationalMqttInterfaces,
+    OperationalMqttMappings, OperationalVariables, command_reply,
 )
 from aas_model.submodel_templates.control_component_instance import (
-    EXTENDED_SKILL_INTERFACE_REF, ExtendedSkill, OperationVariableProp,
+    EXTENDED_SKILL_INTERFACE_REF, ExtendedSkill, OptionalVariable,
     SkillInterfaceRelationship, SkillOperation,
 )
 from aas_model.submodel_templates.variables import VariableItem, VariableProp
 
 
 planar_interfaces = OperationalMqttInterfaces(id_short="AssetInterfacesDescription")
-_interaction = planar_interfaces.InterfaceTemplateForMQTT["interface_mqtt"].InteractionMetadata
+_interaction = planar_interfaces.InterfaceTemplateForMQTT[MQTT_INTERFACE].InteractionMetadata
 _url = f"{SCHEMA_BASE}/moveToPosition.schema.json"
 _interaction.actions.property_name["MoveToPosition"] = mqtt_action(
     "MoveToPosition", synchronous=False, input_schema=load_schema(_url), input_schema_url=_url,
@@ -41,12 +43,12 @@ _interaction.properties.property_name["ProductID"] = mqtt_property(
 )
 
 
-planar_control = OperationalControlComponent(id_short="ControlComponentInstance")
+planar_control = OperationalMqttControlComponent(id_short="ControlComponentInstance")
 planar_control.Skills.Skill["MoveToPosition"] = ExtendedSkill(
     id_short="MoveToPosition",
     interface_reference=ReferenceElement(
         semantic_id=EXTENDED_SKILL_INTERFACE_REF,
-        value=native_action_ref("MoveToPosition"),
+        value=affordance_ref(MQTT_INTERFACE, "actions", "MoveToPosition"),
     ),
     operation=SkillOperation(
         id_short="operation",
@@ -59,21 +61,21 @@ planar_control.Skills.Skill["MoveToPosition"] = ExtendedSkill(
                 type_="Asynchronous", kind="ConceptQualifier", value_type="xs:string", value="false",
             ),
         ],
-        in_output_variable=[OperationVariableProp(id_short="Uuid", description="The UUID of the command")],
+        in_output_variable=[Property(id_short="Uuid", description="The UUID of the command")],
         input_variable=[
-            OperationVariableProp(id_short=axis, value_type="xs:double", value="0.0")
+            Property(id_short=axis, value_type="xs:double", value="0.0")
             for axis in ("X", "Y", "Theta")
         ],
         output_variable=[
-            OperationVariableProp(id_short="State", description="The state of the command being executed"),
-            OperationVariableProp(id_short="Outcome", value_type="xs:integer", value="0"),
+            Property(id_short="State", description="The state of the command being executed"),
+            Property(id_short="Outcome", value_type="xs:integer", value="0", qualifiers=[OptionalVariable()]),
         ],
     ),
 )
 planar_control.Endpoints.Endpoint["MoveToPosition"] = SkillInterfaceRelationship(
     id_short="MoveToPosition",
     first=skill_ref("MoveToPosition"),
-    second=native_action_ref("MoveToPosition"),
+    second=affordance_ref(MQTT_INTERFACE, "actions", "MoveToPosition"),
 )
 
 
@@ -94,10 +96,7 @@ planar_capabilities = CapabilityDescription(
                         Key(type_="SubmodelElementCollection", value="MoveToPosition"),
                         Key(type_="Capability", value="Capability"),
                     )),
-                    second=ExternalReference(key=(Key(
-                        type_="GlobalReference",
-                        value="{aas_id}/submodels/ControlComponentInstance/Skills/MoveToPosition",
-                    ),)),
+                    second=skill_ref("MoveToPosition"),
                 )},
             ),
         )},
@@ -122,23 +121,23 @@ planar_mappings.MappingConfigurations.value.extend([
     mapping_configuration(
         id_short="MoveToPosition",
         sources=[source("MoveToPosition", operation_ref("MoveToPosition"))],
-        sinks=[sink("MoveToPosition", _mqtt_action_ref("MoveToPosition"))],
+        sinks=[sink("MoveToPosition", affordance_ref(MQTT_INTERFACE, "actions", "MoveToPosition"))],
         transformation="""function aimc_main(sources)
     local op = sources.MoveToPosition
     return { MoveToPosition = { Uuid = op.Uuid, Position = {op.X, op.Y, op.Theta} } }
 end
 """,
-    ),
+    ).model_copy(update=command_reply(MQTT_INTERFACE, "MoveToPosition", outputs=("Uuid", "State", "Outcome"))),
     mapping_configuration(
         id_short="ObserveLocation",
-        sources=[source("Location", _property_ref("Location"))],
+        sources=[source("Location", affordance_ref(MQTT_INTERFACE, "properties", "Location"))],
         sinks=[
             sink(f"Location_{axis}", ModelReference(key=(
                 Key(type_="Submodel", value="{aas_id}/submodels/Variables"),
                 Key(type_="SubmodelElementCollection", value="Location"),
                 Key(type_="Property", value=axis),
             ))) for axis in ("x", "y", "yaw")
-        ] + [sink(name, _variable_ref(name)) for name in ("PositionX", "PositionY")],
+        ] + [sink(name, variable_ref(name)) for name in ("PositionX", "PositionY")],
         transformation="""function aimc_main(sources)
     local position = sources.Location.Position
     return {
@@ -150,9 +149,9 @@ end
     ),
     mapping_configuration(
         id_short="ObserveProductID",
-        sources=[source("ProductID", _property_ref("ProductID"))],
+        sources=[source("ProductID", affordance_ref(MQTT_INTERFACE, "properties", "ProductID"))],
         sinks=[
-            sink("ProductID", _variable_ref("ProductID")),
+            sink("ProductID", variable_ref("ProductID")),
             sink("ProductIDParameter", ModelReference(key=(
                 Key(type_="Submodel", value="{aas_id}/submodels/Parameters"),
                 Key(type_="Property", value="ProductID"),

@@ -14,9 +14,13 @@ request/reply on the correlation data, HTTP):
 
 1. **command** — the IDTA ``Transformation`` turns the caller's variables into
    the command; the IDTA ``Sinks`` address the action;
-2. **response** — ``ResponseSources`` select members of the action's output,
-   the ``ResponseTransformation`` builds the caller's reply and
-   ``ResponseSinks`` are written, best effort.
+2. **response** — ``ResponseSources`` select the action's output or members
+   of it, the ``ResponseTransformation`` maps them, and ``ResponseSinks``
+   receive the result: the one selecting the Operation is the caller's reply
+   (its output and InOut variables), the others are written best effort. The
+   three are authored together. An Operation with output or InOut variables
+   needs them; nothing is matched by name. Without them the Operation answers
+   with no outputs (an invoke-only action such as Halt).
 
 Multi-step device sequences (set parameters, trigger, poll a status, read a
 result, reset) are not modelled here; the higher-level control orchestrates
@@ -58,12 +62,12 @@ from aas_pydantic.submodel_templates.asset_interfaces_mapping_configuration impo
 
 
 class DmpResponseTransformation(Blob):
-    """Response phase: ResponseSources → the caller's reply (keyed by the
-    caller SinkId) and the ResponseSink values. Called as
-    ``aimc_main(sources, invocation)``; ``invocation.status`` is ``"done"`` or
-    ``"failed"`` after a status phase."""
+    """Response phase: the action's reply, projected by the ResponseSources →
+    the ResponseSink values keyed by SinkId; the SinkId of the ResponseSink
+    selecting the Operation carries the caller's outputs. Called as
+    ``aimc_main(sources)``."""
     semantic_id: str = AIMC_RESPONSE_TRANSFORMATION
-    description: str = "The optional response-direction transformation of an operation mapping: the response sources are transformed into the caller's reply and the response sink values. Must contain an \"aimc_main(sources, invocation)\" entrypoint function in Lua; invocation.status is \"done\" or \"failed\" after a status phase. When absent the device reply passes through unchanged."
+    description: str = "The response-direction transformation of an operation mapping: the action's reply, projected by the response sources, is transformed into the response sink values; the response sink selecting the Operation receives the caller's outputs. Must contain an \"aimc_main(sources)\" entrypoint function in Lua. Authored together with the response sources and sinks; without them the Operation answers with no outputs."
     content_type: str = "text/plain"
 
 
