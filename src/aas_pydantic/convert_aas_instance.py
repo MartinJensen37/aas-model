@@ -888,6 +888,9 @@ def convert_submodel_collection_to_pydantic_model(
         aas_model.SubmodelElementCollection: Pydantic model of the submodel element collection.
     """
     dict_model_instantiation = get_initial_dict_for_model_instantiation(sm_element)
+    if model_type is None:
+        # No class declares this collection's children (AAS JSON carries none).
+        model_type = aas_model.DynamicSubmodelElementCollection
 
     if _is_container_style_model(model_type, "value"):
         # Container-style SMC — children populate ``value`` keyed by id_short.
@@ -966,6 +969,7 @@ def convert_submodel_list_to_pydantic_model(
                 ),
                 "semantic_id": convert_util.get_semantic_id_value_of_model(sm_element),
                 "supplemental_semantic_ids": _element_supplemental_sids(sm_element),
+                "qualifiers": _convert_basyx_qualifiers(getattr(sm_element, "qualifier", None) or ()),
                 "value": dumped,
                 "type_value_list_element": (
                     sm_element.type_value_list_element.__name__
@@ -1192,10 +1196,11 @@ def convert_operation_to_pydantic_model(
     that: ``Operation.input_variable`` etc. are ``List[SubmodelElement]``.
     """
     def _convert_vars(variables) -> list:
-        result = []
-        for var in variables or ():
-            result.append(get_submodel_element_value(var))
-        return result
+        # A variable is an element: a list variable stays a SubmodelElementList
+        # (with its metadata and qualifiers), not a bare Python list.
+        return [get_submodel_element_value(var, aas_model.SubmodelElementList
+                                           if isinstance(var, model.SubmodelElementList) else None)
+                for var in variables or ()]
 
     return aas_model.Operation(
         **_element_meta(sm_element),

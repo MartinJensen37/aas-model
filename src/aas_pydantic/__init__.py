@@ -3,7 +3,7 @@ from aas_pydantic.aas_model import (
     ModelReference, MultiLanguageProperty, Operation,
     Property, Qualifier, Range, Reference, ReferenceElement, RelationshipElement,
     Submodel, SubmodelElement, SubmodelElementCollection, SubmodelElementList,
-    Cardinality, validate_idta_cardinality,
+    Cardinality, DynamicSubmodelElementCollection, validate_idta_cardinality,
 )
 from aas_pydantic.convert_aas_instance import (
     convert_object_store_to_pydantic_models,

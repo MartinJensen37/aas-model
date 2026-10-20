@@ -428,6 +428,19 @@ class SubmodelElementCollection(SubmodelElement):
         return self
 
 
+class DynamicSubmodelElementCollection(SubmodelElementCollection):
+    """An SMC whose children no class declares: ``value`` maps each child's
+    idShort to its element. A collection read from AAS JSON without a model
+    class to target (e.g. a structured Operation variable) parses into it;
+    authors may build one directly, too."""
+    id_short: AasIdString = "DynamicSubmodelElementCollection"
+    value: Dict[str, SubmodelElement] = {}
+
+    @field_serializer("value")
+    def _ser_value_lossless(self, v, _info):
+        return _dump_container(v)
+
+
 class SubmodelElementList(SubmodelElement):
     """Pydantic model for an AAS SubmodelElementList.
 
@@ -516,6 +529,20 @@ class Operation(SubmodelElement):
     @field_serializer("input_variable", "output_variable", "in_output_variable")
     def _ser_variables_lossless(self, v, _info):
         return _dump_container(v)
+
+    @model_validator(mode="before")
+    @classmethod
+    def _coerce_variables(cls, data):
+        """A variable is any SubmodelElement (AAS ``OperationVariable.value``):
+        resolve raw dicts into their concrete element — a dump's ``modelType``
+        tag, or AAS JSON's — as the lossless serializer above wrote them."""
+        if not isinstance(data, dict):
+            return data
+        data = dict(data)
+        for key in ("input_variable", "output_variable", "in_output_variable"):
+            if isinstance(data.get(key), list):
+                data[key] = [coerce_submodel_element(v) for v in data[key]]
+        return data
 
 
 class Capability(SubmodelElement):
