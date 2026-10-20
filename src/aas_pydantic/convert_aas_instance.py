@@ -5,6 +5,7 @@ from pydantic import BaseModel, TypeAdapter
 
 from aas_pydantic import aas_model, convert_util
 from basyx.aas import model
+from basyx.aas.model import datatypes
 
 
 from aas_pydantic.convert_util import (
@@ -1054,7 +1055,7 @@ def _convert_basyx_qualifiers(basyx_qualifiers: typing.Iterable[model.Qualifier]
         result.append(
             aas_model.Qualifier(
                 type_=q.type,
-                value="" if q.value is None else str(q.value),
+                value="" if q.value is None else datatypes.xsd_repr(q.value),
                 value_type=convert_util.convert_basyx_value_type_to_xsd(q.value_type),
                 value_id=(
                     q.value_id.key[0].value
@@ -1123,7 +1124,8 @@ def convert_property_to_pydantic_model(
     """
     return aas_model.Property(
         **_element_meta(sm_element),
-        value="" if sm_element.value is None else str(sm_element.value),
+        # The XSD lexical form ("false", not Python's "False").
+        value="" if sm_element.value is None else datatypes.xsd_repr(sm_element.value),
         value_type=convert_util.convert_basyx_value_type_to_xsd(sm_element.value_type),
     )
 

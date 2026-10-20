@@ -785,10 +785,12 @@ def _make_qualifiers(qds: list) -> list:
         # Handle both Qualifier model instances and raw dicts (from json_schema_extra)
         if hasattr(qd, 'type_'):
             # Qualifier model instance
+            value_type = XSD_TYPE_CLASSES.get(qd.value_type, datatypes.String)
             kwargs = {
                 "type_": qd.type_,
-                "value_type": XSD_TYPE_CLASSES.get(qd.value_type, datatypes.String),
-                "value": qd.value,
+                "value_type": value_type,
+                # The value's lexical form, typed as its value_type declares (basyx casts strictly).
+                "value": from_xsd(qd.value, value_type) if isinstance(qd.value, str) and qd.value else qd.value,
                 "value_id": (
                     _make_external_reference(qd.value_id) if qd.value_id else None
                 ),
