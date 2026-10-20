@@ -165,13 +165,13 @@ def test_aimc_execution_semantics_round_trip_and_authors_source_ids():
 
 def test_resource_mapping_configuration_accepts_trigger_source_ids():
     from aas_model.resource_template.asset_interfaces_mapping_configuration import (
-        mapping_configuration, source, sink, operation_ref, _variable_ref,
+        mapping_configuration, source, sink, operation_ref, variable_ref,
     )
 
     mapping = mapping_configuration(
         id_short="Triggered",
         sources=[source("invoke", operation_ref("Start"))],
-        sinks=[sink("result", _variable_ref("PackMLState"))],
+        sinks=[sink("result", variable_ref("PackMLState"))],
         transformation="function aimc_main(sources) return sources end",
         trigger_source_ids=["invoke"],
     )

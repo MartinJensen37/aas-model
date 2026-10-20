@@ -1,6 +1,6 @@
 """AIMC reference paths and schema-preserving mapping construction.
 
-Fixed MQTT/PackML mappings are declared in ``operational.submodels``.
+Fixed PackML mappings (MQTT and OPC UA) are declared in ``operational.submodels``.
 """
 
 from __future__ import annotations
@@ -24,37 +24,12 @@ from aas_model.submodel_templates import (
 )
 
 # ── Reference paths (self-referential — {aas_id} resolved by id_injector) ──
-AID_REF = "{aas_id}/submodels/AssetInterfacesDescription"
+# AID affordances are referenced with ``asset_interfaces_description.affordance_ref``.
 CCI_REF = "{aas_id}/submodels/ControlComponentInstance"
 VARIABLES_REF = "{aas_id}/submodels/Variables"
 
-AID_PROPERTY_PATH = (
-    Key(type_="Submodel", value=AID_REF),
-    Key(type_="SubmodelElementCollection", value="interface_mqtt"),
-    Key(type_="SubmodelElementCollection", value="InteractionMetadata"),
-    Key(type_="SubmodelElementCollection", value="properties"),
-)
 
-AID_MQTT_ACTION_PATH = (
-    Key(type_="Submodel", value=AID_REF),
-    Key(type_="SubmodelElementCollection", value="interface_mqtt"),
-    Key(type_="SubmodelElementCollection", value="InteractionMetadata"),
-    Key(type_="SubmodelElementCollection", value="actions"),
-)
-
-VARIABLE_PATH = (
-    Key(type_="Submodel", value=VARIABLES_REF),
-)
-
-
-def _property_ref(property_name: str) -> ModelReference:
-    """Reference to an AID property (source) — e.g. .../properties/StationState."""
-    return ModelReference(key=AID_PROPERTY_PATH + (
-        Key(type_="SubmodelElementCollection", value=property_name),
-    )).model_copy(deep=True)
-
-
-def _variable_ref(variable_name: str) -> ModelReference:
+def variable_ref(variable_name: str) -> ModelReference:
     """Reference to a Variables submodel element (sink) — e.g. .../Variables/PackMLState.
 
     A variable is a plain ``Property`` (a group is only used when a variable
@@ -62,16 +37,10 @@ def _variable_ref(variable_name: str) -> ModelReference:
     submodel actually stores — the resolver verifies reference key types against
     the repository and rejects a mismatch.
     """
-    return ModelReference(key=VARIABLE_PATH + (
+    return ModelReference(key=(
+        Key(type_="Submodel", value=VARIABLES_REF),
         Key(type_="Property", value=variable_name),
-    )).model_copy(deep=True)
-
-
-def _mqtt_action_ref(name: str) -> ModelReference:
-    """Reference to a skill's native MQTT command affordance (interface_mqtt)."""
-    return ModelReference(key=AID_MQTT_ACTION_PATH + (
-        Key(type_="SubmodelElementCollection", value=name),
-    )).model_copy(deep=True)
+    ))
 
 
 def operation_ref(name: str) -> ModelReference:

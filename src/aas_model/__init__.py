@@ -24,6 +24,5 @@ from aas_model.id_injector import inject_ids  # noqa: F401
 from aas_model.resource_template import (  # noqa: F401
     Resource,
     ResourceTypeAAS,
-    asset_interfaces_description,
 )
 from aas_model.submodel_templates import *  # noqa: F401,F403

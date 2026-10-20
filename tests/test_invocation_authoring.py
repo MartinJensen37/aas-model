@@ -3,12 +3,12 @@ from pydantic import ValidationError
 
 from aas_model import Resource
 from aas_model.invocation_authoring import finalize_invocation_addresses
-from aas_model.resource_template import MqttOperationalStation as Station, extended_skill
+from aas_model.resource_template import MQTT_INTERFACE, MqttOperationalStation as Station, extended_skill
 
 
 def test_default_invocation_qualifiers_use_fixed_origin_and_encoded_segments():
     asset = Resource(id_short="Cell A/ß")
-    skill = extended_skill("Skill *~/A")
+    skill = extended_skill("Skill *~/A", MQTT_INTERFACE)
     asset.control_component_instance.Skills.Skill["Skill *~/A"] = skill
 
     finalize_invocation_addresses(asset)

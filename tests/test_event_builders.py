@@ -13,8 +13,9 @@ from aas_model.constants import (
     AID_EVENT_DATA, AID_EVENT_DEFINITION, AID_OPCUA_EVENT_FIELD, AID_OPCUA_EVENT_TYPE,
 )
 from aas_model.resource_template.asset_interfaces_description import (
-    add_event, mqtt_event, mqtt_interfaces, opcua_event,
+    add_event, mqtt_event, opcua_event,
 )
+from aas_model.resource_template.operational import MqttInterfaces
 from aas_model.submodel_templates.aid import DmpAssetInterfacesDescription
 from aas_model.testing import opcua_interface
 
@@ -37,7 +38,7 @@ def _events(serialized: dict, interface: str) -> dict:
 
 
 def test_mqtt_event_authors_only_what_differs_from_the_wot_defaults():
-    aid = mqtt_interfaces()
+    aid = MqttInterfaces(id_short="AssetInterfacesDescription")
     aid.id = "urn:test:aid"
     add_event(aid.InterfaceTemplateForMQTT["interface_mqtt"], mqtt_event(
         "Finished", "EVT/Finished", schema={"type": "object", "properties": {"Code": {"type": "integer"}}}))
@@ -57,7 +58,7 @@ def test_mqtt_event_authors_only_what_differs_from_the_wot_defaults():
 
 
 def test_interfaces_get_an_events_container_only_with_events():
-    aid = mqtt_interfaces()
+    aid = MqttInterfaces(id_short="AssetInterfacesDescription")
     aid.id = "urn:test:aid"
     interaction = _child(_child(_serialized(aid), "interface_mqtt"), "InteractionMetadata")
     assert "events" not in {child["idShort"] for child in interaction["value"]}

@@ -1,19 +1,22 @@
 """AID schema conversion and event authoring over the generated models.
 
-Fixed operational defaults are declared in ``operational.submodels``.
+Fixed operational defaults are declared in ``operational.submodels``; no
+protocol is a default.
 """
 
 from __future__ import annotations
 
 from typing import Any, Dict, Optional
 
+from aas_pydantic import Key, ModelReference
+
 from ..constants import SCHEMA_BASE
 from aas_model.json_schema_aid import datapoint_from_schema, load_schema, populate_datapoint
 from aas_model.submodel_templates.aid import (
-    DmpAssetInterfacesDescription, DmpActionInput, DmpActionOutput, DmpEvent, DmpEventData,
+    DmpAction, DmpActionInput, DmpActionOutput, DmpEvent, DmpEventData,
     DmpEvents, DmpProperty, MqttAction, MqvResponseTopic,
-    OpcuaEvent, OpcuaEventData, OpcuaEventField, OpcuaEventFields, OpcuaEvents,
-    ReadOnly, Synchronous, UavEventField, UavEventType,
+    OpcuaAction, OpcuaEvent, OpcuaEventData, OpcuaEventField, OpcuaEventFields, OpcuaEvents,
+    ReadOnly, Synchronous, UavComponentOf, UavEventField, UavEventType,
 )
 from aas_pydantic.submodel_templates.asset_interfaces_description import (
     ContentType as AIDContentType,
@@ -25,8 +28,29 @@ from aas_pydantic.submodel_templates.asset_interfaces_description import (
 )
 from ._helpers import put
 
+# The idShorts of an asset's one interface per protocol. No protocol is a
+# default: every reference into the AID names its interface.
+MQTT_INTERFACE = "interface_mqtt"
+OPCUA_INTERFACE = "interface_opcua"
+
+AID_REF = "{aas_id}/submodels/AssetInterfacesDescription"
+
+
+def affordance_ref(interface: str, kind: str, name: str) -> ModelReference:
+    """Reference to the affordance ``name`` of ``interface``; ``kind`` is
+    ``properties``, ``actions`` or ``events``. ``{aas_id}`` is resolved by
+    the id injector."""
+    return ModelReference(key=(
+        Key(type_="Submodel", value=AID_REF),
+        Key(type_="SubmodelElementCollection", value=interface),
+        Key(type_="SubmodelElementCollection", value="InteractionMetadata"),
+        Key(type_="SubmodelElementCollection", value=kind),
+        Key(type_="SubmodelElementCollection", value=name),
+    ))
+
+
 # Action command/response payloads — embedded as the WoT ``input``/``output``
-# DataSchemas of every MQTT action (Halt / Occupy / Release / Stoppering).
+# DataSchemas of every action (Halt / Occupy / Release / Stoppering / …).
 _COMMAND_SCHEMA = load_schema(f"{SCHEMA_BASE}/command.schema.json")
 _COMMAND_RESPONSE_SCHEMA = load_schema(f"{SCHEMA_BASE}/commandResponse.schema.json")
 
@@ -56,19 +80,11 @@ def mqtt_action(
     semantic id on the DataSchema it represents (``input`` / ``output``),
     not as a separate URL Property.
     """
-    action = MqttAction(id_short=name)
-    action.title = AIDTitle(id_short="title", value=name)
-    action.synchronous = Synchronous(value=str(synchronous).lower())
-    if input_schema is not None:
-        action.input = datapoint_from_schema(
-            input_schema, cls=DmpActionInput, schema_url=input_schema_url
-        )
-        action.input.id_short = "input"
-    if has_response and output_schema is not None:
-        action.output = datapoint_from_schema(
-            output_schema, cls=DmpActionOutput, schema_url=output_schema_url
-        )
-        action.output.id_short = "output"
+    action = _with_schemas(
+        MqttAction(id_short=name), synchronous,
+        input_schema, input_schema_url,
+        output_schema if has_response else None, output_schema_url,
+    )
     # op (invokeaction), mqv_controlPacket (publish) and mqv_retain (false)
     # are the WoT MQTT binding defaults for an action and are not authored.
     forms = action.forms
@@ -78,6 +94,51 @@ def mqtt_action(
         # MQTT 5 request/reply: the request carries this topic as its
         # Response Topic, and the result echoes the Correlation Data.
         forms.mqv_responseTopic = MqvResponseTopic(value=f"DATA/{name}")
+    return action
+
+
+def opcua_action(
+    name: str,
+    method: str,
+    component_of: str,
+    *,
+    synchronous: bool = True,
+    input_schema: Optional[Dict[str, Any]] = _COMMAND_SCHEMA,
+    output_schema: Optional[Dict[str, Any]] = _COMMAND_RESPONSE_SCHEMA,
+    input_schema_url: Optional[str] = COMMAND_SCHEMA_URL,
+    output_schema_url: Optional[str] = COMMAND_RESPONSE_SCHEMA_URL,
+) -> OpcuaAction:
+    """Build the OPC UA Method ``method`` (a NodeId) of the Object
+    ``component_of`` (OPC 10101 §7.1.3).
+
+    The members of ``input_schema``/``output_schema`` are the Method's
+    Input/OutputArguments by name, so a station answers a command with the
+    same members over OPC UA as over MQTT. A Call returns with the result,
+    hence ``synchronous`` by default.
+    """
+    action = _with_schemas(
+        OpcuaAction(id_short=name, uav_componentOf=UavComponentOf(value=component_of)),
+        synchronous, input_schema, input_schema_url, output_schema, output_schema_url,
+    )
+    action.forms.href.value = f"/?id={method}"
+    return action
+
+
+def _with_schemas(action: DmpAction, synchronous: bool,
+                  input_schema: Optional[Dict[str, Any]], input_schema_url: Optional[str],
+                  output_schema: Optional[Dict[str, Any]], output_schema_url: Optional[str]):
+    action.title = AIDTitle(id_short="title", value=action.id_short)
+    action.synchronous = Synchronous(value=str(synchronous).lower())
+    if input_schema is not None:
+        action.input = datapoint_from_schema(
+            input_schema, cls=DmpActionInput, schema_url=input_schema_url
+        )
+        action.input.id_short = "input"
+    if output_schema is not None:
+        action.output = datapoint_from_schema(
+            output_schema, cls=DmpActionOutput, schema_url=output_schema_url
+        )
+        action.output.id_short = "output"
     return action
 
 
@@ -115,6 +176,28 @@ def mqtt_property(
     if schema is not None:
         populate_datapoint(prop, schema, schema_url=schema_url)
     return prop
+
+
+def opcua_property(
+    name: str, node: str, *, schema: Dict[str, Any],
+    schema_url: Optional[str] = None, writable: bool = False,
+) -> DmpProperty:
+    """Build an observable OPC UA variable property on the NodeId ``node``.
+
+    ``observable`` makes the DMP subscribe a monitored item rather than poll;
+    unless ``writable`` the property is ``readOnly``. ``schema`` describes
+    the variable's value (a scalar or array schema for a built-in type).
+    """
+    prop = DmpProperty(id_short=name)
+    prop.key = AIDKey(id_short="key", value=name)
+    prop.title = AIDTitle(id_short="title", value=name)
+    prop.observable = Observable(value="true")
+    if not writable:
+        prop.readOnly = ReadOnly(value="true")
+    prop.forms.href.value = f"/?id={node}"
+    populate_datapoint(prop, schema, schema_url=schema_url)
+    return prop
+
 
 def mqtt_event(
     name: str, href: str, *, qos: int = 1,
@@ -185,17 +268,3 @@ def add_event(interface: Any, event: DmpEvent) -> None:
     if im.events is None:
         im.events = (OpcuaEvents if isinstance(event, OpcuaEvent) else DmpEvents)(id_short="events")
     put(im.events.property_name, event.id_short, event)
-
-
-def mqtt_interfaces() -> DmpAssetInterfacesDescription:
-    """Compatibility entry point backed by the typed MQTT interface."""
-    from .operational import MqttInterfaces
-
-    return MqttInterfaces(id_short="AssetInterfacesDescription")
-
-
-def asset_interfaces_description() -> DmpAssetInterfacesDescription:
-    """Compatibility entry point backed by the operational MQTT template."""
-    from .operational import OperationalMqttInterfaces
-
-    return OperationalMqttInterfaces(id_short="AssetInterfacesDescription")

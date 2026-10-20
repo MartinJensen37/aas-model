@@ -8,8 +8,9 @@ from aas_model.submodel_templates.aid import DmpAssetInterfacesDescription
 from aas_model.submodel_templates import Aimc
 from aas_model.resource_template.control_component_instance import ResourceControlComponentInstance
 from aas_model.resource_template.operational import (
-    OperationalMqttInterfaces, OperationalControlComponent,
-    OperationalMqttMappings, OperationalVariables,
+    OperationalMqttInterfaces, OperationalMqttControlComponent, OperationalMqttMappings,
+    OperationalOpcuaInterfaces, OperationalOpcuaControlComponent, OperationalOpcuaMappings,
+    OperationalVariables,
 )
 from .submodels import (
     StopperingCapabilities, CappingCapabilities, DispensingCapabilities,
@@ -23,15 +24,30 @@ class Station(OperationalResource):
     asset_type: str = f"{CSSX}#Station"
 
 class MqttOperationalStation(Station):
-    """Station with the shared operational MQTT and PackML contract."""
+    """Station with the shared PackML contract over MQTT."""
 
     asset_interfaces_description: DmpAssetInterfacesDescription = OperationalMqttInterfaces(
         id_short="AssetInterfacesDescription",
     )
-    control_component_instance: ResourceControlComponentInstance = OperationalControlComponent(
+    control_component_instance: ResourceControlComponentInstance = OperationalMqttControlComponent(
         id_short="ControlComponentInstance",
     )
     asset_interfaces_mapping_configuration: Aimc = OperationalMqttMappings(
+        id_short="AssetInterfacesMappingConfiguration",
+    )
+    variables: Variables = OperationalVariables(id_short="Variables")
+
+
+class OpcuaOperationalStation(Station):
+    """Station with the shared PackML contract over OPC UA."""
+
+    asset_interfaces_description: DmpAssetInterfacesDescription = OperationalOpcuaInterfaces(
+        id_short="AssetInterfacesDescription",
+    )
+    control_component_instance: ResourceControlComponentInstance = OperationalOpcuaControlComponent(
+        id_short="ControlComponentInstance",
+    )
+    asset_interfaces_mapping_configuration: Aimc = OperationalOpcuaMappings(
         id_short="AssetInterfacesMappingConfiguration",
     )
     variables: Variables = OperationalVariables(id_short="Variables")

@@ -81,7 +81,7 @@ class Resource(AAS):
 
     # ── Asset Interfaces Description ──────────────────────────────────────
     asset_interfaces_description: DmpAssetInterfacesDescription = DmpAssetInterfacesDescription(
-        id_short="AssetInterfacesDescription", InterfaceTemplateForMQTT={},
+        id_short="AssetInterfacesDescription",
     )
 
     # ── Control Component Instance ────────────────────────────────────────
