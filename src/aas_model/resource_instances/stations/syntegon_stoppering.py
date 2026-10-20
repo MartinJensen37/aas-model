@@ -23,7 +23,7 @@ from aas_model.submodel_templates.control_component_instance import (
     EXTENDED_SKILL_INTERFACE_REF, ExtendedSkill, SkillOperation, SkillInterfaceRelationship, OptionalVariable,
 )
 from aas_model.resource_template.control_component_instance import skill_ref
-from aas_model.resource_template.asset_interfaces_mapping_configuration import operation_ref
+from aas_model.resource_template.asset_interfaces_mapping_configuration import operation_sources
 from aas_pydantic.submodel_templates.asset_interfaces_mapping_configuration import SourcesItem, SinksItem, Source, SourceId, Sink, SinkId, Sources, Sinks, DefaultPollingInterval
 from aas_model.submodel_templates import AimcMappingConfiguration, Transformation
 from aas_pydantic.submodel_templates.capability_description import CapabilityRealizedBy, CapabilityRelations
@@ -97,11 +97,10 @@ def syntegon_stoppering() -> StopperingStation:
     resource.asset_interfaces_mapping_configuration.MappingConfigurations.value.append(
         AimcMappingConfiguration(
             id_short=name, DefaultPollingInterval=DefaultPollingInterval(value="0.0"),
-            Sources=Sources(value=[SourcesItem(id_short=name, Source=Source(value=operation_ref(name)), SourceId=SourceId(value=name))]),
+            Sources=Sources(value=operation_sources(name, ["Uuid"])),
             Sinks=Sinks(value=[SinksItem(id_short=name, Sink=Sink(value=affordance_ref(MQTT_INTERFACE, "actions", name)), SinkId=SinkId(value=name))]),
             Transformation=Transformation(value=(
-                f"function aimc_main(sources) local op = sources.{name} "
-                f"return {{ {name} = {{ Uuid = op.Uuid }} }} end"
+                f"function aimc_main(sources) return {{ {name} = {{ Uuid = sources.Uuid }} }} end"
             )),
             # The correlated MQTT reply is the whole commandResponse.
             **command_reply(MQTT_INTERFACE, name, outputs=("Uuid", "State", "Outcome")),

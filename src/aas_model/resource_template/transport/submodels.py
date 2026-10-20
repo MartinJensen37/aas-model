@@ -13,7 +13,7 @@ from aas_model.resource_template.asset_interfaces_description import (
     MQTT_INTERFACE, affordance_ref, mqtt_action, mqtt_property,
 )
 from aas_model.resource_template.asset_interfaces_mapping_configuration import (
-    mapping_configuration, operation_ref, sink, source, variable_ref,
+    mapping_configuration, operation_sources, sink, source, variable_ref,
 )
 from aas_model.resource_template.control_component_instance import skill_ref
 from aas_model.resource_template.operational import (
@@ -120,11 +120,10 @@ planar_mappings = OperationalMqttMappings(id_short="AssetInterfacesMappingConfig
 planar_mappings.MappingConfigurations.value.extend([
     mapping_configuration(
         id_short="MoveToPosition",
-        sources=[source("MoveToPosition", operation_ref("MoveToPosition"))],
+        sources=operation_sources("MoveToPosition", ["Uuid", "X", "Y", "Theta"]),
         sinks=[sink("MoveToPosition", affordance_ref(MQTT_INTERFACE, "actions", "MoveToPosition"))],
         transformation="""function aimc_main(sources)
-    local op = sources.MoveToPosition
-    return { MoveToPosition = { Uuid = op.Uuid, Position = {op.X, op.Y, op.Theta} } }
+    return { MoveToPosition = { Uuid = sources.Uuid, Position = {sources.X, sources.Y, sources.Theta} } }
 end
 """,
     ).model_copy(update=command_reply(MQTT_INTERFACE, "MoveToPosition", outputs=("Uuid", "State", "Outcome"))),

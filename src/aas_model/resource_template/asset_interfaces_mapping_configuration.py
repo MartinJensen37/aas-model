@@ -5,6 +5,8 @@ Fixed PackML mappings (MQTT and OPC UA) are declared in ``operational.submodels`
 
 from __future__ import annotations
 
+from collections.abc import Sequence
+
 from aas_pydantic import (
     Key, ModelReference, Property, ReferenceElement,
 )
@@ -44,15 +46,25 @@ def variable_ref(variable_name: str) -> ModelReference:
 
 
 def operation_ref(name: str) -> ModelReference:
-    """Reference to a skill's delegated Operation SubmodelElement in the CCI
-    (``Skills/<name>/operation``) — the SOURCE of a one-MC operation mapping.
-    The trailing key carries the ``Operation`` key type: that is what the
-    management node classifies the mapping as an interaction from."""
+    """Reference to a skill's delegated Operation in the CCI.
+
+    This is the prefix for references to the Operation's concrete variable
+    SubmodelElements; AIMC operation Sources and response Sinks must address
+    those variables rather than the Operation container itself.
+    """
     return ModelReference(key=(
         Key(type_="Submodel", value=CCI_REF),
         Key(type_="SubmodelElementCollection", value="Skills"),
         Key(type_="SubmodelElementCollection", value=name),
         Key(type_="Operation", value="operation"),
+    ))
+
+
+def operation_variable_ref(name: str, variable_name: str, element_type: str = "Property") -> ModelReference:
+    """Reference one variable SubmodelElement inside a delegated Operation."""
+    return ModelReference(key=(
+        *operation_ref(name).key,
+        Key(type_=element_type, value=variable_name),
     ))
 
 
@@ -63,6 +75,13 @@ def source(name: str, ref: ModelReference) -> Source:
         Source=SourceReference(value=ref),
         SourceId=SourceId(value=name),
     )
+
+
+def operation_sources(name: str, variable_names: Sequence[str]) -> list[Source]:
+    """Expose inputs (including InOut variables) as individual AIMC Sources."""
+    return [source(variable, operation_variable_ref(name, variable))
+            for variable in variable_names]
+
 
 def sink(name: str, ref: ModelReference) -> Sink:
     """A single sink: the submodel element reference + a stable sink id."""

@@ -21,7 +21,8 @@ from aas_pydantic import ExternalReference, Key, ModelReference, Qualifier, Refe
 from aas_pydantic.submodel_templates.asset_interfaces_mapping_configuration import SourcesItem, SinksItem, Source, SourceId, Sink, SinkId, Sources, Sinks, DefaultPollingInterval, PollingInterval
 from aas_model.resource_template.control_component_instance import skill_ref
 from aas_model.resource_template.asset_interfaces_mapping_configuration import (
-    operation_ref, response_sink, response_source, variable_ref,
+    operation_sources, operation_variable_ref,
+    response_sink, response_source, variable_ref,
 )
 from aas_model.resource_template.operational import action_member_ref
 from aas_model.resource_template.asset_interfaces_description import (
@@ -125,24 +126,26 @@ def ima_dispensing() -> DispensingStation:
     reply = ("Uuid", "State", "Outcome")
     mappings.append(AimcMappingConfiguration(
         id_short=name, DefaultPollingInterval=DefaultPollingInterval(value="0.0"),
-        Sources=Sources(value=[SourcesItem(id_short=name, Source=Source(value=operation_ref(name)), SourceId=SourceId(value=name))]),
+        Sources=Sources(value=operation_sources(name, list(command))),
         Sinks=Sinks(value=[SinksItem(
             id_short=member, SinkId=SinkId(value=member),
             Sink=Sink(value=action_member_ref(OPCUA_INTERFACE, name, "input", member)),
         ) for member in command]),
         Transformation=Transformation(value=(
-            f"function aimc_main(sources) local op = sources.{name} "
-            f"return {{ Uuid = op.Uuid, Volume = op.Volume }} end"
+            "function aimc_main(sources) "
+            "return { Uuid = sources.Uuid, Volume = sources.Volume } end"
         )),
         ResponseSources=DmpResponseSources(value=[
             response_source(member, action_member_ref(OPCUA_INTERFACE, name, "output", member))
             for member in reply]),
         # Outcome is an Optional output (as in the commandResponse): a nil Outcome is left out.
         ResponseTransformation=DmpResponseTransformation(value=(
-            "function aimc_main(sources) return { Outputs = { Uuid = sources.Uuid, "
-            "State = sources.State, Outcome = sources.Outcome } } end"
+            "function aimc_main(sources) return { Uuid = sources.Uuid, "
+            "State = sources.State, Outcome = sources.Outcome } end"
         )),
-        ResponseSinks=DmpResponseSinks(value=[response_sink("Outputs", operation_ref(name))]),
+        ResponseSinks=DmpResponseSinks(value=[
+            response_sink(member, operation_variable_ref(name, member)) for member in reply
+        ]),
     ))
     container = resource.capability_description.CapabilitySet["Processing"].CapabilityContainer[name]
     container.CapabilityRelations = CapabilityRelations(id_short="CapabilityRelations", CapabilityRealizedBy={f"RealizedBy_{name}": CapabilityRealizedBy(id_short=f"RealizedBy_{name}", first=ModelReference(key=(Key(type_="Submodel", value="{aas_id}/submodels/CapabilityDescription"), Key(type_="SubmodelElementCollection", value="Processing"), Key(type_="SubmodelElementCollection", value=name), Key(type_="Capability", value="Capability"))), second=skill_ref(name))})

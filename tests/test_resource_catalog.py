@@ -177,8 +177,17 @@ def test_motion_schema_operation_and_mapping_describe_the_same_payload():
         m for m in shuttle.asset_interfaces_mapping_configuration.MappingConfigurations.value
         if m.id_short == "MoveToPosition"
     )
-    assert b"Position = {op.X, op.Y, op.Theta}" in mapping.Transformation.value
-    assert b"Uuid = op.Uuid" in mapping.Transformation.value
+    assert [source.SourceId.value for source in mapping.Sources.value] == [
+        "Uuid", "X", "Y", "Theta",
+    ]
+    assert b"Position = {sources.X, sources.Y, sources.Theta}" in mapping.Transformation.value
+    assert b"Uuid = sources.Uuid" in mapping.Transformation.value
+    assert [sink.SinkId.value for sink in mapping.ResponseSinks.value] == [
+        "Uuid", "State", "Outcome",
+    ]
+    assert all(sink.Sink.value.key[-2].type_ == "Operation"
+               and sink.Sink.value.key[-1].value == sink.SinkId.value
+               for sink in mapping.ResponseSinks.value)
 
 
 def test_extra_station_telemetry_has_variables_and_live_mappings():

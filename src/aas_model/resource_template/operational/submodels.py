@@ -50,7 +50,8 @@ from aas_model.resource_template.control_component_instance import (
     ResourceControlComponentInstance, skill_ref,
 )
 from aas_model.resource_template.asset_interfaces_mapping_configuration import (
-    operation_ref, response_sink, response_source, variable_ref,
+    operation_sources, operation_variable_ref,
+    response_sink, response_source, variable_ref,
 )
 
 
@@ -238,20 +239,19 @@ def action_member_ref(interface: str, action: str, schema: str, *members: str) -
 
 
 def command_reply(interface: str, name: str, outputs: tuple[str, ...] = ("Uuid", "State")) -> dict:
-    """The response of a skill answered by its whole commandResponse: the
-    ResponseSource ``Reply`` is the action's output (the decoded OPC UA
-    OutputArguments or MQTT reply, by member name), the transformation picks
-    the Operation's ``outputs`` from it, and the ResponseSink ``Outputs`` is
-    the Operation itself, i.e. its InOut and output variables."""
+    """Route the action reply's selected values to individual Operation variables."""
     fields = ", ".join(f"{member} = reply.{member}" for member in outputs)
     return dict(
         ResponseSources=DmpResponseSources(id_short="ResponseSources", value=[
             response_source("Reply", action_member_ref(interface, name, "output"))]),
         ResponseTransformation=DmpResponseTransformation(id_short="ResponseTransformation", value=(
             f"function aimc_main(sources) local reply = sources.Reply "
-            f"return {{ Outputs = {{ {fields} }} }} end"
+            f"return {{ {fields} }} end"
         )),
-        ResponseSinks=DmpResponseSinks(id_short="ResponseSinks", value=[response_sink("Outputs", operation_ref(name))]),
+        ResponseSinks=DmpResponseSinks(id_short="ResponseSinks", value=[
+            response_sink(member, operation_variable_ref(name, member))
+            for member in outputs
+        ]),
     )
 
 
@@ -259,15 +259,13 @@ def _packml_invocations(interface: str) -> list[AimcMappingConfiguration]:
     return [
         AimcMappingConfiguration(
             id_short=name, DefaultPollingInterval=DefaultPollingInterval(value="0.0"),
-            Sources=Sources(value=[SourcesItem(
-                id_short=name, SourceId=SourceId(value=name), Source=Source(value=operation_ref(name)),
-            )]),
+            Sources=Sources(value=operation_sources(name, ("Uuid",))),
             Sinks=Sinks(value=[SinksItem(
                 id_short=name, SinkId=SinkId(value=name),
                 Sink=Sink(value=affordance_ref(interface, "actions", name)),
             )]),
             Transformation=Transformation(value=(
-                f"function aimc_main(sources) return {{ {name} = {{ Uuid = sources.{name}.Uuid }} }} end"
+                f"function aimc_main(sources) return {{ {name} = {{ Uuid = sources.Uuid }} }} end"
             )),
             **({} if name in INVOKE_ONLY_SKILLS else command_reply(interface, name)),
         ) for name in PACKML_SKILLS

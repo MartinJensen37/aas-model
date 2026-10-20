@@ -8,19 +8,19 @@ Sinks, Transformation, DefaultPollingInterval) remains a valid DMP input for
 data mappings; every addition is optional and carries a semantic id in this
 project's namespace (``constants.AIMC_*``).
 
-An operation mapping (its Source is an AAS Operation, ADR-022) invokes one
-action affordance whose terminal reply is its result (OPC UA Method, MQTT 5
-request/reply on the correlation data, HTTP):
+An operation mapping (its Sources address its individual AAS Operation
+variables, ADR-022) invokes one action affordance whose terminal reply is its
+result (OPC UA Method, MQTT 5 request/reply on the correlation data, HTTP):
 
 1. **command** — the IDTA ``Transformation`` turns the caller's variables into
    the command; the IDTA ``Sinks`` address the action;
 2. **response** — ``ResponseSources`` select the action's output or members
    of it, the ``ResponseTransformation`` maps them, and ``ResponseSinks``
-   receive the result: the one selecting the Operation is the caller's reply
-   (its output and InOut variables), the others are written best effort. The
-   three are authored together. An Operation with output or InOut variables
-   needs them; nothing is matched by name. Without them the Operation answers
-   with no outputs (an invoke-only action such as Halt).
+   route each result to an explicit Operation output or InOut variable; other
+   sinks are written best effort. The three are authored together. An Operation
+   with output or InOut variables needs them; nothing is matched by name.
+   Without them the Operation answers with no outputs (an invoke-only action
+   such as Halt).
 
 Multi-step device sequences (set parameters, trigger, poll a status, read a
 result, reset) are not modelled here; the higher-level control orchestrates

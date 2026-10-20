@@ -32,7 +32,7 @@ from aas_pydantic.submodel_templates.asset_interfaces_mapping_configuration impo
 from aas_pydantic.submodel_templates.capability_description import CapabilityRelations, CapabilityRealizedBy
 from aas_model.invocation_authoring import finalize_invocation_addresses
 from aas_model.resource_template.control_component_instance import skill_ref
-from aas_model.resource_template.asset_interfaces_mapping_configuration import operation_ref
+from aas_model.resource_template.asset_interfaces_mapping_configuration import operation_sources
 
 
 def optima_unloading() -> UnloadingStation:
@@ -102,11 +102,10 @@ def optima_unloading() -> UnloadingStation:
         cci.Endpoints.Endpoint[name] = SkillInterfaceRelationship(id_short=name, first=skill_ref(name), second=affordance_ref(MQTT_INTERFACE, "actions", name))
         mappings.append(AimcMappingConfiguration(
             id_short=name, DefaultPollingInterval=DefaultPollingInterval(value="0.0"),
-            Sources=Sources(value=[SourcesItem(id_short=name, Source=Source(value=operation_ref(name)), SourceId=SourceId(value=name))]),
+            Sources=Sources(value=operation_sources(name, ["Uuid"])),
             Sinks=Sinks(value=[SinksItem(id_short=name, Sink=Sink(value=affordance_ref(MQTT_INTERFACE, "actions", name)), SinkId=SinkId(value=name))]),
             Transformation=Transformation(value=(
-                f"function aimc_main(sources) local op = sources.{name} "
-                f"return {{ {name} = {{ Uuid = op.Uuid }} }} end"
+                f"function aimc_main(sources) return {{ {name} = {{ Uuid = sources.Uuid }} }} end"
             )),
             **command_reply(MQTT_INTERFACE, name, outputs=("Uuid", "State", "Outcome")),
         ))

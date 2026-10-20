@@ -33,7 +33,7 @@ from aas_model.submodel_templates.variables import VariableProp
 from aas_model.submodel_templates.aimc import DmpMappingConfiguration
 from aas_model.submodel_templates import Transformation
 from aas_model.resource_template.asset_interfaces_mapping_configuration import (
-    variable_ref, operation_ref,
+    variable_ref, operation_sources,
 )
 from aas_model.invocation_authoring import finalize_invocation_addresses
 from aas_model.resource_template.control_component_instance import skill_ref
@@ -98,16 +98,16 @@ def orchestrator() -> MqttSoftwareResource:
         ], in_output_variable=[Property(id_short="Uuid", description="The UUID of the command")], output_variable=[Property(id_short="State", description="The state of the command being executed")])
         mapping = DmpMappingConfiguration(
             id_short=name, DefaultPollingInterval=DefaultPollingInterval(value="0.0"),
-            Transformation=Transformation(value=f"function aimc_main(sources) local op = sources.{name} return {{ {name} = {{ Uuid = op.Uuid }} }} end"),
-            Sources=Sources(value=[SourcesItem(id_short=name, Source=SourceReference(value=operation_ref(name)), SourceId=SourceId(value=name))]),
+            Transformation=Transformation(value=f"function aimc_main(sources) return {{ {name} = {{ Uuid = sources.Uuid }} }} end"),
+            Sources=Sources(value=operation_sources(name, ["Uuid", "Process"] if name in ("Start", "Unsuspend") else ["Uuid"])),
             Sinks=Sinks(value=[SinksItem(id_short=name, Sink=SinkReference(value=affordance_ref(MQTT_INTERFACE, "actions", name)), SinkId=SinkId(value=name))]),
             **command_reply(MQTT_INTERFACE, name),
         )
         if name in ("Start", "Unsuspend"):
             skill.operation.input_variable = [Property(id_short="Process")]
             mapping.Transformation.value = (
-                f"function aimc_main(sources) local op = sources.{name} "
-                f"return {{ {name} = {{ Uuid = op.Uuid, Process = op.Process }} }} end"
+                f"function aimc_main(sources) "
+                f"return {{ {name} = {{ Uuid = sources.Uuid, Process = sources.Process }} }} end"
             ).encode("utf-8")
         cci.Skills.Skill[name] = skill
         cci.Endpoints.Endpoint[name] = SkillInterfaceRelationship(id_short=name, first=ModelReference(key=(Key(type_="Submodel", value="{aas_id}/submodels/ControlComponentInstance"), Key(type_="SubmodelElementCollection", value="Skills"), Key(type_="SubmodelElementCollection", value=name))), second=ModelReference(key=(Key(type_="Submodel", value="{aas_id}/submodels/AssetInterfacesDescription"), Key(type_="SubmodelElementCollection", value="interface_mqtt"), Key(type_="SubmodelElementCollection", value="InteractionMetadata"), Key(type_="SubmodelElementCollection", value="actions"), Key(type_="SubmodelElementCollection", value=name))))

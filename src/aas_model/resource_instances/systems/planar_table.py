@@ -20,7 +20,7 @@ from aas_model.submodel_templates.aimc import DmpMappingConfiguration
 from aas_model.submodel_templates import Transformation
 from aas_pydantic import Key, ModelReference, Property, Qualifier
 from aas_pydantic.submodel_templates.asset_interfaces_mapping_configuration import Source as SourceReference, Sink as SinkReference, SourcesItem, SinksItem, Sources, Sinks, SourceId, SinkId, DefaultPollingInterval
-from aas_model.resource_template.asset_interfaces_mapping_configuration import operation_ref
+from aas_model.resource_template.asset_interfaces_mapping_configuration import operation_sources
 from aas_model.constants import INVOCATION_ORIGIN
 from aas_model.invocation_authoring import finalize_invocation_addresses
 from aas_model.resource_template.operational import command_reply
@@ -81,7 +81,7 @@ def planar_table() -> CompositeResource:
     table.control_component_instance.Skills.Skill[name] = skill
     table.control_component_instance.Endpoints.Endpoint[name] = SkillInterfaceRelationship(id_short=name, first=ModelReference(key=(Key(type_="Submodel", value="{aas_id}/submodels/ControlComponentInstance"), Key(type_="SubmodelElementCollection", value="Skills"), Key(type_="SubmodelElementCollection", value=name))), second=ModelReference(key=(Key(type_="Submodel", value="{aas_id}/submodels/AssetInterfacesDescription"), Key(type_="SubmodelElementCollection", value="interface_mqtt"), Key(type_="SubmodelElementCollection", value="InteractionMetadata"), Key(type_="SubmodelElementCollection", value="actions"), Key(type_="SubmodelElementCollection", value=name))))
     table.asset_interfaces_mapping_configuration.MappingConfigurations.value.append(
-        DmpMappingConfiguration(id_short=name, DefaultPollingInterval=DefaultPollingInterval(value="0.0"), Transformation=Transformation(value=f"function aimc_main(sources) local op = sources.{name} return {{ {name} = {{ Uuid = op.Uuid }} }} end"), Sources=Sources(value=[SourcesItem(id_short=name, Source=SourceReference(value=operation_ref(name)), SourceId=SourceId(value=name))]), Sinks=Sinks(value=[SinksItem(id_short=name, Sink=SinkReference(value=affordance_ref(MQTT_INTERFACE, "actions", name)), SinkId=SinkId(value=name))]),
+        DmpMappingConfiguration(id_short=name, DefaultPollingInterval=DefaultPollingInterval(value="0.0"), Transformation=Transformation(value=f"function aimc_main(sources) return {{ {name} = {{ Uuid = sources.Uuid }} }} end"), Sources=Sources(value=operation_sources(name, ["Uuid"])), Sinks=Sinks(value=[SinksItem(id_short=name, Sink=SinkReference(value=affordance_ref(MQTT_INTERFACE, "actions", name)), SinkId=SinkId(value=name))]),
                                 **command_reply(MQTT_INTERFACE, name)),
     )
     finalize_invocation_addresses(table)

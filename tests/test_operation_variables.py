@@ -71,3 +71,33 @@ def test_collection_and_list_variables_with_optional_marks_export_and_parse_back
     assert is_optional(back["Outcome"]) and is_optional(back["Samples"]) and not is_optional(back["State"])
     # AAS JSON names no collection class: the members come back by idShort, marks included.
     assert is_optional(back["Result"].value["Detail"]) and not is_optional(back["Result"].value["State"])
+
+
+def test_operation_aimc_uses_explicit_input_and_output_variable_references():
+    resource = RESOURCE_FACTORIES["imaDispensing"]()
+    operation = resource.control_component_instance.Skills.Skill["Dispensing"].operation
+    mapping = next(mc for mc in resource.asset_interfaces_mapping_configuration
+                   .MappingConfigurations.value if mc.id_short == "Dispensing")
+
+    source_ids = [source.SourceId.value for source in mapping.Sources.value]
+    declared_inputs = {variable.id_short for variable in (
+        *operation.input_variable, *operation.in_output_variable,
+    )}
+    assert set(source_ids) == declared_inputs == {"Uuid", "Volume"}
+    for source, variable in zip(mapping.Sources.value, source_ids):
+        assert [(key.type_, key.value) for key in source.Source.value.key[-2:]] == [
+            ("Operation", "operation"), ("Property", variable),
+        ]
+
+    sink_ids = [sink.SinkId.value for sink in mapping.ResponseSinks.value]
+    declared_outputs = {variable.id_short for variable in (
+        *operation.output_variable, *operation.in_output_variable,
+    )}
+    assert set(sink_ids) == declared_outputs == {"Uuid", "State", "Outcome"}
+    for sink in mapping.ResponseSinks.value:
+        assert [(key.type_, key.value) for key in sink.Sink.value.key[-2:]] == [
+            ("Operation", "operation"), ("Property", sink.SinkId.value),
+        ]
+    assert b"Outputs" not in mapping.ResponseTransformation.value
+    assert b"Uuid = sources.Uuid" in mapping.Transformation.value
+    assert b"Volume = sources.Volume" in mapping.Transformation.value
