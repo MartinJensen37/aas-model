@@ -23,7 +23,6 @@ DMP-facing names alias onto the extended classes
 from aas_model.submodel_templates.aid import (
     DmpAssetInterfacesDescription,
     Op,
-    op,
     ReadOnly,
     WriteOnly,
     Safe,
@@ -112,7 +111,6 @@ __all__ = [
     # DMP AID (generated template + the extension in docs/aid-extension.md)
     "DmpAssetInterfacesDescription",
     "Op",
-    "op",
     "ReadOnly",
     "WriteOnly",
     "Safe",

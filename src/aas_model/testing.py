@@ -21,12 +21,13 @@ from aas_model.submodel_templates.aid import (
     DmpAssetInterfacesDescription, DmpAction, DmpActionForm, DmpActions,
     DmpEvent, DmpEventData, DmpEvents, DmpForm, DmpInteractionMetadata,
     DmpProperties, DmpProperty, DmpHttpInterface, DmpModbusInterface,
-    DmpSnmpInterface, SnmpvPduType, SnmpvVersion,
+    DmpSnmpInterface, SnmpForm, SnmpInteractionMetadata, SnmpProperties, SnmpProperty,
+    SnmpvPduType, SnmpvVersion,
     DmpBacnetInterface, DmpOpcuaInterface, MqttAction, MqttActionForm,
     MqttActions, MqttInteractionMetadata, MqttInterface, MqvResponseTopic,
     OpcuaAction, OpcuaActions, OpcuaEvent, OpcuaEventData, OpcuaEventField,
     OpcuaEventFields, OpcuaEvents, OpcuaInteractionMetadata, Synchronous,
-    UavComponentOf, UavEventField, UavEventType, op as _op,
+    UavComponentOf, UavEventField, UavEventType, Op,
 )
 from aas_model.submodel_templates import (
     Aimc, AimcMappingConfiguration, AimcMappingConfigurations, Transformation,
@@ -61,7 +62,7 @@ def mqtt_property(name: str, href: str, *, qos: int = 0, retain: bool = True,
     if control_packet is not None:
         form.mqv_controlPacket = MqvControlPacket(value=control_packet)
     if op is not None:
-        form.op = _op(op)
+        form.op = Op(value=[Property(value=op)])
     return DmpProperty(title=Title(value=name), observable=AIDObservable(value="true"), forms=form)
 
 
@@ -116,6 +117,7 @@ def mqtt_interface(base: str, *, properties=None, actions=None, events=None) -> 
 def _gen_interface(template_cls, base: str, *, properties=None, actions=None,
                    observable: bool = False, subprotocol: str | None = None,
                    op: str | None = None, meta_cls=DmpInteractionMetadata,
+                   properties_cls=DmpProperties, property_cls=DmpProperty, form_cls=DmpForm,
                    actions_cls=DmpActions, action_cls=DmpAction,
                    form_extras=None, action_extras=None):
     """Compose an interface. ``actions`` values are ``(href, method, …)``
@@ -127,14 +129,14 @@ def _gen_interface(template_cls, base: str, *, properties=None, actions=None,
     if properties:
         props = {}
         for n, h in properties.items():
-            form = DmpForm(href=Href(value=h or ""), contentType=ContentType(value="application/json"))
+            form = form_cls(href=Href(value=h or ""), contentType=ContentType(value="application/json"))
             if subprotocol is not None:
                 form.subprotocol = Subprotocol(value=subprotocol)
             if op is not None:
-                form.op = _op(op)
-            props[n] = DmpProperty(title=Title(value=n), forms=form,
-                                   observable=AIDObservable(value="true") if observable else None)
-        meta.properties = DmpProperties(property_name=props)
+                form.op = Op(value=[Property(value=op)])
+            props[n] = property_cls(title=Title(value=n), forms=form,
+                                    observable=AIDObservable(value="true") if observable else None)
+        meta.properties = properties_cls(property_name=props)
     if actions:
         acts = {}
         for n, spec in actions.items():
@@ -234,7 +236,9 @@ def snmp_interface(base: str, *, properties=None, observable: bool = False) -> D
     ``properties`` maps a name to its OID href, or to ``(href, terms)`` where
     ``terms`` sets ``pduType`` and/or ``version`` (e.g. ``"snmpv:SNMPv1"``)."""
     interface = _gen_interface(DmpSnmpInterface, base, observable=observable, properties={
-        n: (v[0] if isinstance(v, tuple) else v) for n, v in (properties or {}).items()})
+        n: (v[0] if isinstance(v, tuple) else v) for n, v in (properties or {}).items()},
+        meta_cls=SnmpInteractionMetadata, properties_cls=SnmpProperties, property_cls=SnmpProperty,
+        form_cls=SnmpForm)
     for n, v in (properties or {}).items():
         terms = v[1] if isinstance(v, tuple) else {}
         form = interface.InteractionMetadata.properties.property_name[n].forms
@@ -254,8 +258,7 @@ def build_aid(*, mqtt: MqttInterface | None = None,
               snmp: DmpSnmpInterface | None = None,
               id_short: str = "AID") -> DmpAssetInterfacesDescription:
     """Compose an AID. All interfaces live in their ``InterfaceTemplateFor*``
-    dicts (the DMP convention: the native MQTT interface is
-    ``InterfaceTemplateForMQTT["interface_mqtt"]``)."""
+    dicts under ``interface_<protocol>``."""
     aid = DmpAssetInterfacesDescription(id_short=id_short)
     if mqtt is not None:
         aid.InterfaceTemplateForMQTT["interface_mqtt"] = mqtt

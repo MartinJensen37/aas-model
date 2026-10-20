@@ -1,6 +1,6 @@
 # AID extension: actions, events and the terms AID leaves EXTERNAL
 
-Status: draft, 2026-10-17. Code: `src/aas_model/submodel_templates/aid.py`.
+Status: draft, 2026-10-17. Code: `src/aas_model/submodel_templates/aid/` (`data_schema`, `forms`, `affordances`, `bindings/<protocol>`, `submodel`).
 Consumer: `aas-camel-dmp` (SPEC §5.2).
 
 ## 1. Rules
@@ -37,12 +37,15 @@ Consumer: `aas-camel-dmp` (SPEC §5.2).
 | `events` (members) | Container only (`td#EventAffordance`) | **Add** (§3.3) | member: `…/aid/EventDefinition/1/0`, supplemental `td#name` |
 | Form `op` | EXTERNAL | **Add** (§3.4), optional | `op`, `hctl#hasOperationType` |
 | Form `response` | Not mentioned | **Add**, actions only | `response`, `hctl#returns` |
-| `readOnly`, `writeOnly` | EXTERNAL | **Add** on properties | `readOnly`/`writeOnly`, `json-schema#readOnly`/`#writeOnly` |
+| `readOnly`, `writeOnly` | EXTERNAL | **Add** on every data schema (§3.6) | `readOnly`/`writeOnly`, `json-schema#readOnly`/`#writeOnly` |
 | `titles`, `descriptions` | EXTERNAL | Not added: AAS `displayName`/`description` are multi-language already | — |
 | `links`, `profile` | EXTERNAL | Not added: no consumer | — |
-| `schemaDefinitions`, `additionalResponses` | EXTERNAL / not mentioned | Not added: only needed together, no consumer | — |
+| `additionalResponses` | Not mentioned | **Add** (§3.4), with the schema inline | `additionalResponses`, `hypermedia#additionalReturns` |
+| `schemaDefinitions` | EXTERNAL | Not added: an additional response carries its schema inline (§3.4) | — |
 | `contentCoding`, `scopes` | Not mentioned | Not added: no consumer | — |
-| `required`, `format`, `pattern`, `exclusiveMinimum`, `exclusiveMaximum`, `multipleOf`, `oneOf`, `contentEncoding`, `contentMediaType` | EXTERNAL | Not added yet. A consumer that needs one adds it under rule 3 | — |
+| `required`, `oneOf`, `exclusiveMinimum`, `exclusiveMaximum`, `multipleOf`, `pattern`, `format`, `contentEncoding`, `contentMediaType` | EXTERNAL | **Add** on every data schema (§3.6) | the term, `json-schema#<term>` |
+| `items` holding a full schema | AID: leaf schema only | **Extend** AID's `items` (§3.6) | `items`, `json-schema#items` |
+| `items` as an array of schemas (tuple) | EXTERNAL | Not added: no consumer; the builder rejects it | — |
 
 `uriVariables` is defined by AID on properties. The extension reuses the same
 element (`td#hasUriTemplateSchema`) on actions and events.
@@ -78,8 +81,8 @@ three flags (§3.4).
 
 A DataSchema SMC is AID's own data schema (`type`, `title`, `enum`, `const`,
 `default`, `unit`, `min_max`, `lengthRange`, `items`, `itemsRange`,
-`properties`, …), the same structure as a property. Its description is the
-AAS `description`.
+`properties`, …) with the terms of §3.6, the same structure as a property. Its
+description is the AAS `description`.
 
 ### 3.3 Event affordance (`events/{name}`)
 
@@ -105,7 +108,14 @@ extension adds:
 | idShort | Type | Semantic ID | Card. | Meaning |
 | --- | --- | --- | --- | --- |
 | `op` | SML of Property xs:string | `https://www.w3.org/2019/wot/hypermedia#hasOperationType` | 0..1 | The WoT operations this form serves. It only narrows the defaults below. |
-| `response` | SMC | `https://www.w3.org/2019/wot/hypermedia#returns` | 0..1 | WoT ExpectedResponse, on action forms only. One child: `contentType` (AID `ContentType`). Absent: the form's `contentType`. |
+| `response` | SMC | `https://www.w3.org/2019/wot/hypermedia#returns` | 0..1 | WoT ExpectedResponse, on action forms only. One child: `contentType` (AID `ContentType`). Absent: the form's `contentType` (TD 1.1; TD 2.0 drops this default). |
+| `additionalResponses` | SML of SMC | `https://www.w3.org/2019/wot/hypermedia#additionalReturns` | 0..1 | WoT AdditionalExpectedResponses: replies other than the regular one, e.g. error replies or a `queryaction` status. Each member (`hypermedia#AdditionalExpectedResponse`) has `success` (xs:boolean, `hypermedia#isSuccess`, default false), `contentType` (AID `ContentType`) and `schema` (a data schema, `hypermedia#hasAdditionalOutputSchema`). |
+
+TD names the schema of an additional response by a key of the Thing's
+`schemaDefinitions`. Here `schema` is the data schema itself, written inline
+like an action's `output`: each response is complete on its own, and nothing
+is looked up across the interface. A TD export writes the inline schemas into
+`schemaDefinitions`.
 
 Default operations when `op` is absent (TD 1.1, with AID's `observable`):
 
@@ -129,6 +139,37 @@ used here defines them, and the DMP doesn't support them.
 
 The `mqv_`/`uav_` prefixes follow AID's convention of one prefix per
 protocol. The DMP semantic IDs distinguish these terms from W3C/OPC terms.
+
+### 3.6 Data schema terms
+
+Every data schema carries the same terms at every depth: a property affordance,
+an action's `input`/`output`, an event's payloads, an object member (in
+`properties`), an array's `items`, a `oneOf` alternative and an additional
+response's `schema`. AID's own elements stay as they are; the extension adds:
+
+| idShort | Type | Semantic ID | Meaning |
+| --- | --- | --- | --- |
+| `required` | SML of Property xs:string | `json-schema#required` | Names of the object's members that must be present: their JSON names (`key`, else the idShort). Only names of the object's own `properties`. |
+| `oneOf` | SML of SMC (each a data schema, `json-schema#DataSchema`) | `json-schema#oneOf` | A value is valid against exactly one alternative. A nullable value is `oneOf` its schema and `{type: null}`. |
+| `exclusiveMinimum`, `exclusiveMaximum` | Property (xs:double, xs:integer for integer schemas) | `json-schema#exclusiveMinimum`/`#exclusiveMaximum` | Exclusive bounds; AID's `min_max` is inclusive. |
+| `multipleOf` | Property (as above) | `json-schema#multipleOf` | Values are a multiple of it. |
+| `pattern`, `format` | Property xs:string | `json-schema#pattern`/`#format` | ECMA-262 pattern; JSON Schema format (`date-time`, `uuid`, …). |
+| `contentEncoding`, `contentMediaType` | Property xs:string | `json-schema#contentEncoding`/`#contentMediaType` | Binary content in a string (`base64`, `image/png`). |
+| `readOnly`, `writeOnly` | Property xs:boolean | `json-schema#readOnly`/`#writeOnly` | On a property affordance they select its operations (§3.4); deeper they annotate members. |
+
+AID's `items` (`json-schema#items`) keeps its idShort and semantic ID but
+becomes a full data schema, so arrays of objects and of arrays are described.
+TD's other form of `items`, one schema per array position, is not used.
+
+The builder (`aas_model.json_schema_aid`) converts a JSON Schema completely or
+fails: a keyword without a representation raises an error naming its path,
+unless the caller drops it explicitly (`ignore=…`, or `without(schema, …)`).
+`$ref`s (also `#/$defs/…`, at any depth) are inlined and `allOf` is merged
+before conversion. Two rewrites keep the meaning: a type union
+(`["number", "null"]`) becomes `oneOf` with one alternative per type, and
+`prefixItems` whose positions differ only in their titles becomes `items`.
+`anyOf`, `not`, `if`/`then`/`else`, `additionalProperties` and
+`patternProperties` have no TD representation.
 
 ## 4. Actions and events per protocol
 
@@ -207,7 +248,7 @@ Each of these redefines or contradicts AID or W3C:
 
 ## 7. Order of work
 
-1. `aas-model`: constants, `aid.py` (§3, §5), builders and tests.
+1. `aas-model`: constants, the `aid` package (§3, §5), builders and tests.
 2. `aas-camel-dmp`: projection and compiler (§6), fixtures, SPEC §5.2.
 3. Regenerate the parent workspace's AAS descriptions.
 

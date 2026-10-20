@@ -66,18 +66,15 @@ def test_action_input_and_output_round_trip_supported_keywords():
     for cls in (DmpActionInput, DmpActionOutput):
         dp = datapoint_from_schema(schema, cls=cls)
         assert schema_from_datapoint(dp) == schema
-        assert dp.qualifiers == [Qualifier(
-            type_="RequiredProperties", value_type="xs:string",
-            value='["Uuid","Speed","Options"]',
-            semantic_id="https://www.w3.org/2019/wot/json-schema#required",
-        )]
+        assert dp.qualifiers == [], "required is a data schema element, not a qualifier"
+        assert [name.value for name in dp.required.value] == ["Uuid", "Speed", "Options"]
         assert schema_from_datapoint(dp.properties.property_name["Options"])[
             "required"] == ["Target"]
         assert schema_from_datapoint(dp.properties.property_name["Uuid"])[
             "type"] == "string"
 
 
-def test_property_object_qualifier_empty_and_repopulation_preserves_others():
+def test_required_is_replaced_on_repopulation_and_other_qualifiers_stay():
     prop = DmpProperty()
     prop.qualifiers = [Qualifier(type_="Custom", value="keep")]
     populate_datapoint(prop, {"type": "object", "required": ["part,one"],
@@ -88,19 +85,22 @@ def test_property_object_qualifier_empty_and_repopulation_preserves_others():
     }
     populate_datapoint(prop, {"type": "object", "required": [],
                               "properties": {"part,one": {"type": "null"}}})
-    assert [q.type_ for q in prop.qualifiers] == ["Custom", "RequiredProperties"]
-    assert schema_from_datapoint(prop)["required"] == []
+    assert [q.type_ for q in prop.qualifiers] == ["Custom"]
+    assert "required" not in schema_from_datapoint(prop), "an empty required list requires nothing"
 
 
-def test_only_mirrored_keywords_are_reconstructed():
-    dp = datapoint_from_schema({
+def test_unrepresentable_keywords_fail_instead_of_vanishing():
+    schema = {
         "type": "object", "required": ["Name"], "additionalProperties": False,
-        "properties": {"Name": {"type": "string", "pattern": "^x",
-                                "format": "email"}},
-    }, cls=DmpActionInput, schema_url="https://example.test/schema.json")
+        "properties": {"Name": {"type": "string", "pattern": "^x", "format": "email"}},
+    }
+    with pytest.raises(ValueError, match="additionalProperties"):
+        datapoint_from_schema(schema, cls=DmpActionInput)
+    dp = datapoint_from_schema(schema, cls=DmpActionInput, ignore={"additionalProperties"},
+                               schema_url="https://example.test/schema.json")
     assert schema_from_datapoint(dp) == {
         "type": "object", "required": ["Name"],
-        "properties": {"Name": {"type": "string"}},
+        "properties": {"Name": {"type": "string", "pattern": "^x", "format": "email"}},
     }
 
 
@@ -142,8 +142,9 @@ def test_qualifiers_survive_aas_json_serialization_and_parse():
         "properties": {"State": {"type": "string"}},
     }
     prop = restored.InterfaceTemplateForMQTT["interface_mqtt"].InteractionMetadata.properties.property_name["Status"]
+    # readOnly is a DataSchema term (TD): the observed MQTT property is not writable.
     assert schema_from_datapoint(prop) == {
-        "type": "object", "title": "Status", "required": ["Mode"],
+        "type": "object", "title": "Status", "required": ["Mode"], "readOnly": True,
         "properties": {"Mode": {"type": "string"}},
     }
 

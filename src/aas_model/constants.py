@@ -59,13 +59,29 @@ AID_EVENT_DATA = f"{WOT_TD}hasNotificationSchema"
 AID_EVENT_DATA_RESPONSE = f"{WOT_TD}hasNotificationResponseSchema"
 AID_EVENT_CANCELLATION = f"{WOT_TD}hasCancellationSchema"
 
-# PropertyAffordance (AID marks readOnly/writeOnly EXTERNAL)
+# DataSchema terms AID marks EXTERNAL (TD 1.1 context, jsonschema: prefix).
+# readOnly/writeOnly apply to any data schema, not only to properties.
 AID_WOT_READ_ONLY = f"{WOT_JSONSCHEMA}readOnly"
 AID_WOT_WRITE_ONLY = f"{WOT_JSONSCHEMA}writeOnly"
+AID_WOT_DATA_SCHEMA = f"{WOT_JSONSCHEMA}DataSchema"
+AID_WOT_REQUIRED = f"{WOT_JSONSCHEMA}required"
+AID_WOT_ONE_OF = f"{WOT_JSONSCHEMA}oneOf"
+AID_WOT_ITEMS = f"{WOT_JSONSCHEMA}items"
+AID_WOT_EXCLUSIVE_MINIMUM = f"{WOT_JSONSCHEMA}exclusiveMinimum"
+AID_WOT_EXCLUSIVE_MAXIMUM = f"{WOT_JSONSCHEMA}exclusiveMaximum"
+AID_WOT_MULTIPLE_OF = f"{WOT_JSONSCHEMA}multipleOf"
+AID_WOT_PATTERN = f"{WOT_JSONSCHEMA}pattern"
+AID_WOT_FORMAT = f"{WOT_JSONSCHEMA}format"
+AID_WOT_CONTENT_ENCODING = f"{WOT_JSONSCHEMA}contentEncoding"
+AID_WOT_CONTENT_MEDIA_TYPE = f"{WOT_JSONSCHEMA}contentMediaType"
 
 # Form
 AID_WOT_OPERATION_TYPE = f"{WOT_HCTL}hasOperationType"
 AID_WOT_RESPONSE_FORM = f"{WOT_HCTL}returns"
+AID_WOT_ADDITIONAL_RESPONSES = f"{WOT_HCTL}additionalReturns"
+AID_WOT_ADDITIONAL_RESPONSE = f"{WOT_HCTL}AdditionalExpectedResponse"
+AID_WOT_RESPONSE_SUCCESS = f"{WOT_HCTL}isSuccess"
+AID_WOT_RESPONSE_SCHEMA = f"{WOT_HCTL}hasAdditionalOutputSchema"
 
 # MQTT 5 request/reply. The WoT MQTT binding has no request/reply; the request
 # carries this topic as its Response Topic and the reply echoes the request's

@@ -39,7 +39,11 @@ from aas_model.builder import build_from_model
 from aas_model.json_schema_aid import datapoint_from_schema
 from aas_model.resource_instances import RESOURCE_FACTORIES
 from aas_model.resource_template.asset_interfaces_mapping_configuration import operation_ref
-from aas_model.submodel_templates.aid import DmpActionInput
+from aas_model.submodel_templates.aid import (
+    AdditionalResponse, AdditionalResponseSchema, AdditionalResponseSuccess, AdditionalResponses,
+    DmpActionInput, DmpActionOutput,
+)
+from aas_pydantic.submodel_templates.asset_interfaces_description import ContentType
 from aas_model.testing import (
     aimc_mapping, aimc_ref, aimc_sink, aimc_source, build_aid, build_aimc,
     http_interface, modbus_interface, mqtt_interface, opcua_interface, snmp_interface,
@@ -151,6 +155,29 @@ NESTED_SCHEMA = {"type": "object", "properties": {"Reading": {"type": "number"}}
 SETPOINT_SCHEMA = {"type": "object", "properties": {"mode": {"type": "string"}}}
 
 
+TD_INPUT = {
+    "type": "object",
+    "properties": {
+        "Uuid": {"type": "string", "pattern": "^[0-9a-f-]{36}$"},
+        "Speed": {"type": "number", "exclusiveMinimum": 0, "multipleOf": 0.5},
+        "Note": {"oneOf": [{"type": "string", "maxLength": 8}, {"type": "null"}]},
+        "Points": {"type": "array", "items": {
+            "type": "object", "properties": {"X": {"type": "number"}, "Label": {"type": "string"}},
+            "required": ["X"]}},
+    },
+    "required": ["Uuid", "Speed"],
+}
+TD_OUTPUT = {
+    "type": "object",
+    "properties": {
+        "State": {"type": "string", "enum": ["SUCCESS", "FAILURE"]},
+        "Image": {"type": "string", "contentEncoding": "base64", "contentMediaType": "image/png"},
+    },
+    "required": ["State"],
+}
+TD_ERROR = {"type": "object", "properties": {"Error": {"type": "string"}}, "required": ["Error"]}
+
+
 def _aid_ref(interface: str, kind: str, *path: str):
     return aimc_ref(AID_ID, interface, "InteractionMetadata", kind, *path)
 
@@ -254,6 +281,22 @@ def synthetic_cases():
         transformation="function aimc_main(sources) return { X=1, Y=2 } end")), \
         build_aid(mqtt=grouped), [_cci("contractAAS/submodels/ControlComponentInstance", "Move")], True, \
         "an Operation whose sinks fill members of one MQTT 5 request/reply action"
+
+    # Every TD DataSchema term AID marks EXTERNAL, nested, and an additional (error) response.
+    inspect = mqtt_interface("mqtt://192.168.0.104:1883/base/", actions={"Inspect": ("inspect", "inspect/reply")})
+    action = inspect.InteractionMetadata.actions.property_name["Inspect"]
+    action.input = datapoint_from_schema(TD_INPUT, cls=DmpActionInput)
+    action.output = datapoint_from_schema(TD_OUTPUT, cls=DmpActionOutput)
+    action.forms.additionalResponses = AdditionalResponses(value=[AdditionalResponse(
+        id_short="failure", success=AdditionalResponseSuccess(value="false"),
+        contentType=ContentType(value="application/json"),
+        schema=datapoint_from_schema(TD_ERROR, cls=AdditionalResponseSchema))])
+    yield "td-data-schemas", build_aimc(aimc_mapping(
+        id_short="Inspect", sources=[aimc_source("Inspect", operation_ref("Inspect"))],
+        sinks=[aimc_sink("Inspect", _aid_ref("interface_mqtt", "actions", "Inspect"))],
+        transformation="function aimc_main(sources) return { Inspect = sources.Inspect } end")), \
+        build_aid(mqtt=inspect), [_cci("contractAAS/submodels/ControlComponentInstance", "Inspect")], True, \
+        "an Operation whose action schemas use the TD DataSchema terms AID marks EXTERNAL"
 
     yield "projection-extensions", build_aimc(aimc_mapping(
         id_short="Extensions", sources=[aimc_source("invoke", _operation(cci, "Move"))],

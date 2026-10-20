@@ -1,41 +1,49 @@
-"""Build AID object-schema datapoints from JSON Schemas (draft 2020-12).
+"""Build AID data schemas from JSON Schemas (draft 2020-12), and back.
 
-The IDTA AssetInterfacesDescription data schemas are a WoT-2.0-ized subset of
-JSON Schema. Our template fork restores enumeration constraints documented by
-the AID 1.2 specification but omitted from its published JSON artifact:
+An AID data schema is a TD DataSchema (TD 1.1 §5.3.2.1): AID's own elements
+plus the terms it marks EXTERNAL, which ``aas_model.submodel_templates.aid``
+adds (docs/aid-extension.md §3.6). The mapping:
 
-============  ==========================================================
-JSON Schema   AID element (semanticId)
-============  ==========================================================
-``type``      ``type`` (rdf-syntax-ns#type)
-``title``     ``title`` (td#title)
-``const``     ``const`` (json-schema#const)
-``enum``      ``enum`` SML (json-schema#enum)
-``default``   ``default`` (json-schema#default)
-``minimum``/``maximum``        ``min_max`` Range (minMaxRange)
-``minLength``/``maxLength``    ``lengthRange`` Range (lengthRange)
-``minItems``/``maxItems``      ``itemsRange`` Range (itemsRange)
-``items``     ``items`` SMC (json-schema#items)
-``properties``                 ``properties`` → ``property_name`` map
-``required``                   ``RequiredProperties`` qualifier on each object
-============  ==========================================================
+====================================  =====================================
+JSON Schema                           AID element (semanticId)
+====================================  =====================================
+``type``                              ``type`` (rdf-syntax-ns#type)
+``title`` / ``description``           ``title`` / the AAS description
+``const`` / ``default`` / ``enum``    ``const`` / ``default`` / ``enum`` SML
+``unit``                              ``unit``
+``minimum``/``maximum``               ``min_max`` Range (inclusive)
+``exclusiveMinimum``/``…Maximum``     ``exclusiveMinimum``/``…Maximum``
+``multipleOf``                        ``multipleOf``
+``minLength``/``maxLength``           ``lengthRange`` Range
+``pattern`` / ``format``              ``pattern`` / ``format``
+``contentEncoding``/``…MediaType``    ``contentEncoding``/``contentMediaType``
+``readOnly`` / ``writeOnly``          ``readOnly`` / ``writeOnly``
+``minItems``/``maxItems``             ``itemsRange`` Range
+``items`` (one schema)                ``items`` (a full data schema)
+``properties``                        ``properties`` → ``property_name`` map
+``required``                          ``required`` SML of member names
+``oneOf``                             ``oneOf`` SML of data schemas
+====================================  =====================================
 
-This module turns a plain (already-dereferenced) JSON Schema dict into the
-generated ``property_name`` / ``property_name_json_schema`` classes, so
-resource messages (``MQTTSchemas/*.json``) don't have to be hand-built.
+A schema is converted completely or not at all: a keyword without an AID
+representation raises ``ValueError`` naming its path, unless the caller drops
+it explicitly with ``ignore``. Annotations (``$schema``, ``$id``, ``$comment``,
+``examples``) are not schema content and are skipped. Before conversion
+:func:`load_schema` dereferences the schema: ``$ref`` (external and
+``#/…``-internal, at any depth) is inlined and ``allOf`` is merged; ``oneOf``
+stays. Two rewrites keep the meaning:
 
-``$ref`` / ``allOf`` / ``anyOf`` / ``oneOf`` resolution is delegated to
-:class:`schema_parser.SchemaParser` via :func:`load_schema`; pass the result
-to :func:`datapoint_from_schema` (new instance) or :func:`populate_datapoint`
-(fill an existing instance, e.g. a ``DmpProperty`` whose forms / schema
-URLs are already set).
+- a type union ``["T", "null"]`` (any disjoint types) becomes ``oneOf`` with
+  one branch per type;
+- ``prefixItems`` whose positions differ only in their annotations becomes
+  ``items`` (the per-position titles are lost; validation is unchanged).
+
+``anyOf``, ``not``, ``if``/``then``/``else``, ``additionalProperties``,
+``patternProperties``, ``items`` as an array of schemas and heterogeneous
+``prefixItems`` have no TD/AID representation.
 
 Named-field style: datapoint children are DIRECT named fields on the
 container (``dp.type``, ``dp.forms``, … — no ``value`` wrapper).
-
-Limitations (mirroring the IDTA template): the ``items`` schema is leaf-only
-(no nested objects/arrays inside an array), and ``anyOf``/``oneOf`` unions are
-approximated by the dereferencer (first branch).
 """
 
 from __future__ import annotations
@@ -45,22 +53,22 @@ import json
 import math
 import re
 import typing
-from typing import Any, Dict, Optional, Type
+from typing import Any, Collection, Dict, Optional, Type
+from urllib.parse import urljoin, urlparse
 
 from pydantic import BaseModel
 
-from aas_pydantic import Property, Qualifier, Range
+from aas_pydantic import Property, Range
 
 from aas_pydantic.submodel_templates.asset_interfaces_description import (
     enum as _Enum,
     forms as _Forms,
-    items as _Items,
-    property_name as _PropertyName,
-    property_name_json_schema as _NestedPropertyName,
-    properties_json_schema as _PropertiesSchema,
+)
+from aas_model.submodel_templates.aid import (
+    DmpItems, DmpOneOfBranch, DmpProperty, DmpSchemaProperties, Op, OneOf, Required,
 )
 
-# type keyword → the WoT value stored in ``value.type``
+# type keyword → the WoT value stored in ``type``
 _TYPE_MAP = {
     "string": "string",
     "number": "number",
@@ -71,19 +79,18 @@ _TYPE_MAP = {
     "null": "null",
 }
 
-_REQUIRED_SEMANTIC_ID = "https://www.w3.org/2019/wot/json-schema#required"
-
-
-def _set_required(dp: Any, names: list[str]) -> None:
-    """Keep unrelated qualifiers while replacing this object's required list."""
-    dp.qualifiers = [q for q in dp.qualifiers if q.type_ != "RequiredProperties"] + [
-        Qualifier(
-            type_="RequiredProperties",
-            value_type="xs:string",
-            value=json.dumps(names, separators=(",", ":")),
-            semantic_id=_REQUIRED_SEMANTIC_ID,
-        )
-    ]
+# Keywords that are annotations, not schema content.
+_ANNOTATIONS = frozenset({"$schema", "$id", "$comment", "examples", "$defs", "definitions"})
+# Keywords with an AID representation (title/description included).
+_SUPPORTED = frozenset({
+    "type", "title", "description", "const", "default", "unit", "enum",
+    "minimum", "maximum", "exclusiveMinimum", "exclusiveMaximum", "multipleOf",
+    "minLength", "maxLength", "pattern", "format", "contentEncoding", "contentMediaType",
+    "readOnly", "writeOnly", "items", "prefixItems", "minItems", "maxItems",
+    "properties", "required", "oneOf",
+})
+# Keywords that describe a value without constraining it (kept on a union's outer schema).
+_DESCRIPTIVE = frozenset({"title", "description", "unit", "default", "readOnly", "writeOnly"})
 
 
 def _to_str(value: Any) -> str:
@@ -96,23 +103,18 @@ def _to_str(value: Any) -> str:
     return json.dumps(value, separators=(",", ":"))
 
 
-def _infer_type(schema: Dict[str, Any]) -> str:
-    """The element's data type: explicit ``type``, else inferred from the
-    schema's structure (object if it has ``properties``, array if it has
-    ``items``/``prefixItems``, else ``string``)."""
+def _infer_type(schema: Dict[str, Any]) -> Optional[str]:
+    """The schema's single data type: its ``type``, else ``object`` when it
+    has ``properties``, ``array`` when it has ``items``/``prefixItems``, else
+    none (a schema without a type accepts any value, e.g. a ``oneOf``)."""
     t = schema.get("type")
-    if isinstance(t, str) and t in _TYPE_MAP:
-        return _TYPE_MAP[t]
-    if isinstance(t, list):
-        # JSON Schema union type (e.g. ["string", "null"]) — first known wins
-        for item in t:
-            if isinstance(item, str) and item in _TYPE_MAP:
-                return _TYPE_MAP[item]
+    if isinstance(t, str):
+        return _TYPE_MAP.get(t)
     if schema.get("properties"):
         return "object"
     if schema.get("items") or schema.get("prefixItems"):
         return "array"
-    return "string"
+    return None
 
 
 def _set_range(range_el: Any, lo: Any, hi: Any) -> None:
@@ -254,45 +256,6 @@ def _fill_enum(enum_sml: Any, values: list) -> None:
     enum_sml.value = items
 
 
-def _fill_items(items: Any, schema: Dict[str, Any]) -> None:
-    """Populate the ``items`` SMC (json-schema#items) for a leaf item schema.
-
-    The AID ``items`` schema is leaf-only — nested objects/arrays inside an
-    array are not representable and are skipped.  Direct named fields on the
-    ``items`` SMC (``type``, ``title``, ``enum``, ``min_max``, …).
-    """
-    _validate_integer_bounds(schema)
-    datatype = _infer_type(schema)
-    _child(items, "type", Property).value = datatype
-    if schema.get("title"):
-        _child(items, "title", Property).value = _to_str(schema["title"])
-    if "const" in schema:
-        const = _child(items, "const", Property)
-        const.value = _to_str(schema["const"])
-        const.value_type = _const_value_type(datatype)
-    if "default" in schema:
-        _child(items, "default", Property).value = _to_str(schema["default"])
-    if schema.get("unit"):
-        _child(items, "unit", Property).value = _to_str(schema["unit"])
-    if schema.get("enum"):
-        _fill_enum(_child(items, "enum", _Enum), schema["enum"])
-    _set_range_if_bounds(items, "min_max",
-                         schema.get("minimum"), schema.get("maximum"))
-    _set_range_if_bounds(items, "lengthRange",
-                         schema.get("minLength"), schema.get("maxLength"))
-
-
-def _fill_prefix_items(items: Any, prefix_items: list) -> None:
-    """Populate ``items`` from a homogeneous ``prefixItems`` tuple (e.g. the
-    position ``[x, y, theta]`` pattern).  AID arrays are homogeneous, so only
-    the shared type/constraints are captured."""
-    subs = [s for s in prefix_items if isinstance(s, dict)]
-    if not subs:
-        return
-    types = {_infer_type(s) for s in subs}
-    if len(types) == 1:
-        _fill_items(items, {**subs[0], "type": next(iter(types))})
-
 
 def _fill_form(
     forms: Any,
@@ -317,10 +280,148 @@ def _fill_form(
         if value is None or fname not in type(forms).model_fields:
             continue
         if fname == "op":
-            from aas_model.submodel_templates.aid import op as _op
-            forms.op = _op(value)
+            forms.op = Op(value=[Property(value=value)])
             continue
         _child(forms, fname, Property).value = value
+
+
+
+
+# --------------------------------------------------------------------------- #
+# Dereferencing: $ref (external and internal, at any depth) inlined, allOf merged
+# --------------------------------------------------------------------------- #
+
+def _merge(left: Dict[str, Any], right: Dict[str, Any]) -> Dict[str, Any]:
+    """``allOf`` of two dereferenced schemas: members and required names are
+    unions, nested schemas merge, any other keyword of ``right`` wins."""
+    result = dict(left)
+    for key, value in right.items():
+        if key not in result:
+            result[key] = value
+        elif key == "required":
+            result[key] = list(dict.fromkeys([*result[key], *value]))
+        elif key == "properties":
+            merged = dict(result[key])
+            for name, member in value.items():
+                merged[name] = _merge(merged[name], member) if name in merged else member
+            result[key] = merged
+        elif isinstance(value, dict) and isinstance(result[key], dict):
+            result[key] = _merge(result[key], value)
+        else:
+            result[key] = value
+    return result
+
+
+def _pointer(document: Any, fragment: str) -> Any:
+    target = document
+    for token in [t for t in fragment.lstrip("/").split("/") if t]:
+        token = token.replace("~1", "/").replace("~0", "~")
+        target = target[int(token)] if isinstance(target, list) else target[token]
+    return target
+
+
+def dereference(schema: Dict[str, Any], base: str, loader, *, _depth: int = 0) -> Dict[str, Any]:
+    """Inline every ``$ref`` (external by URL or path relative to ``base``,
+    internal by ``#/…`` pointer into its document) and merge ``allOf``, at
+    every depth. ``oneOf`` branches are dereferenced and kept; ``loader``
+    loads a document by URL or path."""
+    def walk(node: Any, doc: Any, url: str, depth: int) -> Any:
+        if depth > 64:
+            raise ValueError(f"$ref nesting deeper than 64 levels at {url} (recursive schema?)")
+        if isinstance(node, list):
+            return [walk(item, doc, url, depth) for item in node]
+        if not isinstance(node, dict):
+            return node
+        result: Dict[str, Any] = {}
+        if "$ref" in node:
+            ref = node["$ref"]
+            target_url, _, fragment = ref.partition("#")
+            if target_url:
+                target_url = urljoin(url, target_url) if urlparse(url).scheme or url.startswith("/") \
+                    else _join_path(url, target_url)
+                target_doc = loader(target_url)
+            else:
+                target_url, target_doc = url, doc
+            result = walk(_pointer(target_doc, fragment), target_doc, target_url, depth + 1)
+        for sub in node.get("allOf", []):
+            result = _merge(result, walk(sub, doc, url, depth + 1))
+        for key, value in node.items():
+            if key in ("$ref", "allOf") or key in _ANNOTATIONS:
+                continue
+            if key == "properties" and isinstance(value, dict):
+                value = {name: walk(member, doc, url, depth + 1) for name, member in value.items()}
+            elif isinstance(value, (dict, list)) and key not in ("enum", "const", "default", "required", "examples"):
+                value = walk(value, doc, url, depth + 1)
+            result = _merge(result, {key: value})
+        return result
+    return walk(schema, schema, base, _depth)
+
+
+def _join_path(base: str, relative: str) -> str:
+    import os
+    return os.path.normpath(os.path.join(os.path.dirname(base), relative))
+
+
+# --------------------------------------------------------------------------- #
+# JSON Schema → AID
+# --------------------------------------------------------------------------- #
+
+def _unrepresentable(path: str, keyword: str) -> ValueError:
+    return ValueError(f"{path}: the JSON Schema keyword {keyword!r} has no TD/AID representation; "
+                      f"convert the schema or drop it explicitly with ignore={{{keyword!r}}}")
+
+
+def _rewrite_type_union(schema: Dict[str, Any], path: str) -> Dict[str, Any]:
+    """``{"type": [A, B, …], …}`` → ``{"oneOf": [{"type": A, …}, {"type": B, …}]}``.
+    Exact for disjoint types (each branch keeps the constraints; those that
+    don't apply to its type are inert, as in JSON Schema)."""
+    types = schema["type"]
+    if not types or not all(isinstance(t, str) and t in _TYPE_MAP for t in types):
+        raise ValueError(f"{path}/type: unsupported type union {types!r}")
+    if {"integer", "number"} <= set(types):
+        raise ValueError(f"{path}/type: the union {types!r} overlaps (every integer is a number); oneOf cannot express it")
+    if "oneOf" in schema:
+        raise ValueError(f"{path}: a type union together with oneOf has no TD/AID representation")
+    outer = {k: v for k, v in schema.items() if k in _DESCRIPTIVE}
+    constraints = {k: v for k, v in schema.items() if k != "type" and k not in _DESCRIPTIVE}
+
+    def applies(keyword: str, datatype: str) -> bool:
+        owner = next((t for t, words in _TYPE_KEYWORDS.items() if keyword in words), None)
+        return owner is None or owner == datatype or (owner == "number" and datatype == "integer")
+
+    return {**outer, "oneOf": [{**{k: v for k, v in constraints.items() if applies(k, t)}, "type": t}
+                               for t in types]}
+
+
+# Keywords that constrain values of one type only; others (enum, const, …) apply to all.
+_TYPE_KEYWORDS = {
+    "string": {"minLength", "maxLength", "pattern", "format", "contentEncoding", "contentMediaType"},
+    "number": {"minimum", "maximum", "exclusiveMinimum", "exclusiveMaximum", "multipleOf"},
+    "array": {"items", "prefixItems", "minItems", "maxItems"},
+    "object": {"properties", "required"},
+}
+
+
+def _homogeneous_items(schema: Dict[str, Any], path: str) -> Dict[str, Any]:
+    """``prefixItems`` whose positions differ only in annotations → their
+    shared ``items`` schema; anything else is a tuple TD cannot describe."""
+    if "items" in schema:
+        raise ValueError(f"{path}: prefixItems together with items has no TD/AID representation")
+    positions = schema["prefixItems"]
+    shapes = [{k: v for k, v in p.items() if k not in ("title", "description")} for p in positions
+              if isinstance(p, dict)]
+    if len(shapes) != len(positions) or not shapes or any(shape != shapes[0] for shape in shapes):
+        raise ValueError(f"{path}/prefixItems: positions with different schemas (a tuple) have no TD/AID representation")
+    return shapes[0]
+
+
+def _schema_field(container: Any, name: str, path: str) -> Any:
+    """The container's data-schema child ``name`` (created when absent); the
+    container must be an AID extension class, which carries every term."""
+    if name not in type(container).model_fields:
+        raise ValueError(f"{path}: {type(container).__name__} has no {name!r}; build data schemas "
+                         f"with the AID extension classes (aas_model.submodel_templates.aid)")
+    return _child(container, name, Property)
 
 
 def populate_datapoint(
@@ -334,19 +435,37 @@ def populate_datapoint(
     op: Optional[str] = None,
     content_type: Optional[str] = None,
     subprotocol: Optional[str] = None,
+    ignore: Collection[str] = (),
+    path: str = "$",
 ) -> None:
-    """Fill an existing datapoint instance (``property_name`` or a subclass
-    like ``DmpProperty``, or a nested ``property_name_json_schema``) from a
-    dereferenced JSON Schema dict.
+    """Fill an existing data schema (a ``DmpProperty``, an action's input or
+    output, an event payload, a nested member) from a dereferenced JSON
+    Schema dict.
 
     Only the fields the schema describes are touched — fields the caller
     already set (``forms``, ``key``, …) are left alone, so this composes with
-    the MQTT/resource builders.
+    the MQTT/resource builders. A keyword without an AID representation raises
+    ``ValueError`` unless it is in ``ignore`` (applied at every depth).
 
     ``schema_url`` (the JSON Schema URL the datapoint was built from) is
     recorded as a supplemental semantic id on the datapoint — the schema URL
     rides on the DataSchema it represents instead of a separate URL Property.
     """
+    ignore = frozenset(ignore)
+    schema = {k: v for k, v in schema.items() if k not in ignore and k not in _ANNOTATIONS}
+    for keyword in schema:
+        if keyword not in _SUPPORTED:
+            raise _unrepresentable(path, keyword)
+    if isinstance(schema.get("type"), list):
+        schema = _rewrite_type_union(schema, path)
+    if "prefixItems" in schema:
+        shared = _homogeneous_items(schema, path)
+        schema = {**{k: v for k, v in schema.items() if k != "prefixItems"}, "items": shared}
+    if isinstance(schema.get("items"), list):
+        raise ValueError(f"{path}/items: an array of schemas (a tuple) has no TD/AID representation")
+    if "type" in schema and _infer_type(schema) is None:
+        raise ValueError(f"{path}/type: unknown type {schema['type']!r}")
+
     if key:
         dp.id_short = key
         _child(dp, "key", Property).value = key
@@ -356,7 +475,8 @@ def populate_datapoint(
 
     datatype = _infer_type(schema)
     _validate_integer_bounds(schema)
-    _child(dp, "type", Property).value = datatype
+    if datatype:
+        _child(dp, "type", Property).value = datatype
 
     if schema.get("title"):
         _child(dp, "title", Property).value = _to_str(schema["title"])
@@ -373,13 +493,12 @@ def populate_datapoint(
     if schema.get("enum"):
         _fill_enum(_child(dp, "enum", _Enum), schema["enum"])
 
-    # ``property_name.forms`` is mandatory (missing qualifier → One).  The
-    # schema itself carries no form info — the caller supplies the transport
-    # binding: either a ready ``forms`` instance (e.g. ``DmpForm``) or the
-    # WoT form fields (``href`` = the topic the message comes from, ``op``,
-    # ``content_type``, ``subprotocol``).  A caller-supplied form replaces the
-    # empty required-structure one; an already-set forms (MQTT builders) is
-    # left alone unless the caller passes explicit form fields.
+    # ``forms`` is mandatory on a property affordance. The schema itself
+    # carries no form info — the caller supplies the transport binding:
+    # either a ready ``forms`` instance (e.g. ``DmpForm``) or the WoT form
+    # fields (``href`` = the topic the message comes from, ``op``,
+    # ``content_type``, ``subprotocol``). An already-set forms (MQTT builders)
+    # is left alone unless the caller passes explicit form fields.
     if "forms" in type(dp).model_fields:
         if forms is not None:
             f = forms
@@ -393,68 +512,89 @@ def populate_datapoint(
                    content_type=content_type, subprotocol=subprotocol)
 
     # numeric / string / array bounds — Ranges appear only when bounded
-    _set_range_if_bounds(dp, "min_max",
-                         schema.get("minimum"), schema.get("maximum"))
-    _set_range_if_bounds(dp, "lengthRange",
-                         schema.get("minLength"), schema.get("maxLength"))
+    _set_range_if_bounds(dp, "min_max", schema.get("minimum"), schema.get("maximum"))
+    _set_range_if_bounds(dp, "lengthRange", schema.get("minLength"), schema.get("maxLength"))
+    _set_range_if_bounds(dp, "itemsRange", schema.get("minItems"), schema.get("maxItems"))
+    number_type = "xs:integer" if datatype == "integer" else "xs:double"
+    for keyword in ("exclusiveMinimum", "exclusiveMaximum", "multipleOf"):
+        if keyword in schema:
+            element = _schema_field(dp, keyword, path)
+            element.value, element.value_type = _to_str(schema[keyword]), number_type
+    for keyword in ("pattern", "format", "contentEncoding", "contentMediaType", "readOnly", "writeOnly"):
+        if keyword in schema:
+            _schema_field(dp, keyword, path).value = _to_str(schema[keyword])
 
-    if datatype == "array":
-        _set_range_if_bounds(dp, "itemsRange",
-                             schema.get("minItems"), schema.get("maxItems"))
-        item = schema.get("items")
-        if isinstance(item, dict):
-            _fill_items(_child(dp, "items", _Items), item)
-        elif schema.get("prefixItems"):
-            _fill_prefix_items(_child(dp, "items", _Items), schema["prefixItems"])
-    elif datatype == "object":
-        _set_required(dp, schema.get("required", []))
-        # recursive object-schema nesting (WoT 2.0 ``properties`` keyword)
-        if "properties" in schema:
-            props_map = _child(dp, "properties", _PropertiesSchema).property_name
-            reserved = {
-                name for name in schema["properties"]
-                if _member_id_short(name) == name
-            }
-            aliases = set()
-            for name, sub in schema["properties"].items():
-                alias = _member_id_short(name)
-                if alias != name:
-                    alias = f"{alias}_{len(aliases)}"
-                    while alias in reserved or alias in aliases:
-                        alias += "_"
-                aliases.add(alias)
-                child = datapoint_from_schema(
-                    sub, key=name, cls=_NestedPropertyName
-                )
-                child.id_short = alias
-                props_map[alias] = child
+    if isinstance(schema.get("items"), dict):
+        _schema_field(dp, "items", path)
+        populate_datapoint(dp.items, schema["items"], ignore=ignore, path=f"{path}/items")
+    if "oneOf" in schema:
+        if not isinstance(schema["oneOf"], list) or not schema["oneOf"]:
+            raise ValueError(f"{path}/oneOf: expected a non-empty array of schemas")
+        branches = _schema_field(dp, "oneOf", path)
+        branch_cls = getattr(type(branches), "item_type", DmpOneOfBranch)
+        branches.value = []
+        for index, branch_schema in enumerate(schema["oneOf"]):
+            branch = _required_default(branch_cls)
+            populate_datapoint(branch, branch_schema, ignore=ignore, path=f"{path}/oneOf/{index}")
+            branch.id_short = f"branch_{index}"
+            branches.value.append(branch)
+    if "properties" in schema:
+        members = schema["properties"]
+        container = _schema_field(dp, "properties", path)
+        member_cls = _map_item_type(container, "property_name")
+        props_map = container.property_name
+        reserved = {name for name in members if _member_id_short(name) == name}
+        aliases = set()
+        for name, sub in members.items():
+            alias = _member_id_short(name)
+            if alias != name:
+                alias = f"{alias}_{len(aliases)}"
+                while alias in reserved or alias in aliases:
+                    alias += "_"
+            aliases.add(alias)
+            child = _required_default(member_cls)
+            populate_datapoint(child, sub, key=name, ignore=ignore, path=f"{path}/properties/{name}")
+            child.id_short = alias
+            props_map[alias] = child
+    if "required" in schema:
+        names = schema["required"]
+        unknown = [n for n in names if n not in schema.get("properties", {})]
+        if unknown:
+            raise ValueError(f"{path}/required: {unknown} are not members of this object")
+        _schema_field(dp, "required", path)
+        # An empty list requires nothing, as an absent one does.
+        dp.required = Required(value=[Property(value=name) for name in names]) if names else None
+
+
+def _map_item_type(container: Any, name: str) -> Type[Any]:
+    """The value class of a container's ``Dict[str, X]`` field."""
+    ann = type(container).model_fields[name].annotation
+    args = typing.get_args(ann)
+    return args[1] if len(args) == 2 and isinstance(args[1], type) else type(container)
 
 
 def datapoint_from_schema(
     schema: Dict[str, Any],
     *,
     key: Optional[str] = None,
-    cls: Type[Any] = _PropertyName,
+    cls: Type[Any] = DmpProperty,
     schema_url: Optional[str] = None,
     forms: Any = None,
     href: Optional[str] = None,
     op: Optional[str] = None,
     content_type: Optional[str] = None,
     subprotocol: Optional[str] = None,
+    ignore: Collection[str] = (),
 ) -> Any:
-    """Build a new datapoint instance from a dereferenced JSON Schema dict.
+    """Build a new data schema instance from a dereferenced JSON Schema dict.
 
-    ``cls`` defaults to the top-level ``property_name`` (PropertyDefinition);
-    pass ``property_name_json_schema`` for nested object members (the
-    converter does this automatically for ``properties`` children).  Mandatory
-    children (e.g. ``property_name.forms``) are constructed so the datapoint is
-    always a valid instance.
-
-    The ``forms`` container is mandatory and carries the transport binding
-    (the topic the message comes from).  Pass the WoT form fields directly —
-    ``href`` (topic/URI), ``op`` (e.g. ``observeProperty``), ``content_type``,
-    ``subprotocol`` — or a ready ``forms`` instance (e.g. ``DmpForm`` from
-    ``aas_model.submodel_templates.aid``) to include MQTT qualifiers.
+    ``cls`` defaults to a property affordance (``DmpProperty``); pass e.g.
+    ``DmpActionInput``/``DmpActionOutput`` or an event payload class. Nested
+    members, ``items`` and ``oneOf`` branches take the classes their parent
+    declares. Mandatory children (e.g. a property's ``forms``) are constructed
+    so the datapoint is always a valid instance; pass the WoT form fields
+    (``href``, ``op``, ``content_type``, ``subprotocol``) or a ready
+    ``forms``. ``ignore`` names keywords to drop instead of failing on them.
 
     ``schema_url`` (the JSON Schema URL) is recorded as a supplemental
     semantic id on the built datapoint.
@@ -463,12 +603,16 @@ def datapoint_from_schema(
     populate_datapoint(
         dp, schema, key=key, schema_url=schema_url,
         forms=forms, href=href, op=op,
-        content_type=content_type, subprotocol=subprotocol,
+        content_type=content_type, subprotocol=subprotocol, ignore=ignore,
     )
     return dp
 
 
-def _value_from_property(value: str, datatype: str) -> Any:
+# --------------------------------------------------------------------------- #
+# AID → JSON Schema
+# --------------------------------------------------------------------------- #
+
+def _value_from_property(value: str, datatype: Optional[str]) -> Any:
     """Recover the JSON value encoded in an AAS Property (whose value is text)."""
     if datatype == "string":
         return value
@@ -478,7 +622,15 @@ def _value_from_property(value: str, datatype: str) -> Any:
         normalized = value.casefold()
         if normalized in ("true", "false"):
             return normalized == "true"
-    return json.loads(value)
+    try:
+        return json.loads(value)
+    except (TypeError, ValueError):
+        return value
+
+
+def _number(value: str, integer: bool) -> Any:
+    number = float(value)
+    return int(number) if integer or number.is_integer() and "." not in value and "e" not in value.lower() else number
 
 
 def _range_from_element(schema: Dict[str, Any], element: Any,
@@ -491,12 +643,10 @@ def _range_from_element(schema: Dict[str, Any], element: Any,
 
 
 def schema_from_datapoint(dp: Any) -> Dict[str, Any]:
-    """Reconstruct the supported JSON Schema keywords from an AID DataSchema.
-
-    Accepts a property/event payload, an action input/output, a nested object
-    member, or an array's leaf ``items`` element. Transport/form metadata and
-    schema URLs are not JSON Schema keywords and are intentionally excluded.
-    """
+    """Reconstruct the JSON Schema of an AID data schema (any level: a
+    property, an action's input/output, an event payload, a member, an
+    array's ``items``, a ``oneOf`` branch). Transport/form metadata and schema
+    URLs are not JSON Schema keywords and are excluded."""
     schema: Dict[str, Any] = {}
     datatype_element = getattr(dp, "type", None)
     datatype = datatype_element.value if datatype_element is not None else None
@@ -519,10 +669,8 @@ def schema_from_datapoint(dp: Any) -> Dict[str, Any]:
         schema["unit"] = unit.value
     enum = getattr(dp, "enum", None)
     if enum is not None:
-        schema["enum"] = [
-            _value_from_property(element.value, datatype or "string")
-            for element in enum.value
-        ]
+        schema["enum"] = [_value_from_property(element.value, datatype or "string")
+                          for element in enum.value]
 
     _range_from_element(schema, getattr(dp, "min_max", None),
                         "minimum", "maximum", integer=datatype == "integer")
@@ -530,34 +678,56 @@ def schema_from_datapoint(dp: Any) -> Dict[str, Any]:
                         "minLength", "maxLength", integer=True)
     _range_from_element(schema, getattr(dp, "itemsRange", None),
                         "minItems", "maxItems", integer=True)
+    for name in ("exclusiveMinimum", "exclusiveMaximum", "multipleOf"):
+        element = getattr(dp, name, None)
+        if element is not None:
+            schema[name] = _number(element.value, datatype == "integer")
+    for name in ("pattern", "format", "contentEncoding", "contentMediaType"):
+        element = getattr(dp, name, None)
+        if element is not None:
+            schema[name] = element.value
+    for name in ("readOnly", "writeOnly"):
+        element = getattr(dp, name, None)
+        if element is not None:
+            schema[name] = str(element.value).lower() == "true"
 
     items = getattr(dp, "items", None)
     if items is not None:
         schema["items"] = schema_from_datapoint(items)
+    one_of = getattr(dp, "oneOf", None)
+    if one_of is not None:
+        schema["oneOf"] = [schema_from_datapoint(branch) for branch in one_of.value]
     properties = getattr(dp, "properties", None)
     if properties is not None:
         schema["properties"] = {
-            (child.key.value if child.key is not None else name):
-                schema_from_datapoint(child)
+            (child.key.value if child.key is not None else name): schema_from_datapoint(child)
             for name, child in properties.property_name.items()
         }
-    if datatype == "object":
-        required = next(
-            (q for q in getattr(dp, "qualifiers", [])
-             if q.type_ == "RequiredProperties"), None
-        )
-        if required is not None:
-            schema["required"] = json.loads(required.value)
+    required = getattr(dp, "required", None)
+    if required is not None:
+        schema["required"] = [name.value for name in required.value]
     return schema
 
 
-def load_schema(schema_url: str) -> Dict[str, Any]:
-    """Load + dereference a JSON Schema (URL or path) into a flat dict.
+def without(schema: Any, *keywords: str) -> Any:
+    """``schema`` with ``keywords`` removed at every depth: the explicit,
+    visible way to drop constraints TD/AID cannot represent (the builder
+    refuses them otherwise). Member names in ``properties`` are kept."""
+    if isinstance(schema, list):
+        return [without(item, *keywords) for item in schema]
+    if not isinstance(schema, dict):
+        return schema
+    return {key: ({name: without(member, *keywords) for name, member in value.items()}
+                  if key == "properties" and isinstance(value, dict) else without(value, *keywords))
+            for key, value in schema.items() if key not in keywords}
 
-    ``$ref`` is resolved against the ``MQTTSchemas`` directory (github.io
-    URLs map to the local vendored copy), and ``allOf``/``anyOf``/``oneOf``
-    are merged — see :class:`schema_parser.SchemaParser`.
-    """
+
+def load_schema(schema_url: str) -> Dict[str, Any]:
+    """Load and dereference a JSON Schema (URL or path) into one dict: every
+    ``$ref`` inlined (github.io URLs map to the vendored ``MQTTSchemas``),
+    ``allOf`` merged, ``oneOf`` kept. Pass the result to
+    :func:`datapoint_from_schema` / :func:`populate_datapoint`."""
     from aas_model.schema_parser import SchemaParser  # lazy: schema_parser imports requests
 
-    return SchemaParser().parse_schema(schema_url)
+    parser = SchemaParser()
+    return dereference(parser._load_schema(schema_url), schema_url, parser._load_schema)
