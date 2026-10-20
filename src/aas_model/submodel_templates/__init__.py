@@ -91,7 +91,6 @@ from .control_component_instance import (
     ExtendedSkill,
     ExtendedSkills,
     SkillOperation,
-    OperationVariableProp,
     SkillInterfaceRelationship,
     ResourceEndpoints,
 )
@@ -156,7 +155,6 @@ __all__ = [
     "ExtendedSkill",
     "ExtendedSkills",
     "SkillOperation",
-    "OperationVariableProp",
     "SkillInterfaceRelationship",
     "ResourceEndpoints",
     # REST AID interface

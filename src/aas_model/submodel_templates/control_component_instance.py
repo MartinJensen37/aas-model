@@ -18,7 +18,6 @@ from __future__ import annotations
 
 from typing import ClassVar, Dict, List, Optional
 
-from pydantic import model_validator
 from aas_pydantic import (
     SubmodelElementCollection,
     Property, ReferenceElement, Operation, RelationshipElement, Qualifier,
@@ -86,20 +85,24 @@ EXTENDED_SKILL_INTERFACE_REF = f"{BASE_URL}/ControlComponent/Skill/1/0"
 
 # Skill Operation (operation delegation) + endpoint relationships
 SKILL_OPERATION = f"{BASE_URL}/ControlComponent/Skill/Operation/2/0"
-SKILL_OPERATION_VARIABLE = f"{BASE_URL}/ControlComponent/Skill/OperationVariable/1/0"
 SKILL_INVOCATION_DELEGATION = f"{BASE_URL}/ControlComponent/Skill/InvocationDelegation/1/0"
 SKILL_INTERFACE_RELATIONSHIP = f"{BASE_URL}/ControlComponent/Skill/NativeInterface/1/0"
 
 
-class OperationVariableProp(Property):
-    """A single input/inoutput/output variable of a skill's Operation.
+# The value of an Operation variable may be absent at invocation (aas-camel-dmp SPEC §7):
+# an optional input or InOut may be left out by the caller, an optional output or InOut
+# by the reply. Without it a variable is required. (SMT/Cardinality says how many elements
+# a template instance holds, not which values a call carries.)
+OPERATION_VARIABLE_OPTIONAL = f"{BASE_URL}/aas/OperationVariable/Optional/1/0"
 
-    Mirrors the command / commandResponse schemas the native MQTT action
-    carries (e.g. ``Uuid``, ``State``, ``Outcome``) so the AAS Web GUI can
-    render and manually invoke the operation.
-    """
-    semantic_id: str = SKILL_OPERATION_VARIABLE
-    description: str = "An operation variable of the skill's operation."
+
+class OptionalVariable(Qualifier):
+    """Marks an Operation variable (or a member of a collection variable) optional."""
+    type_: str = "Optional"
+    value: str = "true"
+    value_type: str = "xs:boolean"
+    kind: str = "ConceptQualifier"
+    semantic_id: str = OPERATION_VARIABLE_OPTIONAL
 
 
 class SkillOperation(Operation):
@@ -107,38 +110,21 @@ class SkillOperation(Operation):
 
     Invoking it is delegated to the OperationDelegation/DMP service via the
     ``invocationDelegation`` qualifier (which carries the generated REST
-    endpoint).  The input/inoutput/output variables mirror the native MQTT
+    endpoint). The input/inoutput/output variables mirror the native
     action's command / commandResponse payloads (e.g. ``Uuid``, ``State``,
     ``Outcome``) so the operation can also be rendered and invoked manually
     from the AAS Web GUI.
+
+    A variable is any SubmodelElement, as in the AAS metamodel
+    (``OperationVariable.value``): a Property for a scalar, a
+    SubmodelElementCollection (subclass) for an object, a SubmodelElementList
+    for an array. The DMP delegates Operations whose
+    variables are Properties, collections and lists of them; other element
+    types block the mapping there. A variable (or a collection member) is
+    required unless it carries the :class:`OptionalVariable` qualifier.
     """
     semantic_id: str = SKILL_OPERATION
     description: str = "Operation to invoke this skill (delegated via operation delegation)."
-
-    input_variable: List[OperationVariableProp] = []
-    output_variable: List[OperationVariableProp] = []
-    in_output_variable: List[OperationVariableProp] = []
-
-    @model_validator(mode="before")
-    @classmethod
-    def _strip_variable_discriminators(cls, data):
-        """Strip the ``modelType`` discriminator the base Operation serializer
-        tags onto each variable item — the declared element type is
-        authoritative and ``extra="forbid"`` would otherwise reject it on the
-        dump → validate round-trip."""
-        if not isinstance(data, dict):
-            return data
-        out = dict(data)
-        for fname in ("input_variable", "output_variable", "in_output_variable"):
-            vals = out.get(fname)
-            if not isinstance(vals, list):
-                continue
-            out[fname] = [
-                {k: v for k, v in item.items() if k not in ("modelType", "model_type")}
-                if isinstance(item, dict) else item
-                for item in vals
-            ]
-        return out
 
 
 class SkillInterfaceRelationship(RelationshipElement):
@@ -146,7 +132,7 @@ class SkillInterfaceRelationship(RelationshipElement):
 
     ``first`` references the skill SMC (``ControlComponentInstance/skills/<skill>``),
     ``second`` references its native action in the AID
-    (``AssetInterfacesDescription/interface_mqtt/interaction_metadata/actions/<skill>``).
+    (``AssetInterfacesDescription/<interface>/InteractionMetadata/actions/<skill>``).
     Replaces the generic Endpoint ``interface_reference``/``endpoint_reference``
     ReferenceElements for the per-skill native-interface linkage.
     """
@@ -164,11 +150,11 @@ class ExtendedSkill(_BaseSkill):
     """Skill children + the interface-reference + operation extensions, as
     DIRECT named fields.  The IDTA template marks ``Disabled``/``Modes``/
     ``Parameters``/``Errors``/``Uses`` as mandatory (One) — provided here so
-    the MQTT-extended skill constructs; stations override ``Modes`` etc. via
+    the extended skill constructs; stations override ``Modes`` etc. via
     config.
 
     ``interface_reference`` points at the skill's NATIVE interface (the AID
-    action it maps to — read by BT_Controller for MQTT topic resolution);
+    action it maps to, on whichever interface the asset offers it);
     ``operation`` is the AAS Operation exposed to clients and delegated to
     OperationDelegation."""
     semantic_id: str = EXTENDED_SKILL
@@ -179,7 +165,7 @@ class ExtendedSkill(_BaseSkill):
     Uses: Uses_t = Uses()
     interface_reference: ReferenceElement = ReferenceElement(
         semantic_id=EXTENDED_SKILL_INTERFACE_REF,
-        description="Reference to the corresponding AID action interface for MQTT topic resolution.",
+        description="Reference to the AID action that natively implements this skill.",
     )
     operation: Optional[SkillOperation] = None
 

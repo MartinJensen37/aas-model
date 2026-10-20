@@ -1,0 +1,73 @@
+"""Skill Operation variables are any SubmodelElement (AAS ``OperationVariable.value``),
+and each may be marked Optional; both survive the AAS JSON export and its parse."""
+
+from __future__ import annotations
+
+import json
+
+from aas_pydantic import Property, SubmodelElementCollection, SubmodelElementList
+from aas_pydantic.convert_util import strip_temp_id_short_attributes
+from basyx.aas.adapter.json import json_serialization
+
+from aas_model._serde import parse_submodel_dict
+from aas_model.builder import build_from_model
+from aas_model.resource_instances import RESOURCE_FACTORIES
+from aas_model.submodel_templates.control_component_instance import (
+    OPERATION_VARIABLE_OPTIONAL, OptionalVariable,
+)
+
+
+class Result(SubmodelElementCollection):
+    State: Property = Property(id_short="State")
+    Detail: Property = Property(id_short="Detail", qualifiers=[OptionalVariable()])
+
+
+def is_optional(element) -> bool:
+    return any(q.semantic_id == OPERATION_VARIABLE_OPTIONAL and str(q.value).lower() == "true"
+               for q in element.qualifiers)
+
+
+def _exported_cci(resource) -> dict:
+    store = build_from_model(resource)
+    strip_temp_id_short_attributes(store)
+    doc = json.loads(json_serialization.object_store_to_json(store))
+    return next(s for s in doc["submodels"] if s["idShort"] == "ControlComponentInstance")
+
+
+def _operation(cci: dict, skill: str) -> dict:
+    skills = next(e for e in cci["submodelElements"] if e["idShort"] == "Skills")
+    return next(e for e in next(s for s in skills["value"] if s["idShort"] == skill)["value"]
+                if e["modelType"] == "Operation")
+
+
+def _optional(element: dict) -> bool:
+    return any(q["semanticId"]["keys"][0]["value"] == OPERATION_VARIABLE_OPTIONAL and q["value"] == "true"
+               for q in element.get("qualifiers", []))
+
+
+def test_a_variable_is_marked_optional_by_its_qualifier():
+    assert is_optional(Property(id_short="Outcome", qualifiers=[OptionalVariable()]))
+    assert not is_optional(Property(id_short="State"))
+
+
+def test_collection_and_list_variables_with_optional_marks_export_and_parse_back():
+    resource = RESOURCE_FACTORIES["imaDispensing"]()
+    operation = resource.control_component_instance.Skills.Skill["Dispensing"].operation
+    operation.output_variable = [*operation.output_variable, Result(id_short="Result"),
+                                 SubmodelElementList(id_short="Samples", type_value_list_element="Property",
+                                                     value_type_list_element="xs:int", qualifiers=[OptionalVariable()])]
+    cci = _exported_cci(resource)
+    outputs = {v["value"]["idShort"]: v["value"] for v in _operation(cci, "Dispensing")["outputVariables"]}
+    assert outputs["Result"]["modelType"] == "SubmodelElementCollection"
+    assert outputs["Samples"]["modelType"] == "SubmodelElementList"
+    members = {m["idShort"]: m for m in outputs["Result"]["value"]}
+    assert _optional(members["Detail"]) and not _optional(members["State"])
+    assert _optional(outputs["Samples"]) and _optional(outputs["Outcome"]) and not _optional(outputs["State"])
+
+    parsed = parse_submodel_dict(cci, type(resource.control_component_instance))
+    back = {v.id_short: v for v in parsed.Skills.Skill["Dispensing"].operation.output_variable}
+    assert isinstance(back["Result"], SubmodelElementCollection)
+    assert isinstance(back["Samples"], SubmodelElementList)
+    assert is_optional(back["Outcome"]) and is_optional(back["Samples"]) and not is_optional(back["State"])
+    # AAS JSON names no collection class: the members come back by idShort, marks included.
+    assert is_optional(back["Result"].value["Detail"]) and not is_optional(back["Result"].value["State"])

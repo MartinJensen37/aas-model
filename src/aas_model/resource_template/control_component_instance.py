@@ -3,7 +3,7 @@
 Built on our extended CCI (``aas_model.submodel_templates.control_component_instance``),
 which extends the generated IDTA ControlComponentInstance Skill with:
 - an ``interface_reference`` pointing at the skill's NATIVE interface (the AID
-  MQTT action — read by BT_Controller for MQTT topic resolution),
+  action of whichever interface the asset offers it on),
 - an ``operation`` (AAS Operation) whose ``invocationDelegation`` qualifier
   carries the generated operation-delegation REST endpoint,
 - an ``Endpoints`` container that holds, per skill, an annotated
@@ -16,6 +16,7 @@ wrapper); dynamic maps (endpoints/skills) are ``Dict[str, X]`` fields.
 
 from __future__ import annotations
 
+from aas_pydantic import Property
 from aas_pydantic import (
     Key, ModelReference, ReferenceElement, Qualifier,
 )
@@ -23,36 +24,21 @@ from aas_pydantic.submodel_templates.control_component_instance import (
     ControlComponentInstance, Type_instance,
 )
 from aas_model.constants import INVOCATION_ORIGIN
+from aas_model.resource_template.asset_interfaces_description import affordance_ref
 
 from aas_model.submodel_templates.control_component_instance import (
-    ExtendedSkill, ExtendedSkills, SkillOperation, OperationVariableProp,
+    ExtendedSkill, ExtendedSkills, SkillOperation,
     SkillInterfaceRelationship, ResourceEndpoints,
 )
 
 # ── Reference paths (self-referential — {aas_id} resolved by id_injector) ──
 CCI_SUBMODEL_REF = "{aas_id}/submodels/ControlComponentInstance"
-AID_SUBMODEL_REF = "{aas_id}/submodels/AssetInterfacesDescription"
-
-# Native AID MQTT action path: .../interface_mqtt/InteractionMetadata/actions/<name>
-_NATIVE_ACTION_PATH = (
-    Key(type_="Submodel", value=AID_SUBMODEL_REF),
-    Key(type_="SubmodelElementCollection", value="interface_mqtt"),
-    Key(type_="SubmodelElementCollection", value="InteractionMetadata"),
-    Key(type_="SubmodelElementCollection", value="actions"),
-)
 
 # CCI skill path: .../Skills/<name>
 _SKILL_PATH = (
     Key(type_="Submodel", value=CCI_SUBMODEL_REF),
     Key(type_="SubmodelElementCollection", value="Skills"),
 )
-
-
-def native_action_ref(name: str) -> ModelReference:
-    """Reference to the skill's native AID MQTT action (interface_mqtt)."""
-    return ModelReference(key=_NATIVE_ACTION_PATH + (
-        Key(type_="SubmodelElementCollection", value=name),
-    )).model_copy(deep=True)
 
 
 def skill_ref(name: str) -> ModelReference:
@@ -64,8 +50,8 @@ def skill_ref(name: str) -> ModelReference:
 
 def _operation_variable(
     name: str, *, value_type: str = "xs:string", description: str = "",
-) -> OperationVariableProp:
-    v = OperationVariableProp()
+) -> Property:
+    v = Property()
     v.id_short = name
     v.value_type = value_type
     if description:
@@ -79,7 +65,7 @@ def skill_operation(
     """The skill's AAS Operation — invoked by clients, delegated to the
     operation-delegation service via the ``invocationDelegation`` qualifier.
 
-    The input/inoutput/output variables mirror the native MQTT action's
+    The input/inoutput/output variables mirror the native action's
     command / commandResponse payloads (Uuid inout, State output) so
     the operation can also be rendered and manually invoked from the AAS Web
     GUI. The invocation URL's identity segments are finalized by the authoring
@@ -118,20 +104,20 @@ def skill_operation(
     return op
 
 
-def skill_interface_relationship(name: str) -> SkillInterfaceRelationship:
+def skill_interface_relationship(name: str, interface: str) -> SkillInterfaceRelationship:
     """Annotated relationship: THIS skill has THIS native interface in the AID.
 
     ``first`` = the skill SMC in the CCI, ``second`` = the skill's native
-    MQTT action in the AID.  Both use the ``{aas_id}`` macro.
+    action on ``interface``.  Both use the ``{aas_id}`` macro.
     """
     rel = SkillInterfaceRelationship(id_short=name)
     rel.first = skill_ref(name)
-    rel.second = native_action_ref(name)
+    rel.second = affordance_ref(interface, "actions", name)
     return rel
 
 
 def extended_skill(
-    name: str, *,
+    name: str, interface: str, *,
     synchronous: bool = True,
     has_response: bool = True,
     disabled: bool = False,
@@ -139,11 +125,11 @@ def extended_skill(
     """Build a standard ExtendedSkill for the CCI.
 
     Sets the native-interface reference (``interface_reference`` → the AID
-    MQTT action) and the delegated Operation (``operation``).
+    action on ``interface``) and the delegated Operation (``operation``).
     """
     skill = ExtendedSkill(id_short=name)
     skill.Disabled.value = str(disabled).lower()
-    skill.interface_reference.value = native_action_ref(name)
+    skill.interface_reference.value = affordance_ref(interface, "actions", name)
     skill.operation = skill_operation(
         name, synchronous=synchronous, has_response=has_response)
     return skill
