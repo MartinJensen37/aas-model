@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from typing import Any, ClassVar, List, Dict, Optional, TypeAlias
 from aas_pydantic import (
-    Capability, ExternalReference, File, Key, ModelReference, MultiLanguageProperty, Property, Range, ReferenceElement, RelationshipElement, Submodel, SubmodelElement, SubmodelElementCollection, SubmodelElementList,
+    Capability, ExternalReference, File, Key, ModelReference, MultiLanguageProperty, Property, Range, Reference, ReferenceElement, RelationshipElement, Submodel, SubmodelElement, SubmodelElementCollection, SubmodelElementList,
 )
 from pydantic import Field
 from aas_pydantic.aas_model import AasIdString
@@ -20,12 +20,12 @@ class SameProperty(RelationshipElement):
     id_short: AasIdString = "SameProperty"
     semantic_id: str = "https://admin-shell.io/idta/CapabilityDescription/SameProperty/1/0"
     description: str = "Relationship of the Property described in the Property container as first element and the identical property as second element in another Submodel or an external information source."
-    first: ExternalReference = ExternalReference(
+    first: Reference = ExternalReference(
         key=(
             Key(type_="GlobalReference", value="urn:example:capability-description:same-property:first"),
         ),
     )
-    second: ExternalReference = ExternalReference(
+    second: Reference = ExternalReference(
         key=(
             Key(type_="GlobalReference", value="urn:example:capability-description:same-property:second"),
         ),
@@ -81,7 +81,7 @@ class CapabilityRealizedBy(RelationshipElement):
     id_short: AasIdString = "CapabilityRealizedBy"
     semantic_id: str = "https://admin-shell.io/idta/CapabilityDescription/CapabilityRealizedBy/1/0"
     description: str = "Relationship between the Capability element in the CapabilityContainer as first element and a Skill implementation, not defined in this Submodel template, as second element."
-    first: ModelReference = ModelReference(
+    first: Reference = ModelReference(
         key=(
             Key(type_="Submodel", value="https://admin-shell.io/idta/CapabilityDescription/1/0/Submodel"),
             Key(type_="SubmodelElementCollection", value="CapabilitySet"),
@@ -89,7 +89,7 @@ class CapabilityRealizedBy(RelationshipElement):
             Key(type_="Capability", value="Capability"),
         ),
     )
-    second: ExternalReference = ExternalReference(
+    second: Reference = ExternalReference(
         key=(
             Key(type_="GlobalReference", value="urn:example:capability-description:capability-realized-by:skill"),
         ),
@@ -99,7 +99,7 @@ class CapabilityComposedOf(RelationshipElement):
     id_short: AasIdString = "CapabilityComposedOf"
     semantic_id: str = "https://admin-shell.io/idta/CapabilityDescription/CapabilityComposedOf/1/0"
     description: str = "Relationship between a composed capability as first element and one of its minimum two subordinate capabilities as second element."
-    first: ModelReference = ModelReference(
+    first: Reference = ModelReference(
         key=(
             Key(type_="Submodel", value="https://admin-shell.io/idta/CapabilityDescription/1/0/Submodel"),
             Key(type_="SubmodelElementCollection", value="CapabilitySet"),
@@ -107,7 +107,7 @@ class CapabilityComposedOf(RelationshipElement):
             Key(type_="Capability", value="Capability"),
         ),
     )
-    second: ModelReference = ModelReference(
+    second: Reference = ModelReference(
         key=(
             Key(type_="Submodel", value="https://admin-shell.io/idta/CapabilityDescription/1/0/Submodel"),
             Key(type_="SubmodelElementCollection", value="CapabilitySet"),
@@ -138,7 +138,7 @@ class CapabilityGeneralizedBy(RelationshipElement):
     id_short: AasIdString = "CapabilityGeneralizedBy"
     semantic_id: str = "https://admin-shell.io/idta/CapabilityDescription/CapabilityGeneralizedBy/1/0"
     description: str = "Relationship between the Capability as first element, described in the CapabilityContainer, and a more general Capability as second element."
-    first: ModelReference = ModelReference(
+    first: Reference = ModelReference(
         key=(
             Key(type_="Submodel", value="https://admin-shell.io/idta/CapabilityDescription/1/0/Submodel"),
             Key(type_="SubmodelElementCollection", value="CapabilitySet"),
@@ -146,7 +146,7 @@ class CapabilityGeneralizedBy(RelationshipElement):
             Key(type_="Capability", value="Capability"),
         ),
     )
-    second: ModelReference = ModelReference(
+    second: Reference = ModelReference(
         key=(
             Key(type_="Submodel", value="https://admin-shell.io/idta/CapabilityDescription/1/0/Submodel"),
             Key(type_="SubmodelElementCollection", value="CapabilitySet"),
@@ -200,7 +200,7 @@ class ConstraintHasProperty(RelationshipElement):
     id_short: AasIdString = "ConstraintHasProperty"
     semantic_id: str = "https://admin-shell.io/idta/CapabilityDescription/ConstraintHasProperty/1/0"
     description: str = "Relates the PropertyConstraint as first element to a Property from a PropertyContainer as second element."
-    first: ModelReference = ModelReference(
+    first: Reference = ModelReference(
         key=(
             Key(type_="Submodel", value="https://admin-shell.io/idta/CapabilityDescription/1/0/Submodel"),
             Key(type_="SubmodelElementCollection", value="CapabilitySet"),
@@ -211,7 +211,7 @@ class ConstraintHasProperty(RelationshipElement):
             Key(type_="Property", value="BasicConstraint"),
         ),
     )
-    second: ModelReference = ModelReference(
+    second: Reference = ModelReference(
         key=(
             Key(type_="Submodel", value="https://admin-shell.io/idta/CapabilityDescription/1/0/Submodel"),
             Key(type_="SubmodelElementCollection", value="CapabilitySet"),
@@ -244,7 +244,7 @@ class TransitionConstrainedBy(RelationshipElement):
     id_short: AasIdString = "TransitionConstrainedBy"
     semantic_id: str = "https://admin-shell.io/idta/CapabilityDescription/TransitionConstrainedBy/1/0"
     description: str = "Relates the constrained Capability as first element to a constraining Capability from another CapabilityContainer as second element."
-    first: ModelReference = ModelReference(
+    first: Reference = ModelReference(
         key=(
             Key(type_="Submodel", value="https://admin-shell.io/idta/CapabilityDescription/1/0/Submodel"),
             Key(type_="SubmodelElementCollection", value="CapabilitySet"),
@@ -252,7 +252,7 @@ class TransitionConstrainedBy(RelationshipElement):
             Key(type_="Capability", value="Capability"),
         ),
     )
-    second: ModelReference = ModelReference(
+    second: Reference = ModelReference(
         key=(
             Key(type_="Submodel", value="https://admin-shell.io/idta/CapabilityDescription/1/0/Submodel"),
             Key(type_="SubmodelElementCollection", value="CapabilitySet"),

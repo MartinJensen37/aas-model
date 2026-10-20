@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from typing import Any, ClassVar, List, Dict, Optional, TypeAlias
 from aas_pydantic import (
-    Entity, ExternalReference, Key, Property, RelationshipElement, Submodel, SubmodelElement, SubmodelElementCollection, SubmodelElementList,
+    Entity, ExternalReference, Key, Property, Reference, RelationshipElement, Submodel, SubmodelElement, SubmodelElementCollection, SubmodelElementList,
 )
 from pydantic import Field
 from aas_pydantic.aas_model import AasIdString
@@ -15,12 +15,12 @@ class SameAs(RelationshipElement):
     id_short: AasIdString = "SameAs"
     semantic_id: str = "https://admin-shell.io/idta/HierarchicalStructures/SameAs/1/0"
     description: str = "Reference between two Entities in the same Submodel or across Submodels."
-    first: ExternalReference = ExternalReference(
+    first: Reference = ExternalReference(
         key=(
             Key(type_="GlobalReference", value="https://admin-shell.io/SMT/General/IntentionallyEmpty"),
         ),
     )
-    second: ExternalReference = ExternalReference(
+    second: Reference = ExternalReference(
         key=(
             Key(type_="GlobalReference", value="https://admin-shell.io/SMT/General/IntentionallyEmpty"),
         ),
@@ -30,12 +30,12 @@ class IsPartOf(RelationshipElement):
     id_short: AasIdString = "IsPartOf"
     semantic_id: str = "https://admin-shell.io/idta/HierarchicalStructures/IsPartOf/1/0"
     description: str = "Modeling of logical connections between components and sub-components. Either this or \"HasPart\" must be used, not both."
-    first: ExternalReference = ExternalReference(
+    first: Reference = ExternalReference(
         key=(
             Key(type_="GlobalReference", value="https://admin-shell.io/SMT/General/IntentionallyEmpty"),
         ),
     )
-    second: ExternalReference = ExternalReference(
+    second: Reference = ExternalReference(
         key=(
             Key(type_="GlobalReference", value="https://admin-shell.io/SMT/General/IntentionallyEmpty"),
         ),
@@ -45,12 +45,12 @@ class HasPart(RelationshipElement):
     id_short: AasIdString = "HasPart"
     semantic_id: str = "https://admin-shell.io/idta/HierarchicalStructures/HasPart/1/0"
     description: str = "Modeling of logical connections between components and sub-components. Either this or \"IsPartOf\" must be used, not both."
-    first: ExternalReference = ExternalReference(
+    first: Reference = ExternalReference(
         key=(
             Key(type_="GlobalReference", value="https://admin-shell.io/SMT/General/IntentionallyEmpty"),
         ),
     )
-    second: ExternalReference = ExternalReference(
+    second: Reference = ExternalReference(
         key=(
             Key(type_="GlobalReference", value="https://admin-shell.io/SMT/General/IntentionallyEmpty"),
         ),
@@ -78,12 +78,12 @@ class IsPartOf_hierarchical_structures(RelationshipElement):
     id_short: AasIdString = "IsPartOf"
     semantic_id: str = "https://admin-shell.io/idta/HierarchicalStructures/IsPartOf/1/0"
     description: str = "Modeling of logical connections between asset and sub-asset. Either this or \"HasPart\" must be used, not both."
-    first: ExternalReference = ExternalReference(
+    first: Reference = ExternalReference(
         key=(
             Key(type_="GlobalReference", value="https://admin-shell.io/SMT/General/IntentionallyEmpty"),
         ),
     )
-    second: ExternalReference = ExternalReference(
+    second: Reference = ExternalReference(
         key=(
             Key(type_="GlobalReference", value="https://admin-shell.io/SMT/General/IntentionallyEmpty"),
         ),

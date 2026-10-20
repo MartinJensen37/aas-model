@@ -502,8 +502,11 @@ def gen_template(template_path: str, output_dir: str):
                 ref = c.get(key_name)
                 if isinstance(ref, dict) and not is_placeholder_endpoint(ref):
                     ref_src = emit_reference(ref, "    ")
-                    ref_cls = ref_src[0].lstrip().rstrip("(").strip()
-                    meta.append(f"    {key_name}: {ref_cls} = " + ref_src[0].lstrip())
+                    # The template's endpoint is an example: it is the default,
+                    # not a restriction to its reference kind. A realized-by
+                    # skill in the same AAS is a ModelReference, an external
+                    # implementation an ExternalReference.
+                    meta.append(f"    {key_name}: Reference = " + ref_src[0].lstrip())
                     meta.extend(ref_src[1:])
                     # The closing parenthesis is the value; no trailing comma.
         identity = (elem_name, sid, leaf_cls, tuple(meta))
@@ -832,7 +835,10 @@ def gen_template(template_path: str, output_dir: str):
                  "ExternalReference", "ModelReference", "Key"}
     aas_types |= set(ELEMENT_MAP.values())
     imports = sorted(t for t in _used_leaf_types if t in aas_types)
-    # Reference endpoints (first/second) use ExternalReference/ModelReference/Key.
+    # Reference endpoints (first/second) are typed Reference and default to an
+    # ExternalReference/ModelReference of Keys.
+    if ": Reference = " in all_src:
+        imports = sorted(set(imports) | {"Reference"})
     if "ExternalReference(" in all_src:
         imports = sorted(set(imports) | {"ExternalReference", "Key"})
     if "ModelReference(" in all_src:
