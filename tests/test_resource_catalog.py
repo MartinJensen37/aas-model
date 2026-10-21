@@ -173,18 +173,24 @@ def test_motion_schema_operation_and_mapping_describe_the_same_payload():
         "interface_mqtt"
     ].InteractionMetadata.actions.property_name["MoveToPosition"]
     assert f"{SCHEMA_BASE}/moveToPosition.schema.json" in action.input.supplemental_semantic_ids
+    assert action.forms.href.value == "CMD/XYMotion"
+    assert action.forms.mqv_responseTopic.value == "DATA/XYMotion"
+    assert [v.id_short for v in skill.operation.in_output_variable] == ["Uuid", "ProductID"]
     mapping = next(
         m for m in shuttle.asset_interfaces_mapping_configuration.MappingConfigurations.value
         if m.id_short == "MoveToPosition"
     )
     assert [source.SourceId.value for source in mapping.Sources.value] == [
-        "Uuid", "X", "Y", "Theta",
+        "Uuid", "ProductID", "X", "Y", "Theta",
     ]
     assert b"Position = {sources.X, sources.Y, sources.Theta}" in mapping.Transformation.value
     assert b"Uuid = sources.Uuid" in mapping.Transformation.value
     assert [sink.SinkId.value for sink in mapping.ResponseSinks.value] == [
-        "Uuid", "State", "Outcome",
+        "Uuid", "State", "Outcome", "ProductID",
     ]
+    # The device never sees ProductID; the reply echoes the caller's value.
+    assert b"ProductID" not in mapping.Transformation.value
+    assert b"ProductID = requestSources.ProductID" in mapping.ResponseTransformation.value
     assert all(sink.Sink.value.key[-2].type_ == "Operation"
                and sink.Sink.value.key[-1].value == sink.SinkId.value
                for sink in mapping.ResponseSinks.value)

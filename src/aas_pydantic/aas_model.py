@@ -42,7 +42,7 @@ Reference = TypeVar(
 class Referable(BaseModel):
     # Strict basyx alignment: unknown fields (e.g. the old alias names) are
     # rejected instead of silently ignored.
-    model_config = {"extra": "forbid"}
+    model_config = {"extra": "forbid", "defer_build": True}
 
     id_short: AasIdString
     description: str = ""
@@ -80,7 +80,7 @@ class Qualifier(BaseModel):
     ``value_id``, ``kind``, ``semantic_id``.  Unknown fields (e.g. the old
     ``type`` alias) are rejected.
     """
-    model_config = {"extra": "forbid"}
+    model_config = {"extra": "forbid", "defer_build": True}
 
     type_: str = ""
     value: str = ""
@@ -592,7 +592,7 @@ def _aas_json_reference_normalize(data: Any) -> Any:
 
 class Key(BaseModel):
     """A key of a Reference, referencing an element in its name space."""
-    model_config = {"extra": "forbid"}
+    model_config = {"extra": "forbid", "defer_build": True}
 
     # The AAS KeyType strings basyx accepts (PascalCase, as in AAS JSON and
     # kg-bridge).  ``""`` means "unset" — the converter falls back to
@@ -643,7 +643,7 @@ class Reference(BaseModel):
     **Constraint AASd-121:** For References the value of Key/type of the
     first key of Reference/keys shall be one of GloballyIdentifiables.
     """
-    model_config = {"extra": "forbid"}
+    model_config = {"extra": "forbid", "defer_build": True}
 
     type_: Literal["ModelReference", "ExternalReference"] = "ModelReference"
     key: tuple[Key, ...] = ()
@@ -752,7 +752,7 @@ class File(SubmodelElement):
 
 class Blob(SubmodelElement):
     """A Blob element; ``content_type``/``value`` (aliases ``media_type``/``content``) match basyx."""
-    model_config = {"populate_by_name": True}
+    model_config = {"populate_by_name": True, "defer_build": True}
 
     id_short: AasIdString = "Blob"
     content_type: str = ""
@@ -1122,14 +1122,20 @@ def _coerce_container_data(cls: Any, data: Any) -> Any:
     return data
 
 
+_TYPE_HINTS: dict[type, dict[str, Any]] = {}
+
+
 def _field_annotation(cls: Any, name: str) -> Any:
-    """Resolved annotation for a model field (handles forward refs)."""
-    try:
-        hints = typing.get_type_hints(cls, include_extras=True)
-        if name in hints:
-            return hints[name]
-    except Exception:
-        pass
+    """Resolved annotation for a model field (handles forward refs). A class's
+    hints are resolved once: evaluating them is the cost of every dump."""
+    hints = _TYPE_HINTS.get(cls)
+    if hints is None:
+        try:
+            hints = _TYPE_HINTS[cls] = typing.get_type_hints(cls, include_extras=True)
+        except Exception:
+            hints = {}  # a forward ref not yet resolvable: try again next time
+    if name in hints:
+        return hints[name]
     return cls.model_fields[name].annotation
 
 

@@ -238,19 +238,23 @@ def action_member_ref(interface: str, action: str, schema: str, *members: str) -
     return ModelReference(key=keys)
 
 
-def command_reply(interface: str, name: str, outputs: tuple[str, ...] = ("Uuid", "State")) -> dict:
-    """Route the action reply's selected values to individual Operation variables."""
-    fields = ", ".join(f"{member} = reply.{member}" for member in outputs)
+def command_reply(interface: str, name: str, outputs: tuple[str, ...] = ("Uuid", "State"),
+                  echoed: tuple[str, ...] = ()) -> dict:
+    """Route the action reply's selected values to individual Operation
+    variables; ``echoed`` variables answer with the caller's request value."""
+    fields = ", ".join([f"{member} = reply.{member}" for member in outputs]
+                       + [f"{member} = requestSources.{member}" for member in echoed])
+    parameters = "sources, requestSources" if echoed else "sources"
     return dict(
         ResponseSources=DmpResponseSources(id_short="ResponseSources", value=[
             response_source("Reply", action_member_ref(interface, name, "output"))]),
         ResponseTransformation=DmpResponseTransformation(id_short="ResponseTransformation", value=(
-            f"function aimc_main(sources) local reply = sources.Reply "
+            f"function aimc_main({parameters}) local reply = sources.Reply "
             f"return {{ {fields} }} end"
         )),
         ResponseSinks=DmpResponseSinks(id_short="ResponseSinks", value=[
             response_sink(member, operation_variable_ref(name, member))
-            for member in outputs
+            for member in outputs + echoed
         ]),
     )
 

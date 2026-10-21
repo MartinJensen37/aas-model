@@ -9,7 +9,6 @@ from aas_model.submodel_templates.variables import Variables
 from aas_model.constants import CSSX
 from aas_model.resource_template.physical import PhysicalResource
 from aas_model.resource_template.parameters import Position, ResourceParameters
-from aas_model.submodel_templates.parameters import ParamProp
 
 from . import submodels
 
@@ -32,10 +31,7 @@ class PlanarShuttle(Shuttle):
     asset_type: str = f"{CSSX}#PlanarTableShuttle"
     parameters: ResourceParameters = ResourceParameters(
         id_short="Parameters",
-        parameter={"Location": Position(), "ProductID": ParamProp(
-            id_short="ProductID", value_type="xs:string", value="",
-            supplemental_semantic_ids=[f"{CSSX}#Product"],
-        )},
+        parameter={"Location": Position()},
     )
     asset_interfaces_description: DmpAssetInterfacesDescription = submodels.planar_interfaces
     control_component_instance: ResourceControlComponentInstance = submodels.planar_control

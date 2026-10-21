@@ -30,16 +30,14 @@ from aas_model.submodel_templates.variables import VariableItem, VariableProp
 planar_interfaces = OperationalMqttInterfaces(id_short="AssetInterfacesDescription")
 _interaction = planar_interfaces.InterfaceTemplateForMQTT[MQTT_INTERFACE].InteractionMetadata
 _url = f"{SCHEMA_BASE}/moveToPosition.schema.json"
+# The device's motion topics are CMD/XYMotion and DATA/XYMotion.
 _interaction.actions.property_name["MoveToPosition"] = mqtt_action(
     "MoveToPosition", synchronous=False, input_schema=load_schema(_url), input_schema_url=_url,
+    topic="XYMotion",
 )
 _url = f"{SCHEMA_BASE}/positionStamped.schema.json"
 _interaction.properties.property_name["Location"] = mqtt_property(
     "Location", "DATA/Location", schema=load_schema(_url), schema_url=_url,
-)
-_url = f"{SCHEMA_BASE}/productId.schema.json"
-_interaction.properties.property_name["ProductID"] = mqtt_property(
-    "ProductID", "DATA/ProductId", schema=load_schema(_url), schema_url=_url,
 )
 
 
@@ -61,7 +59,12 @@ planar_control.Skills.Skill["MoveToPosition"] = ExtendedSkill(
                 type_="Asynchronous", kind="ConceptQualifier", value_type="xs:string", value="false",
             ),
         ],
-        in_output_variable=[Property(id_short="Uuid", description="The UUID of the command")],
+        # ProductID is not sent to the device; the reply echoes the caller's value.
+        in_output_variable=[
+            Property(id_short="Uuid", description="The UUID of the command"),
+            Property(id_short="ProductID", description="The product the shuttle carries",
+                     qualifiers=[OptionalVariable()]),
+        ],
         input_variable=[
             Property(id_short=axis, value_type="xs:double", value="0.0")
             for axis in ("X", "Y", "Theta")
@@ -112,7 +115,6 @@ planar_variables.variable.update({
     }),
     "PositionX": VariableProp(id_short="PositionX", value_type="xs:double", value="0.0"),
     "PositionY": VariableProp(id_short="PositionY", value_type="xs:double", value="0.0"),
-    "ProductID": VariableProp(id_short="ProductID"),
 })
 
 
@@ -120,13 +122,15 @@ planar_mappings = OperationalMqttMappings(id_short="AssetInterfacesMappingConfig
 planar_mappings.MappingConfigurations.value.extend([
     mapping_configuration(
         id_short="MoveToPosition",
-        sources=operation_sources("MoveToPosition", ["Uuid", "X", "Y", "Theta"]),
+        sources=operation_sources("MoveToPosition", ["Uuid", "ProductID", "X", "Y", "Theta"]),
         sinks=[sink("MoveToPosition", affordance_ref(MQTT_INTERFACE, "actions", "MoveToPosition"))],
         transformation="""function aimc_main(sources)
     return { MoveToPosition = { Uuid = sources.Uuid, Position = {sources.X, sources.Y, sources.Theta} } }
 end
 """,
-    ).model_copy(update=command_reply(MQTT_INTERFACE, "MoveToPosition", outputs=("Uuid", "State", "Outcome"))),
+    ).model_copy(update=command_reply(
+        MQTT_INTERFACE, "MoveToPosition", outputs=("Uuid", "State", "Outcome"), echoed=("ProductID",),
+    )),
     mapping_configuration(
         id_short="ObserveLocation",
         sources=[source("Location", affordance_ref(MQTT_INTERFACE, "properties", "Location"))],
@@ -143,21 +147,6 @@ end
         Location_x = position[1], Location_y = position[2], Location_yaw = position[3] or 0.0,
         PositionX = position[1], PositionY = position[2],
     }
-end
-""",
-    ),
-    mapping_configuration(
-        id_short="ObserveProductID",
-        sources=[source("ProductID", affordance_ref(MQTT_INTERFACE, "properties", "ProductID"))],
-        sinks=[
-            sink("ProductID", variable_ref("ProductID")),
-            sink("ProductIDParameter", ModelReference(key=(
-                Key(type_="Submodel", value="{aas_id}/submodels/Parameters"),
-                Key(type_="Property", value="ProductID"),
-            ))),
-        ],
-        transformation="""function aimc_main(sources)
-    return { ProductID = sources.ProductID.ProductId, ProductIDParameter = sources.ProductID.ProductId }
 end
 """,
     ),

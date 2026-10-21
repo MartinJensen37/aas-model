@@ -69,8 +69,13 @@ def mqtt_action(
     output_schema: Optional[Dict[str, Any]] = _COMMAND_RESPONSE_SCHEMA,
     input_schema_url: str = COMMAND_SCHEMA_URL,
     output_schema_url: str = COMMAND_RESPONSE_SCHEMA_URL,
+    topic: Optional[str] = None,
 ) -> MqttAction:
     """Build a standard MQTT action with default form settings.
+
+    The action is published on ``CMD/<topic>`` and answered on
+    ``DATA/<topic>``; ``topic`` defaults to the action's name, so an action
+    keeps its name where the device's topic differs.
 
     ``input_schema`` / ``output_schema`` (already-dereferenced JSON Schema
     dicts) embed the action's WoT ``input`` / ``output`` DataSchemas — by
@@ -88,12 +93,13 @@ def mqtt_action(
     # op (invokeaction), mqv_controlPacket (publish) and mqv_retain (false)
     # are the WoT MQTT binding defaults for an action and are not authored.
     forms = action.forms
-    forms.href.value = f"CMD/{name}"
+    topic = topic or name
+    forms.href.value = f"CMD/{topic}"
     forms.mqv_qos = MqvQos(value="2")
     if has_response:
         # MQTT 5 request/reply: the request carries this topic as its
         # Response Topic, and the result echoes the Correlation Data.
-        forms.mqv_responseTopic = MqvResponseTopic(value=f"DATA/{name}")
+        forms.mqv_responseTopic = MqvResponseTopic(value=f"DATA/{topic}")
     return action
 
 
