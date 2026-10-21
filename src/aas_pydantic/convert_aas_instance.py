@@ -495,7 +495,10 @@ def _container_named_field_data(cls, basyx_children):
         if not fields and fallback_field is not None:
             fields = [fallback_field]
         if len(fields) == 1:
-            elem_cls = _multi_element_cls(cls, fields[0])
+            # As in _container_children_data: a union-typed map must not pin
+            # its first class; the semanticId registry resolves each child.
+            candidates = _multi_element_classes(cls, fields[0])
+            elem_cls = candidates[0] if len(candidates) == 1 else None
             out.setdefault(fields[0], {})[c.id_short] = _container_element_to_pydantic(
                 c, expected_cls=elem_cls
             )

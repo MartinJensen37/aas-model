@@ -28,6 +28,12 @@ Both forms live in the same ``variable`` map, so a submodel can mix them::
     ├── PackMLState              (Property)
     └── Grouped                  (SMC)
         └── variable             (Property)
+
+Time series live in the groups ``State`` (discrete status), ``Measurements``
+(continuous values) and ``Log`` (what is logged explicitly). A group holds
+TimeSeries SMCs (``time_series``), or plain elements for data that is not a
+time series. The flat ``variable`` map remains until the stations' mappings
+target LinkedSegments (aas-camel-dmp PLAN, item 2).
 """
 
 from __future__ import annotations
@@ -37,14 +43,19 @@ from aas_pydantic import (
     Submodel, SubmodelElementCollection,
     Property, ModelReference, Key, ReferenceElement,
 )
+from aas_pydantic.aas_model import AasIdString
 
 from aas_model.constants import BASE_URL
+from aas_model.submodel_templates.time_series import TimeSeriesCollection
 
 SM_VARIABLES = f"{BASE_URL}/submodels/Variables/1/0"
 
 VAR_INTERFACE_REF = f"{BASE_URL}/variables/InterfaceReference/1/0"
 VAR_ITEM = f"{BASE_URL}/variables/VariableItem/1/0"
 VAR_SEMANTIC_ID = f"{BASE_URL}/variables/VariableSemanticId/1/0"
+VAR_STATE = f"{BASE_URL}/variables/State/1/0"
+VAR_MEASUREMENTS = f"{BASE_URL}/variables/Measurements/1/0"
+VAR_LOG = f"{BASE_URL}/variables/Log/1/0"
 
 AID_SUBMODEL_REF = "{aas_id}/submodels/AssetInterfacesDescription"
 
@@ -93,6 +104,31 @@ class VariableItem(SubmodelElementCollection):
 VariableEntry = Union[VariableProp, VariableItem]
 
 
+# A group entry is a time series, or a plain element for data that is not one.
+GroupEntry = Union[TimeSeriesCollection, VariableProp, VariableItem]
+
+
+class StateGroup(SubmodelElementCollection):
+    """Discrete status that changes on events (PackML state, occupation)."""
+    id_short: AasIdString = "State"
+    semantic_id: str = VAR_STATE
+    value: Dict[str, GroupEntry] = {}
+
+
+class MeasurementsGroup(SubmodelElementCollection):
+    """Continuous values sampled from the asset (weight, position)."""
+    id_short: AasIdString = "Measurements"
+    semantic_id: str = VAR_MEASUREMENTS
+    value: Dict[str, GroupEntry] = {}
+
+
+class LogGroup(SubmodelElementCollection):
+    """What the mappings log explicitly, such as Operation invocations."""
+    id_short: AasIdString = "Log"
+    semantic_id: str = VAR_LOG
+    value: Dict[str, GroupEntry] = {}
+
+
 class Variables(Submodel):
     """
     Variables submodel — asset variable definitions.
@@ -108,3 +144,8 @@ class Variables(Submodel):
     # Keys are variable id_shorts → a plain VariableProp, or a VariableItem
     # when the variable groups several children.
     variable: Dict[str, VariableEntry] = {}
+
+    # Present only when authored, like every other container.
+    State: Optional[StateGroup] = None
+    Measurements: Optional[MeasurementsGroup] = None
+    Log: Optional[LogGroup] = None

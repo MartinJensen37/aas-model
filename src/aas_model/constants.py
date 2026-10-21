@@ -119,3 +119,25 @@ AIMC_RESPONSE_SINK_ID = f"{BASE_URL}/aimc/ResponseSink/SinkId/1/0"
 # Which source updates execute an ordinary mapping.
 AIMC_EXECUTION_SEMANTICS = f"{BASE_URL}/aimc/ExecutionSemantics/1/0"
 AIMC_TRIGGER_SOURCE_IDS = f"{BASE_URL}/aimc/ExecutionSemantics/TriggerSourceIds/1/0"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# TimeSeries — DMP profile of IDTA 02008 (TimeSeries SMCs in Variables)
+# ═══════════════════════════════════════════════════════════════════════════════
+# A TimeSeries SMC is shaped exactly like the IDTA submodel; only the SMC
+# itself and the DMP additions (the LinkedSegment's write target, a Record
+# field's column) carry ids in this project's namespace.
+
+# The InfluxDB 2 instance every LinkedSegment of this workspace points at.
+INFLUX_ORIGIN = "http://influxdb:8086"
+INFLUX_ORG = "ap2030"
+INFLUX_BUCKET = "ap2030"
+
+TS_COLLECTION = f"{BASE_URL}/variables/TimeSeries/1/0"
+TS_RECORD_FIELD = f"{BASE_URL}/timeseries/RecordField/1/0"
+TS_RECORD_GROUP = f"{BASE_URL}/timeseries/RecordGroup/1/0"
+TS_COLUMN = f"{BASE_URL}/timeseries/Column/1/0"
+TS_DMP_TARGET = f"{BASE_URL}/timeseries/DmpTarget/1/0"
+TS_DMP_TARGET_BUCKET = f"{BASE_URL}/timeseries/DmpTarget/Bucket/1/0"
+TS_DMP_TARGET_MEASUREMENT = f"{BASE_URL}/timeseries/DmpTarget/Measurement/1/0"
+TS_DMP_TARGET_TAGS = f"{BASE_URL}/timeseries/DmpTarget/Tags/1/0"
+TS_DMP_TARGET_TAG = f"{BASE_URL}/timeseries/DmpTarget/Tag/1/0"
