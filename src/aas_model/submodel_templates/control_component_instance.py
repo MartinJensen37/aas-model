@@ -108,7 +108,7 @@ class OptionalVariable(Qualifier):
 class SkillOperation(Operation):
     """The skill's AAS Operation — the executable entry point for clients.
 
-    Invoking it is delegated to the OperationDelegation/DMP service via the
+    Invoking it is delegated to the DMP via the
     ``invocationDelegation`` qualifier (which carries the generated REST
     endpoint). The input/inoutput/output variables mirror the native
     action's command / commandResponse payloads (e.g. ``Uuid``, ``State``,
@@ -156,7 +156,7 @@ class ExtendedSkill(_BaseSkill):
     ``interface_reference`` points at the skill's NATIVE interface (the AID
     action it maps to, on whichever interface the asset offers it);
     ``operation`` is the AAS Operation exposed to clients and delegated to
-    OperationDelegation."""
+    the DMP."""
     semantic_id: str = EXTENDED_SKILL
     Disabled: Disabled_t = Disabled()
     Modes: Modes_t = Modes()

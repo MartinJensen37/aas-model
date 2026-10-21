@@ -5,7 +5,7 @@ which extends the generated IDTA ControlComponentInstance Skill with:
 - an ``interface_reference`` pointing at the skill's NATIVE interface (the AID
   action of whichever interface the asset offers it on),
 - an ``operation`` (AAS Operation) whose ``invocationDelegation`` qualifier
-  carries the generated operation-delegation REST endpoint,
+  carries the generated DMP operation endpoint,
 - an ``Endpoints`` container that holds, per skill, an annotated
   RelationshipElement (``this skill has this native interface``) instead of
   generic endpoint/interface ReferenceElements.
@@ -63,7 +63,7 @@ def skill_operation(
     name: str, *, synchronous: bool = True, has_response: bool = True,
 ) -> SkillOperation:
     """The skill's AAS Operation — invoked by clients, delegated to the
-    operation-delegation service via the ``invocationDelegation`` qualifier.
+    DMP via the ``invocationDelegation`` qualifier.
 
     The input/inoutput/output variables mirror the native action's
     command / commandResponse payloads (Uuid inout, State output) so
