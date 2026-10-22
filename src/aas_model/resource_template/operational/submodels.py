@@ -14,11 +14,8 @@ OutputArguments). Occupy and Release answer with the commandResponse; their
 mappings name it as ResponseSource and the Operation as ResponseSink.
 
 History: ``Variables/State/Station`` records the PackML state over time
-(measurement ``station_state``), written by the mapping that keeps the AAS
-Properties current, as its last sink: a consumer endpoint has one owner, so a
-second mapping cannot observe the same node. Its sinks fail on their own, so an
-unreachable InfluxDB loses only the row; a DMP without ``DMP_INFLUX_URL`` holds
-the whole mapping back.
+(measurement ``station_state``), written by a mapping of its own beside the one
+that keeps the AAS Properties current, so a stack without InfluxDB still runs.
 ``Variables/Log/<skill>`` records every Occupy and Release call (measurement
 ``operation_<skill>``: outcome, duration and the Operation's variables, also
 for failed calls); the skill's response mapping writes it. Halt answers
@@ -331,24 +328,43 @@ def _packml_invocations(interface: str) -> list[AimcMappingConfiguration]:
     ]
 
 
+def _state_history(id_short: str, sources: list[SourcesItem], queue: str, state: str) -> AimcMappingConfiguration:
+    """The PackML state's history: the same sources, one row per change into
+    ``Variables/State/Station``. A mapping of its own, so a stack without
+    InfluxDB still keeps the AAS Properties current."""
+    return AimcMappingConfiguration(
+        id_short=id_short, DefaultPollingInterval=DefaultPollingInterval(value="0.0"),
+        Sources=Sources(value=sources),
+        Sinks=Sinks(value=[SinksItem(id_short="Live", SinkId=SinkId(value="Live"),
+                                     Sink=Sink(value=series_segment_ref("State", "Station")))]),
+        Transformation=Transformation(value=_HISTORY_TRANSFORMATION.format(queue=queue, state=state)),
+    )
+
+
 def _state_sinks() -> Sinks:
-    """The AAS Properties, then the state's history (``Variables/State/Station``)."""
     return Sinks(value=[SinksItem(
         id_short=name, SinkId=SinkId(value=name), Sink=Sink(value=variable_ref(name)),
-    ) for name in ("PackMLState", "OccupationState")] + [SinksItem(
-        id_short="Live", SinkId=SinkId(value="Live"), Sink=Sink(value=series_segment_ref("State", "Station")),
-    )])
+    ) for name in ("PackMLState", "OccupationState")])
 
 
 # The occupation queue is written as JSON array text: the variable is a string
 # Property, and an empty Lua table would not encode as an array.
 _STATE_TRANSFORMATION = """function aimc_main(sources)
     local queue = {queue} or {{}}
-    local state = {{
+    return {{
         PackMLState = {state},
         OccupationState = (#queue == 0) and "[]" or json.encode(queue),
     }}
-    return {{ PackMLState = state.PackMLState, OccupationState = state.OccupationState, Live = state }}
+end
+"""
+
+
+_HISTORY_TRANSFORMATION = """function aimc_main(sources)
+    local queue = {queue} or {{}}
+    return {{ Live = {{
+        PackMLState = {state},
+        OccupationState = (#queue == 0) and "[]" or json.encode(queue),
+    }} }}
 end
 """
 
@@ -377,6 +393,8 @@ class OperationalMqttMappings(Aimc):
                 queue="sources.StationState.ProcessQueue", state="sources.StationState.State",
             )),
         ),
+        _state_history("MQTTHistory", _mqtt_state_sources(),
+                       queue="sources.StationState.ProcessQueue", state="sources.StationState.State"),
         *_packml_invocations(MQTT_INTERFACE),
     ])
 
@@ -391,5 +409,6 @@ class OperationalOpcuaMappings(Aimc):
                 queue="sources.ProcessQueue", state="sources.State",
             )),
         ),
+        _state_history("OPCUAHistory", _opcua_state_sources(), queue="sources.ProcessQueue", state="sources.State"),
         *_packml_invocations(OPCUA_INTERFACE),
     ])
