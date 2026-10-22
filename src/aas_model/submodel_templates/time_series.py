@@ -15,6 +15,9 @@ Structure::
     │   └── Record               the row schema: one row = one sample
     │       ├── Time             UtcTime (xs:dateTime)
     │       ├── <field>          RecordField: one InfluxDB field, named by its idShortPath
+    │       ├── <range>          RecordRange: two fields, <path>.min and <path>.max
+    │       ├── <file>           RecordFile: one string field, the file's path or URL
+    │       ├── <text>           RecordText: one string field per declared language, <path>.en
     │       ├── <group>          RecordGroup of further fields (Position.X)
     │       └── <reference>      RecordReference to an AAS element, resolved as if inline
     └── Segments
@@ -38,11 +41,13 @@ from __future__ import annotations
 
 import re
 from datetime import datetime
-from typing import Dict, List, Optional, Union
+from typing import ClassVar, Dict, List, Optional, Union
 
 from pydantic import model_validator
 
-from aas_pydantic import ModelReference, Property, ReferenceElement, SubmodelElementCollection
+from aas_pydantic import (
+    File, ModelReference, MultiLanguageProperty, Property, Range, ReferenceElement, SubmodelElementCollection,
+)
 from aas_pydantic.aas_model import AasIdString
 from aas_pydantic.submodel_templates.time_series import (
     EndTime, Endpoint, LinkedSegment as _LinkedSegment, Metadata as _Metadata, Name,
@@ -53,7 +58,8 @@ from aas_model.constants import (
     INFLUX_BUCKET, INFLUX_ORG, INFLUX_ORIGIN,
     TS_COLLECTION, TS_INFLUX_TARGET, TS_INFLUX_TARGET_BUCKET,
     TS_INFLUX_TARGET_MEASUREMENT, TS_INFLUX_TARGET_TAG, TS_INFLUX_TARGET_TAGS,
-    TS_RECORD_FIELD, TS_RECORD_GROUP, TS_RECORD_REFERENCE,
+    TS_RECORD_FIELD, TS_RECORD_FILE, TS_RECORD_GROUP, TS_RECORD_RANGE, TS_RECORD_REFERENCE,
+    TS_RECORD_TEXT,
 )
 
 IDTA_TIME_SERIES = "https://admin-shell.io/idta/TimeSeries/1/1"
@@ -80,6 +86,24 @@ class RecordField(Property):
     semantic_id: str = TS_RECORD_FIELD
 
 
+class RecordRange(Range):
+    """A band of the row: two fields, ``<path>.min`` and ``<path>.max``, of its valueType."""
+    semantic_id: str = TS_RECORD_RANGE
+
+
+class RecordFile(File):
+    """A file belonging to the row: one string field, its path or URL. The
+    file itself stays in the AAS or wherever the path points."""
+    KEEP_WITHOUT_VALUE: ClassVar[bool] = True
+    semantic_id: str = TS_RECORD_FILE
+
+
+class RecordText(MultiLanguageProperty):
+    """A text in several languages: one string field per language, ``<path>.en``.
+    Its value declares the languages, each with the field's label in it."""
+    semantic_id: str = TS_RECORD_TEXT
+
+
 class RecordGroup(SubmodelElementCollection):
     """Fields that belong together within a row (``Position.X``)."""
     semantic_id: str = TS_RECORD_GROUP
@@ -94,7 +118,7 @@ class RecordReference(ReferenceElement):
     semantic_id: str = TS_RECORD_REFERENCE
 
 
-RecordEntry = Union[RecordField, RecordGroup, RecordReference]
+RecordEntry = Union[RecordField, RecordRange, RecordFile, RecordText, RecordGroup, RecordReference]
 
 
 class TimeSeriesRecord(SubmodelElementCollection):
@@ -176,6 +200,27 @@ def record_field(value_type: str, *, concept: str = "", description: str = "") -
         value_type=value_type, description=description,
         supplemental_semantic_ids=[concept] if concept else [],
     )
+
+
+def record_range(value_type: str, *, concept: str = "", description: str = "") -> RecordRange:
+    """A Record range: the fields ``<path>.min`` and ``<path>.max``."""
+    return RecordRange(value_type=value_type, description=description,
+                       supplemental_semantic_ids=[concept] if concept else [])
+
+
+def record_file(content_type: str, *, concept: str = "", description: str = "") -> RecordFile:
+    """A Record file: one string field, the path or URL of a file of *content_type*."""
+    return RecordFile(content_type=content_type, description=description,
+                      supplemental_semantic_ids=[concept] if concept else [])
+
+
+def record_text(labels: Dict[str, str], *, concept: str = "", description: str = "") -> RecordText:
+    """A Record text in the languages of *labels* (language → the field's label
+    in it): one string field per language, ``<path>.<language>``."""
+    if not labels or any(not language or not label for language, label in labels.items()):
+        raise ValueError("a Record text declares at least one language, each with a label")
+    return RecordText(value=dict(labels), description=description,
+                      supplemental_semantic_ids=[concept] if concept else [])
 
 
 def record_group(fields: Dict[str, RecordEntry], *, description: str = "") -> RecordGroup:

@@ -1263,7 +1263,7 @@ def convert_file_to_pydantic_model(sm_element: model.File) -> aas_model.File:
     return aas_model.File(
         **_element_meta(sm_element),
         content_type=sm_element.content_type,
-        value=sm_element.value,
+        value=sm_element.value or "",
     )
 
 

@@ -710,8 +710,11 @@ def create_submodel_element_list(
 
 
 def create_file(attribute_value: aas_model.File) -> Optional[model.File]:
-    """Generate a basyx File. Returns None if value or content_type is empty."""
-    if not attribute_value.value or not attribute_value.content_type:
+    """Generate a basyx File. Returns None if content_type is empty, or the value
+    unless the class keeps Files without one (``KEEP_WITHOUT_VALUE``)."""
+    if not attribute_value.content_type:
+        return None
+    if not attribute_value.value and not type(attribute_value).KEEP_WITHOUT_VALUE:
         return None
     return model.File(
         id_short=attribute_value.id_short,
@@ -727,7 +730,7 @@ def create_file(attribute_value: aas_model.File) -> Optional[model.File]:
             _make_external_reference(s) for s in attribute_value.supplemental_semantic_ids
         ],
         content_type=attribute_value.content_type,
-        value=attribute_value.value,
+        value=attribute_value.value or None,
     )
 
 

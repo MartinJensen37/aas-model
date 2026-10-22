@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import itertools
 from types import UnionType as _UnionType
-from typing import Annotated, Any, Dict, List, Optional, TypeVar, Union, Literal
+from typing import Annotated, Any, ClassVar, Dict, List, Optional, TypeVar, Union, Literal
 import typing
 
 from basyx.aas.model import (
@@ -744,7 +744,11 @@ class RelationshipElement(SubmodelElement):
 
 
 class File(SubmodelElement):
-    """A File element matching basyx (``content_type``/``value``)."""
+    """A File element matching basyx (``content_type``/``value``).
+
+    A File without a value is left out of a built submodel, as templates carry
+    many; a class whose empty Files are meaningful sets ``KEEP_WITHOUT_VALUE``."""
+    KEEP_WITHOUT_VALUE: ClassVar[bool] = False
     id_short: AasIdString = "File"
     content_type: str = ""
     value: str = ""

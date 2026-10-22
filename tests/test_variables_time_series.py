@@ -13,7 +13,7 @@ from aas_pydantic import Key, ModelReference
 from aas_model import Resource, build_from_model
 from aas_model.submodel_templates.time_series import (
     IDTA_TIME_SERIES, RecordReference, TimeSeriesRecord, linked_segment, operation_log,
-    record_field, record_group, record_reference, time_series,
+    record_field, record_file, record_group, record_range, record_reference, record_text, time_series,
 )
 from aas_model.submodel_templates.variables import (
     LogGroup, MeasurementsGroup, StateGroup, Variables,
@@ -138,6 +138,34 @@ def test_a_segment_with_an_end_time_is_completed_and_without_one_in_progress():
 def test_segment_times_are_offset_date_times_in_order(times):
     with pytest.raises(ValueError):
         linked_segment(measurement="m", tags={}, **times)
+
+
+def test_ranges_files_and_texts_round_trip_through_rest_json():
+    from aas_model._serde import parse_submodel_dict
+    from basyx.aas.adapter.json import json_serialization
+    import json
+
+    series = time_series(name="Dosing", measurement="dosing", fields={
+        "Tolerance": record_range("xs:double"),
+        "Report": record_file("application/pdf"),
+        "Batch": record_text({"en": "Batch name", "de": "Chargenname"}),
+    })
+    variables = Variables(id_short="Variables", id="urn:sm:Variables", Measurements=MeasurementsGroup(value={"Dosing": series}))
+    sm = {s.id_short: s for s in build_from_model(Resource(id_short="seriesTestAAS", variables=variables))}["Variables"]
+    rest = json.loads(json.dumps(sm, cls=json_serialization.AASToJsonEncoder))
+    fields = parse_submodel_dict(rest, Variables).Measurements.value["Dosing"].Metadata.Record.field
+    assert {name: type(field).__name__ for name, field in fields.items()} == {
+        "Tolerance": "RecordRange", "Report": "RecordFile", "Batch": "RecordText"}
+    assert fields["Tolerance"].value_type == "xs:double"
+    assert fields["Report"].content_type == "application/pdf"
+    assert fields["Batch"].value == {"en": "Batch name", "de": "Chargenname"}
+
+
+def test_a_record_text_declares_its_languages():
+    with pytest.raises(ValueError, match="language"):
+        record_text({})
+    with pytest.raises(ValueError, match="language"):
+        record_text({"en": ""})
 
 
 def test_time_is_not_a_field():
