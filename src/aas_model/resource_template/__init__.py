@@ -12,6 +12,7 @@ from .control_component_instance import (
 from .asset_interfaces_mapping_configuration import (
     mapping_configuration,
     operation_ref,
+    series_segment_ref,
     variable_ref,
     response_sink,
     response_source,
@@ -53,6 +54,7 @@ __all__ = [
     "skill_ref",
     "mapping_configuration",
     "operation_ref",
+    "series_segment_ref",
     "variable_ref",
     "response_source",
     "response_sink",

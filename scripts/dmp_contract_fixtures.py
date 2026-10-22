@@ -36,6 +36,7 @@ from basyx.aas import model
 from basyx.aas.adapter.json import json_serialization
 
 from aas_model.builder import build_from_model
+from aas_model.constants import INFLUX_ORG, INFLUX_ORIGIN
 from aas_model.json_schema_aid import datapoint_from_schema
 from aas_model.resource_instances import RESOURCE_FACTORIES
 from aas_model.resource_template.asset_interfaces_mapping_configuration import operation_ref
@@ -391,7 +392,9 @@ def generate(root: Path) -> None:
         for i, dependency in enumerate(dependencies):
             _write(root / name / "dependencies" / f"{i}.json", dependency, resources, root)
             dependency_index.append({"id": dependency["id"], "path": f"dependencies/{i}.json"})
-        _write(root / name / "expected.json", {"compilerContext": {**context, "aas_base_url": "http://aas-server:8081"},
+        # The workspace's InfluxDB, which every TimeSeries segment names (constants.INFLUX_*).
+        _write(root / name / "expected.json", {"compilerContext": {**context, "aas_base_url": "http://aas-server:8081",
+                                                                   "influx_url": INFLUX_ORIGIN, "influx_org": INFLUX_ORG},
                                                "authoredMappings": _authored_mappings(aimc)}, resources, root)
         cases.append({"name": name, "description": description, "aimc": f"{name}/aimc.json", "aid": f"{name}/aid.json",
                       "expected": f"{name}/expected.json", "dependencies": dependency_index, "compiles": compiles})

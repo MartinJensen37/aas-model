@@ -45,6 +45,18 @@ def variable_ref(variable_name: str) -> ModelReference:
     ))
 
 
+def series_segment_ref(group: str, series: str, segment: str = "Live") -> ModelReference:
+    """Reference to a TimeSeries LinkedSegment in Variables, e.g.
+    .../Variables/State/Station/Segments/Live: the target of a history Sink."""
+    return ModelReference(key=(
+        Key(type_="Submodel", value=VARIABLES_REF),
+        Key(type_="SubmodelElementCollection", value=group),
+        Key(type_="SubmodelElementCollection", value=series),
+        Key(type_="SubmodelElementCollection", value="Segments"),
+        Key(type_="SubmodelElementCollection", value=segment),
+    ))
+
+
 def operation_ref(name: str) -> ModelReference:
     """Reference to a skill's delegated Operation in the CCI.
 

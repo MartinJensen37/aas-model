@@ -176,6 +176,8 @@ def test_pydantic_dict_and_json_loading_build_the_same_aas():
 def test_pydantic_loading_preserves_empty_containers_without_default_overlay(source, tmp_path):
     resource = syntegon_stoppering()
     resource.variables.variable.clear()
+    resource.variables.State = None
+    resource.variables.Log = None
     resource.parameters.parameter.clear()
     resource.asset_interfaces_description.InterfaceTemplateForMQTT.clear()
     resource.control_component_instance.Skills.Skill.clear()

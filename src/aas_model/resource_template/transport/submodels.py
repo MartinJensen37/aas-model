@@ -13,18 +13,19 @@ from aas_model.resource_template.asset_interfaces_description import (
     MQTT_INTERFACE, affordance_ref, mqtt_action, mqtt_property,
 )
 from aas_model.resource_template.asset_interfaces_mapping_configuration import (
-    mapping_configuration, operation_sources, sink, source, variable_ref,
+    mapping_configuration, operation_sources, series_segment_ref, sink, source, variable_ref,
 )
 from aas_model.resource_template.control_component_instance import skill_ref
 from aas_model.resource_template.operational import (
     OperationalMqttControlComponent, OperationalMqttInterfaces,
-    OperationalMqttMappings, OperationalVariables, command_reply,
+    OperationalMqttMappings, operational_variables, command_reply,
 )
 from aas_model.submodel_templates.control_component_instance import (
     EXTENDED_SKILL_INTERFACE_REF, ExtendedSkill, OptionalVariable,
     SkillInterfaceRelationship, SkillOperation,
 )
-from aas_model.submodel_templates.variables import VariableItem, VariableProp
+from aas_model.submodel_templates.variables import MeasurementsGroup, VariableItem, VariableProp
+from aas_model.submodel_templates.time_series import record_field, time_series
 
 
 planar_interfaces = OperationalMqttInterfaces(id_short="AssetInterfacesDescription")
@@ -107,7 +108,7 @@ planar_capabilities = CapabilityDescription(
 )
 
 
-planar_variables = OperationalVariables(id_short="Variables")
+planar_variables = operational_variables()
 planar_variables.variable.update({
     "Location": VariableItem(id_short="Location", value={
         axis: VariableProp(id_short=axis, value_type="xs:double", value="0.0")
@@ -116,6 +117,11 @@ planar_variables.variable.update({
     "PositionX": VariableProp(id_short="PositionX", value_type="xs:double", value="0.0"),
     "PositionY": VariableProp(id_short="PositionY", value_type="xs:double", value="0.0"),
 })
+# The shuttle's track: one row per reported position into Variables/Measurements/Location.
+planar_variables.Measurements = MeasurementsGroup(value={"Location": time_series(
+    name="Shuttle position", measurement="transport_position",
+    fields={axis: record_field("xs:double") for axis in ("x", "y", "yaw")},
+)})
 
 
 planar_mappings = OperationalMqttMappings(id_short="AssetInterfacesMappingConfiguration")
@@ -147,6 +153,16 @@ end
         Location_x = position[1], Location_y = position[2], Location_yaw = position[3] or 0.0,
         PositionX = position[1], PositionY = position[2],
     }
+end
+""",
+    ),
+    mapping_configuration(
+        id_short="LocationHistory",
+        sources=[source("Location", affordance_ref(MQTT_INTERFACE, "properties", "Location"))],
+        sinks=[sink("Live", series_segment_ref("Measurements", "Location"))],
+        transformation="""function aimc_main(sources)
+    local position = sources.Location.Position
+    return { Live = { x = position[1], y = position[2], yaw = position[3] or 0.0 } }
 end
 """,
     ),

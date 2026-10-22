@@ -14,7 +14,7 @@ from aas_pydantic.submodel_templates.hierarchical_structures import (
 )
 from aas_model.resource_template.operational import (
     OPCUA_STATION, OperationalOpcuaInterfaces, OperationalOpcuaControlComponent,
-    OperationalOpcuaMappings, OperationalVariables,
+    OperationalOpcuaMappings, operational_variables,
 )
 from aas_model.resource_template.stations import DispensingStation
 from aas_pydantic import ExternalReference, Key, ModelReference, Qualifier, ReferenceElement
@@ -22,7 +22,7 @@ from aas_pydantic.submodel_templates.asset_interfaces_mapping_configuration impo
 from aas_model.resource_template.control_component_instance import skill_ref
 from aas_model.resource_template.asset_interfaces_mapping_configuration import (
     operation_sources, operation_variable_ref,
-    response_sink, response_source, variable_ref,
+    response_sink, response_source, variable_ref, series_segment_ref,
 )
 from aas_model.resource_template.operational import action_member_ref
 from aas_model.resource_template.asset_interfaces_description import (
@@ -34,7 +34,8 @@ from aas_model.submodel_templates import (
 )
 from aas_pydantic.submodel_templates.capability_description import CapabilityRelations, CapabilityRealizedBy
 from aas_model.json_schema_aid import load_schema
-from aas_model.submodel_templates.variables import VariableProp
+from aas_model.submodel_templates.variables import MeasurementsGroup, VariableProp
+from aas_model.submodel_templates.time_series import record_field, time_series
 from aas_model.invocation_authoring import finalize_invocation_addresses
 
 
@@ -83,7 +84,7 @@ def ima_dispensing() -> DispensingStation:
         asset_interfaces_mapping_configuration=OperationalOpcuaMappings(
             id_short="AssetInterfacesMappingConfiguration",
         ),
-        variables=OperationalVariables(id_short="Variables"),
+        variables=operational_variables(),
     )
     opcua = resource.asset_interfaces_description.InterfaceTemplateForOPCUA[OPCUA_INTERFACE]
     opcua.title.value = "IMA Dispensing System"
@@ -161,6 +162,17 @@ def ima_dispensing() -> DispensingStation:
         Sources=Sources(value=[SourcesItem(id_short="Weight", Source=Source(value=affordance_ref(OPCUA_INTERFACE, "properties", "Weight")), SourceId=SourceId(value="Weight"), PollingInterval=PollingInterval(value="0.1"))]),
         Sinks=Sinks(value=[SinksItem(id_short="Weight", Sink=Sink(value=variable_ref("Weight")), SinkId=SinkId(value="Weight"))]),
         Transformation=Transformation(value="function aimc_main(sources) return { Weight = sources.Weight } end"),
+    ))
+    # The weight's history: the same reading, one row per sample into Variables/Measurements/Weight.
+    resource.variables.Measurements = MeasurementsGroup(value={"Weight": time_series(
+        name="Dispensed weight", measurement="dispensing_weight",
+        fields={"Weight": record_field("xs:double", concept=f"{CSSX}#Weight", description="Weight in g")},
+    )})
+    mappings.append(AimcMappingConfiguration(
+        id_short="WeightHistory", DefaultPollingInterval=DefaultPollingInterval(value="0.0"),
+        Sources=Sources(value=[SourcesItem(id_short="Weight", Source=Source(value=affordance_ref(OPCUA_INTERFACE, "properties", "Weight")), SourceId=SourceId(value="Weight"), PollingInterval=PollingInterval(value="0.1"))]),
+        Sinks=Sinks(value=[SinksItem(id_short="Live", Sink=Sink(value=series_segment_ref("Measurements", "Weight")), SinkId=SinkId(value="Live"))]),
+        Transformation=Transformation(value="function aimc_main(sources) return { Live = { Weight = sources.Weight } } end"),
     ))
     finalize_invocation_addresses(resource)
     return resource

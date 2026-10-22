@@ -10,7 +10,7 @@ from aas_model.resource_template.control_component_instance import ResourceContr
 from aas_model.resource_template.operational import (
     OperationalMqttInterfaces, OperationalMqttControlComponent, OperationalMqttMappings,
     OperationalOpcuaInterfaces, OperationalOpcuaControlComponent, OperationalOpcuaMappings,
-    OperationalVariables,
+    operational_variables,
 )
 from .submodels import (
     StopperingCapabilities, CappingCapabilities, DispensingCapabilities,
@@ -35,7 +35,7 @@ class MqttOperationalStation(Station):
     asset_interfaces_mapping_configuration: Aimc = OperationalMqttMappings(
         id_short="AssetInterfacesMappingConfiguration",
     )
-    variables: Variables = OperationalVariables(id_short="Variables")
+    variables: Variables = operational_variables()
 
 
 class OpcuaOperationalStation(Station):
@@ -50,7 +50,7 @@ class OpcuaOperationalStation(Station):
     asset_interfaces_mapping_configuration: Aimc = OperationalOpcuaMappings(
         id_short="AssetInterfacesMappingConfiguration",
     )
-    variables: Variables = OperationalVariables(id_short="Variables")
+    variables: Variables = operational_variables()
 
 
 class ProcessingStation(Station):

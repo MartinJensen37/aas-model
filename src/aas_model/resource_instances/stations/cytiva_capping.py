@@ -13,7 +13,7 @@ from aas_pydantic.submodel_templates.hierarchical_structures import (
 )
 from aas_model.resource_template.operational import (
     OperationalMqttInterfaces, OperationalMqttControlComponent,
-    OperationalMqttMappings, OperationalVariables, command_reply,
+    OperationalMqttMappings, operational_variables, command_reply,
 )
 from aas_model.resource_template.stations import CappingStation
 from aas_model.constants import INVOCATION_ORIGIN, SCHEMA_BASE
@@ -64,7 +64,7 @@ def cytiva_capping() -> CappingStation:
         asset_interfaces_mapping_configuration=OperationalMqttMappings(
             id_short="AssetInterfacesMappingConfiguration",
         ),
-        variables=OperationalVariables(id_short="Variables"),
+        variables=operational_variables(),
     )
     mqtt = resource.asset_interfaces_description.InterfaceTemplateForMQTT["interface_mqtt"]
     mqtt.title.value = "Cytiva Capping System"
