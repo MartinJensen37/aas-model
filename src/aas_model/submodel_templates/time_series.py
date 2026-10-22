@@ -20,7 +20,7 @@ Structure::
         └── LinkedSegment[]
             ├── Endpoint         InfluxDB 2 query URL (IDTA)
             ├── Query            Flux for the web UI (IDTA)
-            └── DmpTarget        Bucket, Measurement, Tags (DMP extension)
+            └── InfluxDb2Target  Bucket, Measurement, Tags (DMP extension, InfluxDB 2)
 
 A series groups what is sampled together, never one variable each. The DMP
 addresses the LinkedSegment; it reads the Record as the row shape and writes or
@@ -32,6 +32,7 @@ resolved when the resource is built).
 from __future__ import annotations
 
 import re
+from datetime import datetime
 from typing import Dict, List, Optional, Union
 
 from pydantic import model_validator
@@ -39,14 +40,14 @@ from pydantic import model_validator
 from aas_pydantic import Operation, Property, Qualifier, SubmodelElementCollection
 from aas_pydantic.aas_model import AasIdString, DynamicSubmodelElementCollection
 from aas_pydantic.submodel_templates.time_series import (
-    Endpoint, LinkedSegment as _LinkedSegment, Metadata as _Metadata, Name,
-    Query, Segments as _Segments, State,
+    EndTime, Endpoint, LinkedSegment as _LinkedSegment, Metadata as _Metadata, Name,
+    Query, Segments as _Segments, StartTime, State,
 )
 
 from aas_model.constants import (
     INFLUX_BUCKET, INFLUX_ORG, INFLUX_ORIGIN,
-    TS_COLLECTION, TS_COLUMN, TS_DMP_TARGET, TS_DMP_TARGET_BUCKET,
-    TS_DMP_TARGET_MEASUREMENT, TS_DMP_TARGET_TAG, TS_DMP_TARGET_TAGS,
+    TS_COLLECTION, TS_COLUMN, TS_INFLUX_TARGET, TS_INFLUX_TARGET_BUCKET,
+    TS_INFLUX_TARGET_MEASUREMENT, TS_INFLUX_TARGET_TAG, TS_INFLUX_TARGET_TAGS,
     TS_RECORD_FIELD, TS_RECORD_GROUP,
 )
 
@@ -134,37 +135,39 @@ class TimeSeriesMetadata(_Metadata):
 
 class Bucket(Property):
     id_short: AasIdString = "Bucket"
-    semantic_id: str = TS_DMP_TARGET_BUCKET
+    semantic_id: str = TS_INFLUX_TARGET_BUCKET
 
 
 class Measurement(Property):
     id_short: AasIdString = "Measurement"
-    semantic_id: str = TS_DMP_TARGET_MEASUREMENT
+    semantic_id: str = TS_INFLUX_TARGET_MEASUREMENT
 
 
 class Tag(Property):
     """One series tag: the idShort is the tag key, the value its value."""
-    semantic_id: str = TS_DMP_TARGET_TAG
+    semantic_id: str = TS_INFLUX_TARGET_TAG
 
 
 class Tags(SubmodelElementCollection):
     id_short: AasIdString = "Tags"
-    semantic_id: str = TS_DMP_TARGET_TAGS
+    semantic_id: str = TS_INFLUX_TARGET_TAGS
     tag: Dict[str, Tag] = {}
 
 
-class DmpTarget(SubmodelElementCollection):
-    """Where the DMP writes and reads the segment's points. The IDTA Query is
-    for people and the web UI; the DMP never parses it."""
-    id_short: AasIdString = "DmpTarget"
-    semantic_id: str = TS_DMP_TARGET
+class InfluxDb2Target(SubmodelElementCollection):
+    """Where the DMP writes and reads the segment's points on InfluxDB 2. Each
+    database has its own target, told apart by semanticId; a segment carries
+    exactly one. The IDTA Query is for people and the web UI; the DMP never
+    parses it."""
+    id_short: AasIdString = "InfluxDb2Target"
+    semantic_id: str = TS_INFLUX_TARGET
     Bucket: Bucket
     Measurement: Measurement
     Tags: Tags
 
 
 class DmpLinkedSegment(_LinkedSegment):
-    DmpTarget: DmpTarget
+    InfluxDb2Target: InfluxDb2Target
 
 
 class TimeSeriesSegments(_Segments):
@@ -217,9 +220,29 @@ def flux_query(bucket: str, measurement: str, tags: Dict[str, str]) -> str:
     return "\n".join(lines)
 
 
+def _check_time(kind: str, value: Optional[str]) -> Optional[str]:
+    """A segment time: an xs:dateTime with an offset, the format of a UtcTime series."""
+    if value is None:
+        return None
+    try:
+        parsed = datetime.fromisoformat(value)
+    except ValueError:
+        raise ValueError(f"{kind} {value!r} is not an xs:dateTime") from None
+    if parsed.tzinfo is None:
+        raise ValueError(f"{kind} {value!r} needs an offset, e.g. Z")
+    return value
+
+
 def linked_segment(*, measurement: str, tags: Dict[str, str],
-                   bucket: str = INFLUX_BUCKET, description: str = "") -> DmpLinkedSegment:
-    """An open-ended segment on the workspace's InfluxDB."""
+                   bucket: str = INFLUX_BUCKET, description: str = "",
+                   start_time: Optional[str] = None, end_time: Optional[str] = None) -> DmpLinkedSegment:
+    """A segment on the workspace's InfluxDB. Its *start_time* and *end_time*
+    bound what the DMP reads; a segment with an *end_time* is ``Completed`` and
+    read-only, one without is ``InProgress`` and open for writes."""
+    _check_time("start_time", start_time)
+    _check_time("end_time", end_time)
+    if start_time and end_time and datetime.fromisoformat(end_time) <= datetime.fromisoformat(start_time):
+        raise ValueError("end_time must lie after start_time")
     _check_identifier("bucket", bucket)
     _check_identifier("measurement", measurement)
     for key, value in tags.items():
@@ -227,10 +250,12 @@ def linked_segment(*, measurement: str, tags: Dict[str, str],
         _check_identifier("tag value", value)
     return DmpLinkedSegment(
         description=description,
-        State=State(value="InProgress"),
+        StartTime=StartTime(value=start_time) if start_time else None,
+        EndTime=EndTime(value=end_time) if end_time else None,
+        State=State(value="Completed" if end_time else "InProgress"),
         Endpoint=Endpoint(value=f"{INFLUX_ORIGIN}/api/v2/query?org={INFLUX_ORG}"),
         Query=Query(value=flux_query(bucket, measurement, tags)),
-        DmpTarget=DmpTarget(
+        InfluxDb2Target=InfluxDb2Target(
             Bucket=Bucket(value=bucket),
             Measurement=Measurement(value=measurement),
             Tags=Tags(tag={key: Tag(value=value) for key, value in tags.items()}),
@@ -240,7 +265,8 @@ def linked_segment(*, measurement: str, tags: Dict[str, str],
 
 def time_series(*, name: str, measurement: str, fields: Dict[str, RecordEntry],
                 tags: Optional[Dict[str, str]] = None, description: str = "",
-                segment: str = "Live") -> TimeSeriesCollection:
+                segment: str = "Live", start_time: Optional[str] = None,
+                end_time: Optional[str] = None) -> TimeSeriesCollection:
     """A series with one LinkedSegment. *tags* default to the owning AAS."""
     tags = {"asset": "{aas_id_short}"} if tags is None else tags
     return TimeSeriesCollection(
@@ -250,7 +276,8 @@ def time_series(*, name: str, measurement: str, fields: Dict[str, RecordEntry],
             Record=TimeSeriesRecord(field=fields),
         ),
         Segments=TimeSeriesSegments(LinkedSegment={
-            segment: linked_segment(measurement=measurement, tags=tags),
+            segment: linked_segment(measurement=measurement, tags=tags,
+                                    start_time=start_time, end_time=end_time),
         }),
     )
 

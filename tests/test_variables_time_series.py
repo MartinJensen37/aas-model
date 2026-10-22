@@ -75,7 +75,7 @@ def test_series_round_trips_through_rest_json():
     assert fields["PackMLState"].column == "PackMLState"
     assert fields["PackMLState"].supplemental_semantic_ids == [CONCEPT]
     assert fields["Position"].field["X"].column == "Position.X"
-    target = series.Segments.LinkedSegment["Live"].DmpTarget
+    target = series.Segments.LinkedSegment["Live"].InfluxDb2Target
     assert target.Measurement.value == "station_state"
     assert target.Tags.tag["asset"].value == "seriesTestAAS"
 
@@ -102,7 +102,7 @@ def test_linked_segment_names_its_target_and_the_owning_aas():
     parts = _children(live)
     assert parts["Endpoint"].value == "http://influxdb:8086/api/v2/query?org=ap2030"
     assert parts["State"].value == "InProgress"
-    target = _children(parts["DmpTarget"])
+    target = _children(parts["InfluxDb2Target"])
     assert target["Bucket"].value == "ap2030"
     assert target["Measurement"].value == "station_state"
     assert {t.id_short: t.value for t in target["Tags"].value} == {"asset": "seriesTestAAS"}
@@ -110,6 +110,24 @@ def test_linked_segment_names_its_target_and_the_owning_aas():
     assert 'r["_measurement"] == "station_state"' in query
     assert 'r["asset"] == "seriesTestAAS"' in query
     assert '{{y-value}}' in query
+
+
+def test_a_segment_with_an_end_time_is_completed_and_without_one_in_progress():
+    live = linked_segment(measurement="m", tags={}, start_time="2026-10-20T00:00:00Z")
+    assert (live.StartTime.value, live.EndTime, live.State.value) == ("2026-10-20T00:00:00Z", None, "InProgress")
+    batch = linked_segment(measurement="m", tags={}, start_time="2026-10-20T00:00:00Z",
+                           end_time="2026-10-20T08:00:00+02:00")
+    assert (batch.EndTime.value, batch.State.value) == ("2026-10-20T08:00:00+02:00", "Completed")
+
+
+@pytest.mark.parametrize("times", [
+    {"start_time": "yesterday"},
+    {"start_time": "2026-10-20T00:00:00"},
+    {"start_time": "2026-10-20T08:00:00Z", "end_time": "2026-10-20T07:00:00Z"},
+])
+def test_segment_times_are_offset_date_times_in_order(times):
+    with pytest.raises(ValueError):
+        linked_segment(measurement="m", tags={}, **times)
 
 
 def test_a_record_field_without_a_column_is_rejected():
