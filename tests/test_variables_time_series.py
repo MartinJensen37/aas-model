@@ -9,11 +9,11 @@ from __future__ import annotations
 import pytest
 from basyx.aas.model import datatypes
 
-from aas_pydantic import Operation, Property
+from aas_pydantic import Key, ModelReference
 from aas_model import Resource, build_from_model
 from aas_model.submodel_templates.time_series import (
-    IDTA_TIME_SERIES, RecordField, TimeSeriesRecord, linked_segment, operation_log,
-    record_field, record_group, time_series,
+    IDTA_TIME_SERIES, RecordReference, TimeSeriesRecord, linked_segment, operation_log,
+    record_field, record_group, record_reference, time_series,
 )
 from aas_model.submodel_templates.variables import (
     LogGroup, MeasurementsGroup, StateGroup, Variables,
@@ -25,8 +25,12 @@ CONCEPT = "https://w3id.org/2026/apex/semantic/state/operational"
 
 def _station_state():
     return time_series(name="Station state", measurement="station_state", fields={
-        "PackMLState": record_field("xs:string", column="PackMLState", concept=CONCEPT),
-        "Position": record_group({"X": record_field("xs:double", column="Position.X")}),
+        "PackMLState": record_field("xs:string", concept=CONCEPT),
+        "Position": record_group({"X": record_field("xs:double")}),
+        "Location": record_reference(ModelReference(key=(
+            Key(type_="Submodel", value="{aas_id}/submodels/Parameters"),
+            Key(type_="SubmodelElementCollection", value="Location"),
+        ))),
     })
 
 
@@ -72,9 +76,10 @@ def test_series_round_trips_through_rest_json():
     series = back.State.value["Station"]
     assert type(series).__name__ == "TimeSeriesCollection"
     fields = series.Metadata.Record.field
-    assert fields["PackMLState"].column == "PackMLState"
+    assert fields["PackMLState"].value_type == "xs:string"
     assert fields["PackMLState"].supplemental_semantic_ids == [CONCEPT]
-    assert fields["Position"].field["X"].column == "Position.X"
+    assert fields["Position"].field["X"].value_type == "xs:double"
+    assert type(fields["Location"]).__name__ == "RecordReference"
     target = series.Segments.LinkedSegment["Live"].InfluxDb2Target
     assert target.Measurement.value == "station_state"
     assert target.Tags.tag["asset"].value == "seriesTestAAS"
@@ -87,14 +92,19 @@ def test_series_is_an_smc_with_the_idta_id_as_supplemental():
     assert set(_children(series)) == {"Metadata", "Segments"}
 
 
-def test_record_holds_the_row_shape_with_explicit_columns():
+def test_record_holds_the_row_shape_without_columns():
     record = _children(_children(_series())["Metadata"])["Record"]
     fields = _children(record)
     assert _semantic_id(fields["Time"]) == "https://admin-shell.io/idta/TimeSeries/UtcTime/1/1"
     assert fields["Time"].value_type is datatypes.DateTime
-    assert [(q.type, q.value) for q in fields["PackMLState"].qualifier] == [("Column", "PackMLState")]
+    assert list(fields["PackMLState"].qualifier) == [], "a field's InfluxDB field is its idShortPath"
     position = _children(fields["Position"])
-    assert [(q.type, q.value) for q in position["X"].qualifier] == [("Column", "Position.X")]
+    assert position["X"].value_type is datatypes.Double
+    location = fields["Location"]
+    assert type(location).__name__ == "ReferenceElement"
+    assert _semantic_id(location) == "https://smartproductionlab.aau.dk/timeseries/RecordReference/1/0"
+    assert [k.value for k in location.value.key] == [
+        "https://smartproductionlab.aau.dk/aas/seriesTestAAS/submodels/Parameters", "Location"]
 
 
 def test_linked_segment_names_its_target_and_the_owning_aas():
@@ -130,22 +140,9 @@ def test_segment_times_are_offset_date_times_in_order(times):
         linked_segment(measurement="m", tags={}, **times)
 
 
-def test_a_record_field_without_a_column_is_rejected():
-    with pytest.raises(Exception, match="Column"):
-        RecordField(id_short="PackMLState")
-
-
-def test_columns_must_be_distinct_across_groups():
-    with pytest.raises(Exception, match="not distinct"):
-        TimeSeriesRecord(field={
-            "A": record_field("xs:string", column="Same"),
-            "G": record_group({"B": record_field("xs:string", column="Same")}),
-        })
-
-
 def test_time_is_not_a_field():
     with pytest.raises(Exception, match="Time"):
-        TimeSeriesRecord(field={"Time": record_field("xs:dateTime", column="Time")})
+        TimeSeriesRecord(field={"Time": record_field("xs:dateTime")})
 
 
 def test_identifiers_spliced_into_flux_are_checked():
@@ -153,22 +150,22 @@ def test_identifiers_spliced_into_flux_are_checked():
         linked_segment(measurement='bad"name', tags={})
 
 
-def test_operation_log_keeps_the_variables_types():
-    operation = Operation(
-        id_short="operation",
-        input_variable=[Property(id_short="Weight", value_type="xs:double")],
-        in_output_variable=[Property(id_short="Uuid")],
-        output_variable=[Property(id_short="State")],
-    )
+def test_operation_log_references_the_operation_beside_outcome_and_duration():
+    operation = ModelReference(key=(
+        Key(type_="Submodel", value="{aas_id}/submodels/ControlComponentInstance"),
+        Key(type_="SubmodelElementCollection", value="Skills"),
+        Key(type_="SubmodelElementCollection", value="Occupy"),
+        Key(type_="Operation", value="operation"),
+    ))
     log = operation_log(operation, name="Occupy", measurement="operation_occupy")
     fields = log.Metadata.Record.field
-    assert list(fields) == ["Outcome", "DurationMs", "Weight", "Uuid", "State"]
+    assert list(fields) == ["Outcome", "DurationMs", "Operation"]
     assert fields["DurationMs"].value_type == "xs:long"
-    assert fields["Weight"].value_type == "xs:double"
-    assert fields["Uuid"].column == "Uuid"
+    assert isinstance(fields["Operation"], RecordReference)
+    assert fields["Operation"].value.key[-1].value == "operation"
 
 
-def test_operation_log_rejects_a_variable_clashing_with_a_log_field():
-    operation = Operation(id_short="operation", output_variable=[Property(id_short="Outcome")])
-    with pytest.raises(ValueError, match="clash"):
-        operation_log(operation, name="Occupy", measurement="operation_occupy")
+def test_operation_log_rejects_a_field_name_clashing_with_a_log_field():
+    with pytest.raises(ValueError, match="clashes"):
+        operation_log(ModelReference(key=(Key(type_="Submodel", value="urn:x"),)), name="Occupy",
+                      measurement="operation_occupy", field="Outcome")

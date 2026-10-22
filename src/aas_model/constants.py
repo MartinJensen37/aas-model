@@ -124,8 +124,8 @@ AIMC_TRIGGER_SOURCE_IDS = f"{BASE_URL}/aimc/ExecutionSemantics/TriggerSourceIds/
 # TimeSeries — DMP profile of IDTA 02008 (TimeSeries SMCs in Variables)
 # ═══════════════════════════════════════════════════════════════════════════════
 # A TimeSeries SMC is shaped exactly like the IDTA submodel; only the SMC
-# itself and the DMP additions (the LinkedSegment's write target, a Record
-# field's column) carry ids in this project's namespace.
+# itself and the DMP additions (the LinkedSegment's write target, Record fields,
+# groups and references) carry ids in this project's namespace.
 
 # The InfluxDB 2 instance every LinkedSegment of this workspace points at.
 INFLUX_ORIGIN = "http://influxdb:8086"
@@ -135,7 +135,7 @@ INFLUX_BUCKET = "ap2030"
 TS_COLLECTION = f"{BASE_URL}/variables/TimeSeries/1/0"
 TS_RECORD_FIELD = f"{BASE_URL}/timeseries/RecordField/1/0"
 TS_RECORD_GROUP = f"{BASE_URL}/timeseries/RecordGroup/1/0"
-TS_COLUMN = f"{BASE_URL}/timeseries/Column/1/0"
+TS_RECORD_REFERENCE = f"{BASE_URL}/timeseries/RecordReference/1/0"
 TS_INFLUX_TARGET = f"{BASE_URL}/timeseries/InfluxDb2Target/1/0"
 TS_INFLUX_TARGET_BUCKET = f"{BASE_URL}/timeseries/InfluxDb2Target/Bucket/1/0"
 TS_INFLUX_TARGET_MEASUREMENT = f"{BASE_URL}/timeseries/InfluxDb2Target/Measurement/1/0"

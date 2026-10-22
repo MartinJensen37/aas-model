@@ -14,8 +14,9 @@ Structure::
     │   ├── Name
     │   └── Record               the row schema: one row = one sample
     │       ├── Time             UtcTime (xs:dateTime)
-    │       ├── <field>          RecordField, its InfluxDB column in a Column qualifier
-    │       └── <group>          RecordGroup of further fields
+    │       ├── <field>          RecordField: one InfluxDB field, named by its idShortPath
+    │       ├── <group>          RecordGroup of further fields (Position.X)
+    │       └── <reference>      RecordReference to an AAS element, resolved as if inline
     └── Segments
         └── LinkedSegment[]
             ├── Endpoint         InfluxDB 2 query URL (IDTA)
@@ -24,9 +25,13 @@ Structure::
 
 A series groups what is sampled together, never one variable each. The DMP
 addresses the LinkedSegment; it reads the Record as the row shape and writes or
-reads one point per row. Nothing is derived from names: every field declares its
-column, and the tags name the AAS that owns the series (``{aas_id_short}``,
-resolved when the resource is built).
+reads one point per row. A field's InfluxDB field is its idShortPath below the
+Record (list members by index, ``Waypoints[0].x``), so renaming a field starts a
+new InfluxDB field. A RecordReference counts exactly as if the referenced
+element were declared at its place: a Property is one field, an SMC or SML a
+group, an Operation a group of its input, InOut and output variables. The tags
+name the AAS that owns the series (``{aas_id_short}``, resolved when the
+resource is built).
 """
 
 from __future__ import annotations
@@ -37,8 +42,8 @@ from typing import Dict, List, Optional, Union
 
 from pydantic import model_validator
 
-from aas_pydantic import Operation, Property, Qualifier, SubmodelElementCollection
-from aas_pydantic.aas_model import AasIdString, DynamicSubmodelElementCollection
+from aas_pydantic import ModelReference, Property, ReferenceElement, SubmodelElementCollection
+from aas_pydantic.aas_model import AasIdString
 from aas_pydantic.submodel_templates.time_series import (
     EndTime, Endpoint, LinkedSegment as _LinkedSegment, Metadata as _Metadata, Name,
     Query, Segments as _Segments, StartTime, State,
@@ -46,9 +51,9 @@ from aas_pydantic.submodel_templates.time_series import (
 
 from aas_model.constants import (
     INFLUX_BUCKET, INFLUX_ORG, INFLUX_ORIGIN,
-    TS_COLLECTION, TS_COLUMN, TS_INFLUX_TARGET, TS_INFLUX_TARGET_BUCKET,
+    TS_COLLECTION, TS_INFLUX_TARGET, TS_INFLUX_TARGET_BUCKET,
     TS_INFLUX_TARGET_MEASUREMENT, TS_INFLUX_TARGET_TAG, TS_INFLUX_TARGET_TAGS,
-    TS_RECORD_FIELD, TS_RECORD_GROUP,
+    TS_RECORD_FIELD, TS_RECORD_GROUP, TS_RECORD_REFERENCE,
 )
 
 IDTA_TIME_SERIES = "https://admin-shell.io/idta/TimeSeries/1/1"
@@ -61,14 +66,6 @@ _IDENTIFIER = re.compile(r"^[A-Za-z0-9_.\-{}]+$")
 
 # ── Record ───────────────────────────────────────────────────────────────────
 
-class Column(Qualifier):
-    """The InfluxDB field a Record field is stored in. Authored explicitly and
-    kept when the field is renamed, so a rename never splits its history."""
-    type_: str = "Column"
-    semantic_id: str = TS_COLUMN
-    kind: str = "ConceptQualifier"
-
-
 class UtcTime(Property):
     """The row's time. A value the transformation returns is the point's time;
     without one the DMP stamps the time of evaluation."""
@@ -78,20 +75,9 @@ class UtcTime(Property):
 
 
 class RecordField(Property):
-    """One column of the row. The concept it measures rides as a supplemental
+    """One field of the row. The concept it measures rides as a supplemental
     semantic id, as on a ``VariableProp``."""
     semantic_id: str = TS_RECORD_FIELD
-
-    @model_validator(mode="after")
-    def _one_column(self):
-        columns = [q for q in self.qualifiers if q.type_ == "Column"]
-        if len(columns) != 1 or not columns[0].value:
-            raise ValueError(f"Record field {self.id_short!r} needs exactly one Column")
-        return self
-
-    @property
-    def column(self) -> str:
-        return next(q.value for q in self.qualifiers if q.type_ == "Column")
 
 
 class RecordGroup(SubmodelElementCollection):
@@ -100,14 +86,15 @@ class RecordGroup(SubmodelElementCollection):
     field: Dict[str, "RecordEntry"] = {}
 
 
-RecordEntry = Union[RecordField, RecordGroup]
+class RecordReference(ReferenceElement):
+    """An AAS element whose structure is part of the row, as if declared at this
+    place under this idShort: a Property, an SMC or SML, or an Operation (its
+    input, InOut and output variables). The DMP resolves it; values still come
+    from the transformation."""
+    semantic_id: str = TS_RECORD_REFERENCE
 
 
-def _columns(fields: Dict[str, RecordEntry]) -> List[str]:
-    out: List[str] = []
-    for entry in fields.values():
-        out.extend(_columns(entry.field) if isinstance(entry, RecordGroup) else [entry.column])
-    return out
+RecordEntry = Union[RecordField, RecordGroup, RecordReference]
 
 
 class TimeSeriesRecord(SubmodelElementCollection):
@@ -117,13 +104,9 @@ class TimeSeriesRecord(SubmodelElementCollection):
     field: Dict[str, RecordEntry] = {}
 
     @model_validator(mode="after")
-    def _distinct_columns(self):
+    def _time_is_not_a_field(self):
         if "Time" in self.field:
             raise ValueError("'Time' is the row's time, not a field")
-        columns = _columns(self.field)
-        duplicates = sorted({c for c in columns if columns.count(c) > 1})
-        if duplicates:
-            raise ValueError(f"Record columns are not distinct: {duplicates}")
         return self
 
 
@@ -187,18 +170,21 @@ TimeSeriesRecord.model_rebuild()
 
 # ── Authoring helpers ────────────────────────────────────────────────────────
 
-def record_field(value_type: str, *, column: str, concept: str = "",
-                 description: str = "") -> RecordField:
-    """A Record field stored in *column*. The column is always explicit."""
+def record_field(value_type: str, *, concept: str = "", description: str = "") -> RecordField:
+    """A Record field; its InfluxDB field is its idShortPath below the Record."""
     return RecordField(
         value_type=value_type, description=description,
         supplemental_semantic_ids=[concept] if concept else [],
-        qualifiers=[Column(value=column)],
     )
 
 
 def record_group(fields: Dict[str, RecordEntry], *, description: str = "") -> RecordGroup:
     return RecordGroup(field=fields, description=description)
+
+
+def record_reference(reference: ModelReference, *, description: str = "") -> RecordReference:
+    """The referenced element's structure at this place of the row."""
+    return RecordReference(value=reference, description=description)
 
 
 def _check_identifier(kind: str, value: str) -> str:
@@ -282,42 +268,17 @@ def time_series(*, name: str, measurement: str, fields: Dict[str, RecordEntry],
     )
 
 
-def _operation_fields(variables) -> Dict[str, RecordEntry]:
-    fields: Dict[str, RecordEntry] = {}
-    for variable in variables:
-        if isinstance(variable, Property):
-            entry: RecordEntry = record_field(
-                variable.value_type, column=variable.id_short,
-                concept=variable.semantic_id, description=variable.description,
-            )
-        elif isinstance(variable, DynamicSubmodelElementCollection):
-            entry = record_group(_operation_fields(variable.value.values()),
-                                 description=variable.description)
-        else:
-            raise ValueError(
-                f"Operation variable {variable.id_short!r} ({type(variable).__name__}) "
-                "has no Record column form"
-            )
-        fields[variable.id_short] = entry
-    return fields
 
-
-def operation_log(operation: Operation, *, name: str, measurement: str) -> TimeSeriesCollection:
-    """A typed log series of one Operation: its outcome and duration next to its
-    input, InOut and output variables, which keep their valueTypes."""
+def operation_log(operation: ModelReference, *, name: str, measurement: str,
+                  field: str = "Operation") -> TimeSeriesCollection:
+    """A log series of one Operation: its outcome and duration next to the
+    Operation itself, referenced, so its input, InOut and output variables are
+    fields (``Operation.Uuid``) with their valueTypes and follow its definition."""
     fields: Dict[str, RecordEntry] = {
-        "Outcome": record_field("xs:string", column="Outcome",
-                                description="How the invocation ended"),
-        "DurationMs": record_field("xs:long", column="DurationMs",
-                                   description="Time from accepting the call to its answer"),
+        "Outcome": record_field("xs:string", description="How the invocation ended"),
+        "DurationMs": record_field("xs:long", description="Time from accepting the call to its answer"),
     }
-    for variable_fields in (
-        _operation_fields(operation.input_variable),
-        _operation_fields(operation.in_output_variable),
-        _operation_fields(operation.output_variable),
-    ):
-        clash = sorted(set(fields) & set(variable_fields))
-        if clash:
-            raise ValueError(f"Operation variables clash with log fields: {clash}")
-        fields.update(variable_fields)
+    if field in fields:
+        raise ValueError(f"the Operation's field {field!r} clashes with a log field")
+    fields[field] = record_reference(operation, description="The invoked Operation's variables")
     return time_series(name=name, measurement=measurement, fields=fields)
