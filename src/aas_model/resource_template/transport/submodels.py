@@ -117,7 +117,8 @@ planar_variables.variable.update({
     "PositionX": VariableProp(id_short="PositionX", value_type="xs:double", value="0.0"),
     "PositionY": VariableProp(id_short="PositionY", value_type="xs:double", value="0.0"),
 })
-# The shuttle's track: one row per reported position into Variables/Measurements/Location.
+# The shuttle's track: one row per reported position into Variables/Measurements/Location,
+# written by ObserveLocation after its AAS Properties.
 planar_variables.Measurements = MeasurementsGroup(value={"Location": time_series(
     name="Shuttle position", measurement="transport_position",
     fields={axis: record_field("xs:double") for axis in ("x", "y", "yaw")},
@@ -146,23 +147,15 @@ end
                 Key(type_="SubmodelElementCollection", value="Location"),
                 Key(type_="Property", value=axis),
             ))) for axis in ("x", "y", "yaw")
-        ] + [sink(name, variable_ref(name)) for name in ("PositionX", "PositionY")],
+        ] + [sink(name, variable_ref(name)) for name in ("PositionX", "PositionY")]
+        + [sink("Live", series_segment_ref("Measurements", "Location"))],
         transformation="""function aimc_main(sources)
     local position = sources.Location.Position
     return {
         Location_x = position[1], Location_y = position[2], Location_yaw = position[3] or 0.0,
         PositionX = position[1], PositionY = position[2],
+        Live = { x = position[1], y = position[2], yaw = position[3] or 0.0 },
     }
-end
-""",
-    ),
-    mapping_configuration(
-        id_short="LocationHistory",
-        sources=[source("Location", affordance_ref(MQTT_INTERFACE, "properties", "Location"))],
-        sinks=[sink("Live", series_segment_ref("Measurements", "Location"))],
-        transformation="""function aimc_main(sources)
-    local position = sources.Location.Position
-    return { Live = { x = position[1], y = position[2], yaw = position[3] or 0.0 } }
 end
 """,
     ),

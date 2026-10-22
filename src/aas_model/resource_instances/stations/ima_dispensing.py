@@ -157,22 +157,18 @@ def ima_dispensing() -> DispensingStation:
         "Weight", f"{OPCUA_STATION}.Weight", schema={**weight, "unit": "g"},
     )
     resource.variables.variable["Weight"] = VariableProp(id_short="Weight", value_type="xs:double", value="0.0", supplemental_semantic_ids=[f"{CSSX}#Weight"])
-    mappings.append(AimcMappingConfiguration(
-        id_short="ObserveWeight", DefaultPollingInterval=DefaultPollingInterval(value="0.0"),
-        Sources=Sources(value=[SourcesItem(id_short="Weight", Source=Source(value=affordance_ref(OPCUA_INTERFACE, "properties", "Weight")), SourceId=SourceId(value="Weight"), PollingInterval=PollingInterval(value="0.1"))]),
-        Sinks=Sinks(value=[SinksItem(id_short="Weight", Sink=Sink(value=variable_ref("Weight")), SinkId=SinkId(value="Weight"))]),
-        Transformation=Transformation(value="function aimc_main(sources) return { Weight = sources.Weight } end"),
-    ))
-    # The weight's history: the same reading, one row per sample into Variables/Measurements/Weight.
+    # The weight's history: one row per sample into Variables/Measurements/Weight,
+    # after the AAS Property (the node has one consumer, so one mapping).
     resource.variables.Measurements = MeasurementsGroup(value={"Weight": time_series(
         name="Dispensed weight", measurement="dispensing_weight",
         fields={"Weight": record_field("xs:double", concept=f"{CSSX}#Weight", description="Weight in g")},
     )})
     mappings.append(AimcMappingConfiguration(
-        id_short="WeightHistory", DefaultPollingInterval=DefaultPollingInterval(value="0.0"),
+        id_short="ObserveWeight", DefaultPollingInterval=DefaultPollingInterval(value="0.0"),
         Sources=Sources(value=[SourcesItem(id_short="Weight", Source=Source(value=affordance_ref(OPCUA_INTERFACE, "properties", "Weight")), SourceId=SourceId(value="Weight"), PollingInterval=PollingInterval(value="0.1"))]),
-        Sinks=Sinks(value=[SinksItem(id_short="Live", Sink=Sink(value=series_segment_ref("Measurements", "Weight")), SinkId=SinkId(value="Live"))]),
-        Transformation=Transformation(value="function aimc_main(sources) return { Live = { Weight = sources.Weight } } end"),
+        Sinks=Sinks(value=[SinksItem(id_short="Weight", Sink=Sink(value=variable_ref("Weight")), SinkId=SinkId(value="Weight")),
+                           SinksItem(id_short="Live", Sink=Sink(value=series_segment_ref("Measurements", "Weight")), SinkId=SinkId(value="Live"))]),
+        Transformation=Transformation(value="function aimc_main(sources) return { Weight = sources.Weight, Live = { Weight = sources.Weight } } end"),
     ))
     finalize_invocation_addresses(resource)
     return resource
