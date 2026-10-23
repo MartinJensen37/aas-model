@@ -17,6 +17,7 @@ from aas_model.resource_template.asset_interfaces_mapping_configuration import (
 )
 from aas_model.resource_template.control_component_instance import skill_ref
 from aas_model.resource_template.operational import (
+    action_member_ref,
     OperationalMqttControlComponent, OperationalMqttInterfaces,
     OperationalMqttMappings, operational_variables, command_reply,
 )
@@ -129,7 +130,7 @@ planar_mappings.MappingConfigurations.value.extend([
     mapping_configuration(
         id_short="MoveToPosition",
         sources=operation_sources("MoveToPosition", ["Uuid", "ProductID", "X", "Y", "Theta"]),
-        sinks=[sink("MoveToPosition", affordance_ref(MQTT_INTERFACE, "actions", "MoveToPosition"))],
+        sinks=[sink("MoveToPosition", action_member_ref(MQTT_INTERFACE, "MoveToPosition", "input"))],
         transformation="""function aimc_main(sources)
     return { MoveToPosition = { Uuid = sources.Uuid, Position = {sources.X, sources.Y, sources.Theta} } }
 end

@@ -37,7 +37,7 @@ from aas_model.resource_template.asset_interfaces_mapping_configuration import (
 )
 from aas_model.invocation_authoring import finalize_invocation_addresses
 from aas_model.resource_template.control_component_instance import skill_ref
-from aas_model.resource_template.operational import command_reply
+from aas_model.resource_template.operational import action_member_ref, command_reply
 from aas_model.submodel_templates.aid import (
     DmpAction, DmpActionInput, DmpActionOutput, DmpActions, DmpForm, DmpHttpInterface,
 )
@@ -100,7 +100,7 @@ def orchestrator() -> MqttSoftwareResource:
             id_short=name, DefaultPollingInterval=DefaultPollingInterval(value="0.0"),
             Transformation=Transformation(value=f"function aimc_main(sources) return {{ {name} = {{ Uuid = sources.Uuid }} }} end"),
             Sources=Sources(value=operation_sources(name, ["Uuid", "Process"] if name in ("Start", "Unsuspend") else ["Uuid"])),
-            Sinks=Sinks(value=[SinksItem(id_short=name, Sink=SinkReference(value=affordance_ref(MQTT_INTERFACE, "actions", name)), SinkId=SinkId(value=name))]),
+            Sinks=Sinks(value=[SinksItem(id_short=name, Sink=SinkReference(value=action_member_ref(MQTT_INTERFACE, name, "input")), SinkId=SinkId(value=name))]),
             **command_reply(MQTT_INTERFACE, name),
         )
         if name in ("Start", "Unsuspend"):

@@ -12,6 +12,7 @@ from aas_pydantic.submodel_templates.hierarchical_structures import (
     ArcheType, EntryNode, HierarchicalStructures, IsPartOf, Node,
 )
 from aas_model.resource_template.operational import (
+    action_member_ref,
     OperationalMqttInterfaces, OperationalMqttControlComponent,
     OperationalMqttMappings, operational_variables, command_reply,
 )
@@ -103,7 +104,7 @@ def optima_unloading() -> UnloadingStation:
         mappings.append(AimcMappingConfiguration(
             id_short=name, DefaultPollingInterval=DefaultPollingInterval(value="0.0"),
             Sources=Sources(value=operation_sources(name, ["Uuid"])),
-            Sinks=Sinks(value=[SinksItem(id_short=name, Sink=Sink(value=affordance_ref(MQTT_INTERFACE, "actions", name)), SinkId=SinkId(value=name))]),
+            Sinks=Sinks(value=[SinksItem(id_short=name, Sink=Sink(value=action_member_ref(MQTT_INTERFACE, name, "input")), SinkId=SinkId(value=name))]),
             Transformation=Transformation(value=(
                 f"function aimc_main(sources) return {{ {name} = {{ Uuid = sources.Uuid }} }} end"
             )),

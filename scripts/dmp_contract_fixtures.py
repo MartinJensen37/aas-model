@@ -256,7 +256,7 @@ def synthetic_cases():
     cci = "a/submodels/ControlComponentInstance"
     yield "opcua-method", build_aimc(aimc_mapping(
         id_short="Calibrate", sources=[aimc_source("Calibrate", _operation(cci, "Calibrate"))],
-        sinks=[aimc_sink("Calibrate", _aid_ref("interface_opcua", "actions", "Calibrate"))],
+        sinks=[aimc_sink("Calibrate", _aid_ref("interface_opcua", "actions", "Calibrate", "input"))],
         transformation="function aimc_main(sources) return { Calibrate = sources.Calibrate } end")), \
         build_aid(opcua=opcua_interface("opc.tcp://192.168.0.90:4840/", actions={
             "Calibrate": ("/?id=ns=2;s=RunCalibration", "POST", "ns=1;s=CalibrationObject")})), \
@@ -264,7 +264,7 @@ def synthetic_cases():
 
     yield "http-operation", build_aimc(aimc_mapping(
         id_short="Restart", sources=[aimc_source("Restart", _operation(cci, "Restart"))],
-        sinks=[aimc_sink("Restart", _aid_ref("interface_http", "actions", "Restart"))],
+        sinks=[aimc_sink("Restart", _aid_ref("interface_http", "actions", "Restart", "input"))],
         transformation="function aimc_main(sources) return { Restart = sources.Restart } end")), \
         build_aid(http=http_interface("http://192.168.0.60:8080/plc/api/",
                                       actions={"Restart": ("actions/Restart?mode=quick", "POST")})), \
@@ -294,7 +294,7 @@ def synthetic_cases():
         schema=datapoint_from_schema(TD_ERROR, cls=AdditionalResponseSchema))])
     yield "td-data-schemas", build_aimc(aimc_mapping(
         id_short="Inspect", sources=[aimc_source("Inspect", operation_ref("Inspect"))],
-        sinks=[aimc_sink("Inspect", _aid_ref("interface_mqtt", "actions", "Inspect"))],
+        sinks=[aimc_sink("Inspect", _aid_ref("interface_mqtt", "actions", "Inspect", "input"))],
         transformation="function aimc_main(sources) return { Inspect = sources.Inspect } end")), \
         build_aid(mqtt=inspect), [_cci("contractAAS/submodels/ControlComponentInstance", "Inspect")], True, \
         "an Operation whose action schemas use the TD DataSchema terms AID marks EXTERNAL"

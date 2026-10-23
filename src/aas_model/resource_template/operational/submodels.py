@@ -318,7 +318,7 @@ def _packml_invocations(interface: str) -> list[AimcMappingConfiguration]:
             Sources=Sources(value=operation_sources(name, ("Uuid",))),
             Sinks=Sinks(value=[SinksItem(
                 id_short=name, SinkId=SinkId(value=name),
-                Sink=Sink(value=affordance_ref(interface, "actions", name)),
+                Sink=Sink(value=action_member_ref(interface, name, "input")),
             )]),
             Transformation=Transformation(value=(
                 f"function aimc_main(sources) return {{ {name} = {{ Uuid = sources.Uuid }} }} end"

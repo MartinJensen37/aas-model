@@ -25,7 +25,7 @@ from aas_model.json_schema_aid import load_schema, datapoint_from_schema, withou
 from aas_model.constants import INVOCATION_ORIGIN
 from aas_model.invocation_authoring import finalize_invocation_addresses
 from aas_model.resource_template.control_component_instance import skill_ref
-from aas_model.resource_template.operational import command_reply
+from aas_model.resource_template.operational import action_member_ref, command_reply
 
 
 def production_planner() -> MqttSoftwareResource:
@@ -78,7 +78,7 @@ def production_planner() -> MqttSoftwareResource:
     cci = resource.control_component_instance
     cci.Skills.Skill["Plan"] = plan
     cci.Endpoints.Endpoint["Plan"] = SkillInterfaceRelationship(id_short="Plan", first=ModelReference(key=(Key(type_="Submodel", value="{aas_id}/submodels/ControlComponentInstance"), Key(type_="SubmodelElementCollection", value="Skills"), Key(type_="SubmodelElementCollection", value="Plan"))), second=ModelReference(key=(Key(type_="Submodel", value="{aas_id}/submodels/AssetInterfacesDescription"), Key(type_="SubmodelElementCollection", value="interface_mqtt"), Key(type_="SubmodelElementCollection", value="InteractionMetadata"), Key(type_="SubmodelElementCollection", value="actions"), Key(type_="SubmodelElementCollection", value="Plan"))))
-    mapping = DmpMappingConfiguration(id_short="Plan", DefaultPollingInterval=DefaultPollingInterval(value="0.0"), Transformation=Transformation(value=""), Sources=Sources(value=operation_sources("Plan", ["Uuid", "Assets", "Order"])), Sinks=Sinks(value=[SinksItem(id_short="Plan", Sink=SinkReference(value=affordance_ref(MQTT_INTERFACE, "actions", "Plan")), SinkId=SinkId(value="Plan"))]),
+    mapping = DmpMappingConfiguration(id_short="Plan", DefaultPollingInterval=DefaultPollingInterval(value="0.0"), Transformation=Transformation(value=""), Sources=Sources(value=operation_sources("Plan", ["Uuid", "Assets", "Order"])), Sinks=Sinks(value=[SinksItem(id_short="Plan", Sink=SinkReference(value=action_member_ref(MQTT_INTERFACE, "Plan", "input")), SinkId=SinkId(value="Plan"))]),
         **command_reply(MQTT_INTERFACE, "Plan", outputs=("Uuid", "State", "ProcessAasId", "ProductAasId", "ErrorMessage")))
     # AAS operation Properties are scalar; the native MQTT schema requires an array.
     mapping.Transformation.value = b"""function aimc_main(sources)
