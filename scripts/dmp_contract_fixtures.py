@@ -230,7 +230,8 @@ def synthetic_cases():
         sources=[aimc_source("Pressure", http_nested), aimc_source("Level", opcua_nested)],
         sinks=[aimc_sink("PressureOut", http_nested), aimc_sink("LevelOut", opcua_nested)],
         transformation="function aimc_main(sources) return "
-                       "{ PressureOut = sources.Pressure, LevelOut = sources.Level } end")), \
+                       "{ PressureOut = sources.Pressure, LevelOut = sources.Level } end",
+        default_polling_interval=2.5)), \
         build_aid(http=_with_schema(http_interface("http://192.168.0.30:8080/api/", properties={"Pressure": "pressure"}),
                                     {"Pressure": NESTED_SCHEMA}),
                   opcua=_with_schema(opcua_interface("opc.tcp://192.168.0.40:4840/server/",
