@@ -21,8 +21,8 @@ from aas_model.submodel_templates import (
     AimcMappingConfiguration,
     DmpResponseSink, DmpResponseSinkReference, DmpResponseSinkId,
     DmpResponseSinks, DmpResponseSource, DmpResponseSourceReference,
-    DmpResponseSourceId, DmpResponseSources, DmpExecutionSemantics,
-    DmpTriggerSourceIds, DmpResponseTransformation, Transformation,
+    DmpResponseSourceId, DmpResponseSources, DmpEvaluation, DmpEvaluationMode,
+    DmpSource, DmpResponseTransformation, Transformation,
 )
 
 # ── Reference paths (self-referential — {aas_id} resolved by id_injector) ──
@@ -80,13 +80,13 @@ def operation_variable_ref(name: str, variable_name: str, element_type: str = "P
     ))
 
 
-def source(name: str, ref: ModelReference) -> Source:
-    """A single AID source: the affordance reference + a stable source id."""
-    return Source(
-        id_short=name,
-        Source=SourceReference(value=ref),
-        SourceId=SourceId(value=name),
-    )
+def source(name: str, ref: ModelReference, evaluation: str | None = None) -> Source:
+    """A single AID source: the affordance reference + a stable source id. ``evaluation`` is its Mode
+    (OnUpdate, OnChange, Cached, ReadAtEvaluation); without one the Source is OnUpdate."""
+    if evaluation is None:
+        return Source(id_short=name, Source=SourceReference(value=ref), SourceId=SourceId(value=name))
+    return DmpSource(id_short=name, Source=SourceReference(value=ref), SourceId=SourceId(value=name),
+                     Evaluation=DmpEvaluation(Mode=DmpEvaluationMode(value=evaluation)))
 
 
 def operation_sources(name: str, variable_names: Sequence[str]) -> list[Source]:
@@ -131,7 +131,6 @@ def mapping_configuration(
     transformation: str,
     response_sources: list[DmpResponseSource] | None = None,
     response_sinks: list[DmpResponseSink] | None = None,
-    trigger_source_ids: list[str] | None = None,
     response_transformation: str | None = None,
 ) -> AimcMappingConfiguration:
     """One MappingConfiguration: AID sources, AAS sinks and the Lua mapping.
@@ -149,8 +148,4 @@ def mapping_configuration(
         kwargs["ResponseSinks"] = DmpResponseSinks(value=response_sinks)
     if response_transformation is not None:
         kwargs["ResponseTransformation"] = DmpResponseTransformation(value=response_transformation)
-    if trigger_source_ids is not None:
-        kwargs["ExecutionSemantics"] = DmpExecutionSemantics(
-            TriggerSourceIds=DmpTriggerSourceIds(
-                value=[Property(value=source_id) for source_id in trigger_source_ids]))
     return AimcMappingConfiguration(**kwargs)

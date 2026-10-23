@@ -304,7 +304,7 @@ def synthetic_cases():
         id_short="Extensions", sources=[aimc_source("invoke", _operation(cci, "Move"))],
         sinks=[aimc_sink("command", _element("contractAAS/submodels/KPI", "Property", "Out"))],
         response_transformation="function aimc_main(sources) return sources end",
-        trigger_source_ids=["invoke"], default_polling_interval=2.5)), \
+        default_polling_interval=2.5)), \
         build_aid(mqtt=mqtt_interface("mqtt://fixture.invalid/move/", actions={"Move": "move"})), \
         [_cci(cci, "Move"), _kpi("contractAAS/submodels/KPI", "Out", collections=False)], False, \
         "the AIMC extensions project; an Operation sinking into an AAS Property is not a bridge the DMP compiles"

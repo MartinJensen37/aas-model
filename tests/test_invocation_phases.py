@@ -77,7 +77,7 @@ end
 """
 AID = "{aas_id}/submodels/AssetInterfacesDescription"
 # DMP additions to the IDTA MappingConfiguration: none may claim an IDTA semantic id.
-EXTENSION_FIELDS = {"ResponseSources", "ResponseTransformation", "ResponseSinks", "ExecutionSemantics"}
+EXTENSION_FIELDS = {"ResponseSources", "ResponseTransformation", "ResponseSinks", "Evaluation"}
 
 
 def _mqtt(*path: str):
@@ -134,5 +134,5 @@ def test_every_dmp_addition_uses_the_project_namespace():
             walk(child, extension)
 
     seen = {child["idShort"] for child in entry["value"]}
-    assert EXTENSION_FIELDS - {"ExecutionSemantics"} <= seen
+    assert EXTENSION_FIELDS - {"Evaluation"} <= seen
     walk(entry, False)

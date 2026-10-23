@@ -31,6 +31,8 @@ from __future__ import annotations
 
 from typing import ClassVar, List, Optional
 
+from pydantic import field_validator
+
 from aas_pydantic import (
     Property, ReferenceElement, SubmodelElementCollection, SubmodelElementList,
 )
@@ -52,10 +54,12 @@ from aas_model.constants import (
     AIMC_RESPONSE_SOURCE,
     AIMC_RESPONSE_SOURCES,
     AIMC_RESPONSE_TRANSFORMATION,
-    AIMC_EXECUTION_SEMANTICS,
-    AIMC_TRIGGER_SOURCE_IDS,
+    AIMC_EVALUATION,
+    AIMC_EVALUATION_MODE,
 )
 from aas_pydantic.submodel_templates.asset_interfaces_mapping_configuration import (
+    SourcesItem as _SourcesItem,
+    Sources as _BaseSources,
     SinkId as _SinkId,
     SourceId as _SourceId,
 )
@@ -118,27 +122,65 @@ class DmpResponseSinks(SubmodelElementList):
     value: List[DmpResponseSink] = []
 
 
-class DmpTriggerSourceIds(SubmodelElementList):
-    semantic_id: str = AIMC_TRIGGER_SOURCE_IDS
-    description: str = "SourceIds whose contributions trigger mapping execution."
-    item_type: ClassVar = Property
-    type_value_list_element: Optional[str] = "Property"
-    value_type_list_element: Optional[str] = "xs:string"
-    value: List[Property] = []
+EVALUATION_MODES = ("OnUpdate", "OnChange", "Cached", "ReadAtEvaluation")
 
 
-class DmpExecutionSemantics(SubmodelElementCollection):
-    semantic_id: str = AIMC_EXECUTION_SEMANTICS
-    description: str = "Optional execution selection for a MappingConfiguration."
-    TriggerSourceIds: DmpTriggerSourceIds
+class DmpEvaluationMode(Property):
+    id_short: str = "Mode"
+    semantic_id: str = AIMC_EVALUATION_MODE
+    description: str = ("OnUpdate: every new value evaluates the mapping. OnChange: only a value that differs from "
+                        "the previous one. Cached: never; the latest observed or polled value is used. "
+                        "ReadAtEvaluation: never; the source is read once per evaluation.")
+    value_type: str = "xs:string"
+
+
+class DmpEvaluation(SubmodelElementCollection):
+    """Whether a Source triggers its mapping and how its value is obtained. Without it a Source is OnUpdate;
+    an Operation is always its mapping's only trigger, and its mapping's further Sources are ReadAtEvaluation."""
+    semantic_id: str = AIMC_EVALUATION
+    description: str = "How the Source contributes to its mapping's evaluations."
+    Mode: DmpEvaluationMode
+
+
+class DmpSource(_SourcesItem):
+    """IDTA Source + the optional Evaluation."""
+    Evaluation: Optional[DmpEvaluation] = None
+
+
+def _fields(model) -> dict:
+    """A model's field values, nested models kept as they are."""
+    return {name: getattr(model, name) for name in type(model).model_fields}
+
+
+class DmpSources(_BaseSources):
+    """IDTA Sources whose items may carry an Evaluation. Plain IDTA Sources items are accepted and become
+    DmpSource items, so parsing a serialized AIMC keeps every Source's Evaluation."""
+    item_type: ClassVar = DmpSource
+    value: List[DmpSource] = []
+
+    @field_validator("value", mode="before")
+    @classmethod
+    def _as_dmp_sources(cls, value):
+        if not isinstance(value, list):
+            return value
+        return [item if isinstance(item, DmpSource) or not isinstance(item, _SourcesItem)
+                else DmpSource(**_fields(item)) for item in value]
 
 
 class DmpMappingConfiguration(_BaseMappingConfiguration):
-    """IDTA MappingConfiguration + optional correlated response mapping."""
+    """IDTA MappingConfiguration + optional correlated response mapping; its Sources may carry an Evaluation."""
+    Sources: DmpSources
+
+    @field_validator("Sources", mode="before")
+    @classmethod
+    def _as_dmp_sources(cls, value):
+        if isinstance(value, _BaseSources) and not isinstance(value, DmpSources):
+            return DmpSources(**_fields(value))
+        return value
+
     ResponseTransformation: Optional[DmpResponseTransformation] = None
     ResponseSources: Optional[DmpResponseSources] = None
     ResponseSinks: Optional[DmpResponseSinks] = None
-    ExecutionSemantics: Optional[DmpExecutionSemantics] = None
 
 
 class DmpMappingConfigurations(_BaseMappingConfigurations):

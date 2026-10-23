@@ -32,7 +32,7 @@ from aas_model.submodel_templates.aid import (
 from aas_model.submodel_templates import (
     Aimc, AimcMappingConfiguration, AimcMappingConfigurations, Transformation,
     DmpResponseSink, DmpResponseSinks, DmpResponseSource, DmpResponseSources,
-    DmpResponseTransformation, DmpExecutionSemantics, DmpTriggerSourceIds,
+    DmpResponseTransformation, DmpEvaluation, DmpEvaluationMode, DmpSource,
 )
 from aas_pydantic.submodel_templates.asset_interfaces_mapping_configuration import (
     SourcesItem as Source, Sources, SinksItem as Sink, Sinks, SourceId, SinkId,
@@ -288,12 +288,15 @@ def aimc_ref(*values: str) -> ModelReference:
 
 
 def aimc_source(source_id: str, ref: ModelReference,
-                polling_interval: float | None = None) -> Source:
-    return Source(
+                polling_interval: float | None = None, evaluation: str | None = None) -> Source:
+    fields = dict(
         Source=SourceReference(value=ref),
         SourceId=SourceId(value=source_id),
         PollingInterval=DefaultPollingInterval(value=str(polling_interval)) if polling_interval is not None else None,
     )
+    if evaluation is None:
+        return Source(**fields)
+    return DmpSource(**fields, Evaluation=DmpEvaluation(Mode=DmpEvaluationMode(value=evaluation)))
 
 
 def aimc_sink(sink_id: str, ref: ModelReference) -> Sink:
@@ -306,7 +309,6 @@ def aimc_mapping(*, sources: list[Source], sinks: list[Sink],
                  response_transformation: str | None = None,
                  response_sources: list[DmpResponseSource] | None = None,
                  response_sinks: list[DmpResponseSink] | None = None,
-                 trigger_source_ids: list[str] | None = None,
                  qualifiers: list | None = None,
                  default_polling_interval: float | None = None,
                  id_short: str = "mapping") -> AimcMappingConfiguration:
@@ -330,10 +332,6 @@ def aimc_mapping(*, sources: list[Source], sinks: list[Sink],
         kwargs["ResponseSources"] = DmpResponseSources(value=response_sources)
     if response_sinks is not None:
         kwargs["ResponseSinks"] = DmpResponseSinks(value=response_sinks)
-    if trigger_source_ids is not None:
-        kwargs["ExecutionSemantics"] = DmpExecutionSemantics(
-            TriggerSourceIds=DmpTriggerSourceIds(
-                value=[Property(value=source_id) for source_id in trigger_source_ids]))
     if qualifiers is not None:
         kwargs["qualifiers"] = qualifiers
     return AimcMappingConfiguration(**kwargs)

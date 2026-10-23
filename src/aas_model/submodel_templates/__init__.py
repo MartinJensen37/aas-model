@@ -80,8 +80,10 @@ from aas_model.submodel_templates.aimc import (
     DmpResponseSource,
     DmpResponseSources,
     DmpResponseTransformation,
-    DmpExecutionSemantics,
-    DmpTriggerSourceIds,
+    DmpEvaluation,
+    DmpEvaluationMode,
+    DmpSource,
+    DmpSources,
 )
 from .control_component_instance import (
     ExecutionModel,
@@ -174,6 +176,8 @@ __all__ = [
     "DmpResponseSinkReference",
     "DmpResponseSinkId",
     "DmpResponseTransformation",
-    "DmpExecutionSemantics",
-    "DmpTriggerSourceIds",
+    "DmpEvaluation",
+    "DmpEvaluationMode",
+    "DmpSource",
+    "DmpSources",
 ]

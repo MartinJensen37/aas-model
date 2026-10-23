@@ -117,8 +117,9 @@ AIMC_RESPONSE_SINK_REFERENCE = f"{BASE_URL}/aimc/ResponseSink/Sink/1/0"
 AIMC_RESPONSE_SINK_ID = f"{BASE_URL}/aimc/ResponseSink/SinkId/1/0"
 
 # Which source updates execute an ordinary mapping.
-AIMC_EXECUTION_SEMANTICS = f"{BASE_URL}/aimc/ExecutionSemantics/1/0"
-AIMC_TRIGGER_SOURCE_IDS = f"{BASE_URL}/aimc/ExecutionSemantics/TriggerSourceIds/1/0"
+# A Source's Evaluation: whether it triggers its mapping and how its value is obtained.
+AIMC_EVALUATION = f"{BASE_URL}/aimc/Evaluation/1/0"
+AIMC_EVALUATION_MODE = f"{BASE_URL}/aimc/Evaluation/Mode/1/0"
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # TimeSeries — DMP profile of IDTA 02008 (TimeSeries SMCs in Variables)

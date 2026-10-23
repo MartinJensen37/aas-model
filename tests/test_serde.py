@@ -112,70 +112,67 @@ def test_aimc_response_endpoints_are_optional():
     )
     assert mapping.ResponseSources is None
     assert mapping.ResponseSinks is None
-    assert mapping.ExecutionSemantics is None
 
 
-def test_aimc_execution_semantics_round_trip_and_authors_source_ids():
-    from aas_model.testing import aimc_mapping
-    from aas_pydantic.submodel_templates.asset_interfaces_mapping_configuration import (
-        SourcesItem as Source, SinksItem as Sink, Source as SourceReference,
-        Sink as SinkReference, SourceId, SinkId,
-    )
+def test_a_sources_evaluation_serializes_inside_the_idta_source():
+    from aas_model.testing import aimc_mapping, aimc_source, aimc_sink
     from aas_pydantic import ModelReference, Key
 
     mapping = aimc_mapping(
-        sources=[Source(Source=SourceReference(value=ModelReference(key=(
-            Key(type_="Submodel", value="urn:source"),))), SourceId=SourceId(value="invoke"))],
-        sinks=[Sink(Sink=SinkReference(value=ModelReference(key=(
-            Key(type_="Submodel", value="urn:sink"),))), SinkId=SinkId(value="target"))],
-        trigger_source_ids=["invoke", "position"],
+        sources=[aimc_source("state", ModelReference(key=(Key(type_="Submodel", value="urn:source"),)), evaluation="OnChange"),
+                 aimc_source("plain", ModelReference(key=(Key(type_="Submodel", value="urn:plain"),)))],
+        sinks=[aimc_sink("target", ModelReference(key=(Key(type_="Submodel", value="urn:sink"),)))],
     )
-    semantics = mapping.ExecutionSemantics
-    from aas_model.constants import AIMC_EXECUTION_SEMANTICS, AIMC_TRIGGER_SOURCE_IDS
-    assert semantics.semantic_id == AIMC_EXECUTION_SEMANTICS
-    trigger_ids = semantics.TriggerSourceIds
-    assert trigger_ids.semantic_id == AIMC_TRIGGER_SOURCE_IDS
-    assert trigger_ids.type_value_list_element == "Property"
-    assert trigger_ids.value_type_list_element == "xs:string"
-    assert [item.value for item in trigger_ids.value] == ["invoke", "position"]
+    from aas_model.constants import AIMC_EVALUATION, AIMC_EVALUATION_MODE, BASE_URL
+    evaluated = mapping.Sources.value[0]
+    assert evaluated.Evaluation.semantic_id == AIMC_EVALUATION
+    assert evaluated.Evaluation.Mode.semantic_id == AIMC_EVALUATION_MODE
+    assert evaluated.Evaluation.Mode.value == "OnChange"
+    assert mapping.Sources.value[1].Evaluation is None, "a plain IDTA Source has no Evaluation"
 
-    from aas_model.constants import BASE_URL
     from aas_model.resource_template import ResourceTypeAAS
     from aas_model.submodel_templates import Aimc, AimcMappingConfigurations
     from aas_pydantic.convert_pydantic_model import convert_model_to_aas
     from aas_pydantic.convert_util import strip_temp_id_short_attributes
     from basyx.aas.adapter.json import json_serialization
 
-    aimc = Aimc(id_short="AIMC", MappingConfigurations=AimcMappingConfigurations(
-        value=[mapping]))
-    asset = ResourceTypeAAS(
-        id_short="ExecutionSemanticsRoundTrip",
-        id=f"{BASE_URL}/aas/ExecutionSemanticsRoundTrip",
-        asset_type="ExecutionSemanticsRoundTrip",
-        asset_interfaces_mapping_configuration=aimc,
-    )
+    serialized_mapping = aimc_mapping(sources=[mapping.Sources.value[0]], sinks=mapping.Sinks.value)
+    aimc = Aimc(id_short="AIMC", MappingConfigurations=AimcMappingConfigurations(value=[serialized_mapping]))
+    asset = ResourceTypeAAS(id_short="EvaluationRoundTrip", id=f"{BASE_URL}/aas/EvaluationRoundTrip",
+                            asset_type="EvaluationRoundTrip", asset_interfaces_mapping_configuration=aimc)
     store = convert_model_to_aas(asset)
     strip_temp_id_short_attributes(store)
     doc = json.loads(json_serialization.object_store_to_json(store))
     serialized = next(s for s in doc["submodels"] if s.get("idShort") == "AIMC")
-    restored = parse_submodel_dict(serialized, Aimc)
-    restored_ids = restored.MappingConfigurations.value[0].ExecutionSemantics.TriggerSourceIds
-    assert [item.value for item in restored_ids.value] == ["invoke", "position"]
+    source = serialized["submodelElements"][0]["value"][0]["value"]
+    sources = next(e for e in source if e["idShort"] == "Sources")["value"]
+    evaluation = next(e for e in sources[0]["value"] if e["idShort"] == "Evaluation")
+    assert evaluation["semanticId"]["keys"][0]["value"] == AIMC_EVALUATION
+    assert evaluation["value"] == [next(e for e in evaluation["value"] if e["idShort"] == "Mode")]
+    assert evaluation["value"][0]["value"] == "OnChange"
+
+    # parsed back, the Source still carries its Evaluation; a plain IDTA Source stays without one
+    restored = parse_submodel_dict(serialized, Aimc).MappingConfigurations.value[0].Sources.value
+    assert restored[0].Evaluation.Mode.value == "OnChange"
+    assert type(restored[0]).__name__ == "DmpSource"
 
 
-def test_resource_mapping_configuration_accepts_trigger_source_ids():
+def test_resource_sources_may_carry_an_evaluation():
     from aas_model.resource_template.asset_interfaces_mapping_configuration import (
         mapping_configuration, source, sink, operation_ref, variable_ref,
     )
 
     mapping = mapping_configuration(
-        id_short="Triggered",
-        sources=[source("invoke", operation_ref("Start"))],
-        sinks=[sink("result", variable_ref("PackMLState"))],
+        id_short="Evaluated",
+        sources=[source("state", variable_ref("PackMLState"), evaluation="OnChange"),
+                 source("limit", variable_ref("Limit"), evaluation="ReadAtEvaluation")],
+        sinks=[sink("result", variable_ref("Result"))],
         transformation="function aimc_main(sources) return sources end",
-        trigger_source_ids=["invoke"],
     )
-    assert [item.value for item in mapping.ExecutionSemantics.TriggerSourceIds.value] == ["invoke"]
+    assert [item.Evaluation.Mode.value for item in mapping.Sources.value] == ["OnChange", "ReadAtEvaluation"]
+    plain = mapping_configuration(id_short="Plain", sources=[source("state", variable_ref("PackMLState"))],
+                                  sinks=[sink("result", variable_ref("Result"))], transformation="")
+    assert plain.Sources.value[0].Evaluation is None, "an IDTA Source becomes a DmpSource without an Evaluation"
 
 
 def test_protocol_specific_endpoint_and_form_terms_round_trip():

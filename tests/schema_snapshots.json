@@ -69,14 +69,15 @@
         "title": "DefaultPollingInterval",
         "type": "object"
       },
-      "DmpExecutionSemantics": {
+      "DmpEvaluation": {
         "additionalProperties": false,
+        "description": "Whether a Source triggers its mapping and how its value is obtained. Without it a Source is OnUpdate;\nan Operation is always its mapping's only trigger, and its mapping's further Sources are ReadAtEvaluation.",
         "properties": {
-          "TriggerSourceIds": {
-            "$ref": "#/$defs/DmpTriggerSourceIds"
+          "Mode": {
+            "$ref": "#/$defs/DmpEvaluationMode"
           },
           "description": {
-            "default": "Optional execution selection for a MappingConfiguration.",
+            "default": "How the Source contributes to its mapping's evaluations.",
             "title": "Description",
             "type": "string"
           },
@@ -109,7 +110,7 @@
             "type": "array"
           },
           "semantic_id": {
-            "default": "https://smartproductionlab.aau.dk/aimc/ExecutionSemantics/1/0",
+            "default": "https://smartproductionlab.aau.dk/aimc/Evaluation/1/0",
             "title": "Semantic Id",
             "type": "string"
           },
@@ -123,30 +124,87 @@
           }
         },
         "required": [
-          "TriggerSourceIds"
+          "Mode"
         ],
-        "title": "DmpExecutionSemantics",
+        "title": "DmpEvaluation",
         "type": "object"
       },
-      "DmpMappingConfiguration": {
+      "DmpEvaluationMode": {
         "additionalProperties": false,
-        "description": "IDTA MappingConfiguration + optional correlated response mapping.",
         "properties": {
-          "DefaultPollingInterval": {
+          "description": {
+            "default": "OnUpdate: every new value evaluates the mapping. OnChange: only a value that differs from the previous one. Cached: never; the latest observed or polled value is used. ReadAtEvaluation: never; the source is read once per evaluation.",
+            "title": "Description",
+            "type": "string"
+          },
+          "display_name": {
             "anyOf": [
               {
-                "$ref": "#/$defs/DefaultPollingInterval"
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object"
               },
               {
                 "type": "null"
               }
             ],
-            "default": null
+            "default": null,
+            "title": "Display Name"
           },
-          "ExecutionSemantics": {
+          "id_short": {
+            "default": "Mode",
+            "title": "Id Short",
+            "type": "string"
+          },
+          "qualifiers": {
+            "default": [],
+            "items": {
+              "$ref": "#/$defs/Qualifier"
+            },
+            "title": "Qualifiers",
+            "type": "array"
+          },
+          "semantic_id": {
+            "default": "https://smartproductionlab.aau.dk/aimc/Evaluation/Mode/1/0",
+            "title": "Semantic Id",
+            "type": "string"
+          },
+          "supplemental_semantic_ids": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Supplemental Semantic Ids",
+            "type": "array"
+          },
+          "value": {
+            "default": "",
+            "title": "Value",
+            "type": "string"
+          },
+          "value_id": {
+            "default": "",
+            "title": "Value Id",
+            "type": "string"
+          },
+          "value_type": {
+            "default": "xs:string",
+            "title": "Value Type",
+            "type": "string"
+          }
+        },
+        "title": "DmpEvaluationMode",
+        "type": "object"
+      },
+      "DmpMappingConfiguration": {
+        "additionalProperties": false,
+        "description": "IDTA MappingConfiguration + optional correlated response mapping; its Sources may carry an Evaluation.",
+        "properties": {
+          "DefaultPollingInterval": {
             "anyOf": [
               {
-                "$ref": "#/$defs/DmpExecutionSemantics"
+                "$ref": "#/$defs/DefaultPollingInterval"
               },
               {
                 "type": "null"
@@ -191,7 +249,7 @@
             "$ref": "#/$defs/Sinks"
           },
           "Sources": {
-            "$ref": "#/$defs/Sources"
+            "$ref": "#/$defs/DmpSources"
           },
           "Transformation": {
             "anyOf": [
@@ -1000,11 +1058,40 @@
         "title": "DmpResponseTransformation",
         "type": "object"
       },
-      "DmpTriggerSourceIds": {
+      "DmpSource": {
         "additionalProperties": false,
+        "description": "IDTA Source + the optional Evaluation.",
         "properties": {
+          "Evaluation": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/DmpEvaluation"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "PollingInterval": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/PollingInterval"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "Source": {
+            "$ref": "#/$defs/Source"
+          },
+          "SourceId": {
+            "$ref": "#/$defs/SourceId"
+          },
           "description": {
-            "default": "SourceIds whose contributions trigger mapping execution.",
+            "default": "A data source is defined by a Source reference, PollingInterval and SourceId.",
             "title": "Description",
             "type": "string"
           },
@@ -1024,12 +1111,70 @@
             "title": "Display Name"
           },
           "id_short": {
-            "default": "SubmodelElementList",
+            "default": "SubmodelElementCollection",
+            "title": "Id Short",
+            "type": "string"
+          },
+          "qualifiers": {
+            "default": [],
+            "items": {
+              "$ref": "#/$defs/Qualifier"
+            },
+            "title": "Qualifiers",
+            "type": "array"
+          },
+          "semantic_id": {
+            "default": "https://admin-shell.io/idta/AssetInterfacesMappingConfiguration/2/0/MappingConfiguration/Source",
+            "title": "Semantic Id",
+            "type": "string"
+          },
+          "supplemental_semantic_ids": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Supplemental Semantic Ids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "Source",
+          "SourceId"
+        ],
+        "title": "DmpSource",
+        "type": "object"
+      },
+      "DmpSources": {
+        "additionalProperties": false,
+        "description": "IDTA Sources whose items may carry an Evaluation. Plain IDTA Sources items are accepted and become\nDmpSource items, so parsing a serialized AIMC keeps every Source's Evaluation.",
+        "properties": {
+          "description": {
+            "default": "This list includes all data sources that are used in this MappingConfiguration.",
+            "title": "Description",
+            "type": "string"
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Display Name"
+          },
+          "id_short": {
+            "default": "Sources",
             "title": "Id Short",
             "type": "string"
           },
           "order_relevant": {
-            "default": true,
+            "default": false,
             "title": "Order Relevant",
             "type": "boolean"
           },
@@ -1042,12 +1187,12 @@
             "type": "array"
           },
           "semantic_id": {
-            "default": "https://smartproductionlab.aau.dk/aimc/ExecutionSemantics/TriggerSourceIds/1/0",
+            "default": "https://admin-shell.io/idta/AssetInterfacesMappingConfiguration/2/0/MappingConfiguration/Sources",
             "title": "Semantic Id",
             "type": "string"
           },
           "semantic_id_list_element": {
-            "default": "",
+            "default": "https://admin-shell.io/idta/AssetInterfacesMappingConfiguration/2/0/MappingConfiguration/Source",
             "title": "Semantic Id List Element",
             "type": "string"
           },
@@ -1060,21 +1205,14 @@
             "type": "array"
           },
           "type_value_list_element": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": "Property",
-            "title": "Type Value List Element"
+            "default": "SubmodelElementCollection",
+            "title": "Type Value List Element",
+            "type": "string"
           },
           "value": {
             "default": [],
             "items": {
-              "$ref": "#/$defs/Property"
+              "$ref": "#/$defs/DmpSource"
             },
             "title": "Value",
             "type": "array"
@@ -1088,11 +1226,11 @@
                 "type": "null"
               }
             ],
-            "default": "xs:string",
+            "default": null,
             "title": "Value Type List Element"
           }
         },
-        "title": "DmpTriggerSourceIds",
+        "title": "DmpSources",
         "type": "object"
       },
       "Key": {
@@ -1204,74 +1342,6 @@
           }
         },
         "title": "PollingInterval",
-        "type": "object"
-      },
-      "Property": {
-        "additionalProperties": false,
-        "properties": {
-          "description": {
-            "default": "",
-            "title": "Description",
-            "type": "string"
-          },
-          "display_name": {
-            "anyOf": [
-              {
-                "additionalProperties": {
-                  "type": "string"
-                },
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Display Name"
-          },
-          "id_short": {
-            "default": "Property",
-            "title": "Id Short",
-            "type": "string"
-          },
-          "qualifiers": {
-            "default": [],
-            "items": {
-              "$ref": "#/$defs/Qualifier"
-            },
-            "title": "Qualifiers",
-            "type": "array"
-          },
-          "semantic_id": {
-            "default": "",
-            "title": "Semantic Id",
-            "type": "string"
-          },
-          "supplemental_semantic_ids": {
-            "default": [],
-            "items": {
-              "type": "string"
-            },
-            "title": "Supplemental Semantic Ids",
-            "type": "array"
-          },
-          "value": {
-            "default": "",
-            "title": "Value",
-            "type": "string"
-          },
-          "value_id": {
-            "default": "",
-            "title": "Value Id",
-            "type": "string"
-          },
-          "value_type": {
-            "default": "xs:string",
-            "title": "Value Type",
-            "type": "string"
-          }
-        },
-        "title": "Property",
         "type": "object"
       },
       "Qualifier": {
@@ -1755,168 +1825,6 @@
           }
         },
         "title": "SourceId",
-        "type": "object"
-      },
-      "Sources": {
-        "additionalProperties": false,
-        "properties": {
-          "description": {
-            "default": "This list includes all data sources that are used in this MappingConfiguration.",
-            "title": "Description",
-            "type": "string"
-          },
-          "display_name": {
-            "anyOf": [
-              {
-                "additionalProperties": {
-                  "type": "string"
-                },
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Display Name"
-          },
-          "id_short": {
-            "default": "Sources",
-            "title": "Id Short",
-            "type": "string"
-          },
-          "order_relevant": {
-            "default": false,
-            "title": "Order Relevant",
-            "type": "boolean"
-          },
-          "qualifiers": {
-            "default": [],
-            "items": {
-              "$ref": "#/$defs/Qualifier"
-            },
-            "title": "Qualifiers",
-            "type": "array"
-          },
-          "semantic_id": {
-            "default": "https://admin-shell.io/idta/AssetInterfacesMappingConfiguration/2/0/MappingConfiguration/Sources",
-            "title": "Semantic Id",
-            "type": "string"
-          },
-          "semantic_id_list_element": {
-            "default": "https://admin-shell.io/idta/AssetInterfacesMappingConfiguration/2/0/MappingConfiguration/Source",
-            "title": "Semantic Id List Element",
-            "type": "string"
-          },
-          "supplemental_semantic_ids": {
-            "default": [],
-            "items": {
-              "type": "string"
-            },
-            "title": "Supplemental Semantic Ids",
-            "type": "array"
-          },
-          "type_value_list_element": {
-            "default": "SubmodelElementCollection",
-            "title": "Type Value List Element",
-            "type": "string"
-          },
-          "value": {
-            "default": [],
-            "items": {
-              "$ref": "#/$defs/SourcesItem"
-            },
-            "title": "Value",
-            "type": "array"
-          },
-          "value_type_list_element": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Value Type List Element"
-          }
-        },
-        "title": "Sources",
-        "type": "object"
-      },
-      "SourcesItem": {
-        "additionalProperties": false,
-        "properties": {
-          "PollingInterval": {
-            "anyOf": [
-              {
-                "$ref": "#/$defs/PollingInterval"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null
-          },
-          "Source": {
-            "$ref": "#/$defs/Source"
-          },
-          "SourceId": {
-            "$ref": "#/$defs/SourceId"
-          },
-          "description": {
-            "default": "A data source is defined by a Source reference, PollingInterval and SourceId.",
-            "title": "Description",
-            "type": "string"
-          },
-          "display_name": {
-            "anyOf": [
-              {
-                "additionalProperties": {
-                  "type": "string"
-                },
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Display Name"
-          },
-          "id_short": {
-            "default": "SubmodelElementCollection",
-            "title": "Id Short",
-            "type": "string"
-          },
-          "qualifiers": {
-            "default": [],
-            "items": {
-              "$ref": "#/$defs/Qualifier"
-            },
-            "title": "Qualifiers",
-            "type": "array"
-          },
-          "semantic_id": {
-            "default": "https://admin-shell.io/idta/AssetInterfacesMappingConfiguration/2/0/MappingConfiguration/Source",
-            "title": "Semantic Id",
-            "type": "string"
-          },
-          "supplemental_semantic_ids": {
-            "default": [],
-            "items": {
-              "type": "string"
-            },
-            "title": "Supplemental Semantic Ids",
-            "type": "array"
-          }
-        },
-        "required": [
-          "Source",
-          "SourceId"
-        ],
-        "title": "SourcesItem",
         "type": "object"
       },
       "Transformation": {
