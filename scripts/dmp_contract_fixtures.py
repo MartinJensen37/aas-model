@@ -81,6 +81,9 @@ def _submodel_json(submodel: model.Submodel) -> dict:
 
 def _authored(pydantic_submodel, identifier: str) -> dict:
     pydantic_submodel.id = identifier
+    # AID 1.1 §2.25: an interface without security selects its nosec_sc.
+    if hasattr(pydantic_submodel, "select_nosec"):
+        pydantic_submodel.select_nosec()
     # List items need distinct idShorts while converting (AASd-120 drops them on the wire).
     mappings = getattr(pydantic_submodel, "MappingConfigurations", None)
     for mapping in (mappings.value if mappings is not None else []):

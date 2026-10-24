@@ -171,6 +171,22 @@ before conversion. Two rewrites keep the meaning: a type union
 `anyOf`, `not`, `if`/`then`/`else`, `additionalProperties` and
 `patternProperties` have no TD representation.
 
+### 3.7 Security
+
+No extension: AID's `security` and `securityDefinitions` are used as AID
+defines them (AID 1.1 §2.24–2.27). Every interface's
+`EndpointMetadata/security` references at least one scheme in its own
+`securityDefinitions`; an interface without security references a `nosec_sc`
+(`scheme` `nosec`), which `select_nosec` authors when the AID is published
+(the id injector, and the DMP fixture generator) for every interface that
+selects nothing. The reference names the AID by its id and the interface by
+its idShort.
+
+Secrets (passwords, tokens, keys) never go into the AID or any other
+submodel: an AAS is meant to be shared, and AID, like the WoT TD, describes the
+mechanism only. The consumer holds the credentials (the DMP in its deployment,
+`aas-camel-dmp` PLAN H4).
+
 ## 4. Actions and events per protocol
 
 | Protocol | Action form | Event form | Source |

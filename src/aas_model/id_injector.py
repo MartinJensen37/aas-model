@@ -204,6 +204,11 @@ def _inject_submodel(
                                  File, Blob, RelationshipElement, Operation)):
             _inject_leaf(value, field_name=child_field_name)
 
+    # An AID's interfaces reference their nosec_sc once ids and idShorts are final.
+    select = getattr(sm, "select_nosec", None)
+    if callable(select):
+        select()
+
 
 def _inject_smc(
     smc: SubmodelElementCollection,

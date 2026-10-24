@@ -16,6 +16,7 @@ from aas_model.submodel_templates.aid.bindings.modbus import DmpModbusInterface
 from aas_model.submodel_templates.aid.bindings.mqtt import MqttInterface
 from aas_model.submodel_templates.aid.bindings.opcua import DmpOpcuaInterface
 from aas_model.submodel_templates.aid.bindings.snmp import DmpSnmpInterface
+from aas_model.submodel_templates.aid.interface import select_nosec
 
 
 class DmpAssetInterfacesDescription(_BaseAID):
@@ -36,3 +37,13 @@ class DmpAssetInterfacesDescription(_BaseAID):
     InterfaceTemplateForIOLINK_OVER_PROFINET_REST: Dict[str, DmpIolinkInterface] = {}
     InterfaceTemplateForSNMP: Dict[str, DmpSnmpInterface] = {}
     InterfaceTemplateForCAN: Dict[str, DmpCanInterface] = {}
+
+    def select_nosec(self) -> None:
+        """Every interface that selects no security scheme gets its ``nosec_sc``
+        (:func:`select_nosec`), referenced by this AID's id and the interface's
+        idShort, the key of its dict. Run once both are final: the id injector
+        and the fixture generator do."""
+        for family in type(self).model_fields:
+            if family.startswith("InterfaceTemplateFor"):
+                for key, interface in (getattr(self, family) or {}).items():
+                    select_nosec(interface.EndpointMetadata, self.id, key)
