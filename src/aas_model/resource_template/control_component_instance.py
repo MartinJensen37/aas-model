@@ -23,7 +23,7 @@ from aas_pydantic import (
 from aas_pydantic.submodel_templates.control_component_instance import (
     ControlComponentInstance, Type_instance,
 )
-from aas_model.constants import INVOCATION_ORIGIN
+from aas_model.constants import INVOCATION_URL_TEMPLATE
 from aas_model.resource_template.asset_interfaces_description import affordance_ref
 
 from aas_model.submodel_templates.control_component_instance import (
@@ -80,7 +80,7 @@ def skill_operation(
     op.qualifiers = [
         Qualifier(
             type_="invocationDelegation",
-            value=f"{INVOCATION_ORIGIN}/operations/{{aas_id_short}}/{{skill}}",
+            value=INVOCATION_URL_TEMPLATE,
             value_type="xs:string",
             kind="ConceptQualifier",
         ),

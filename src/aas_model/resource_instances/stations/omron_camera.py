@@ -1,7 +1,7 @@
 """Omron inspection camera instance."""
 
 from aas_pydantic import Property
-from aas_model.constants import CSSX, SCHEMA_BASE, INVOCATION_ORIGIN
+from aas_model.constants import CSSX, SCHEMA_BASE, INVOCATION_URL_TEMPLATE
 from aas_model.constants import BASE_URL, BROKER, SITE
 from aas_model.resource_instances.site import SITE_ADDRESS
 from aas_pydantic.submodel_templates.nameplate import (
@@ -92,7 +92,7 @@ def omron_camera() -> InspectionStation:
         ),
         operation=SkillOperation(
             id_short="operation", qualifiers=[
-                Qualifier(type_="invocationDelegation", value=f"{INVOCATION_ORIGIN}/operations/{{aas_id_short}}/{{skill}}", value_type="xs:string", kind="ConceptQualifier"),
+                Qualifier(type_="invocationDelegation", value=INVOCATION_URL_TEMPLATE, value_type="xs:string", kind="ConceptQualifier"),
                 Qualifier(type_="Synchronous", value="true", value_type="xs:string", kind="ConceptQualifier"),
             ],
             in_output_variable=[Property(id_short="Uuid", description="The UUID of the command")],

@@ -1,56 +1,67 @@
+import base64
+
 import pytest
 from pydantic import ValidationError
 
-from aas_model import Resource
-from aas_model.invocation_authoring import finalize_invocation_addresses
+from aas_model import Resource, build_from_model
+from aas_model.invocation_authoring import finalize_invocation_addresses, operation_path
 from aas_model.resource_template import MQTT_INTERFACE, MqttOperationalStation as Station, extended_skill
+from aas_model.testing import aimc_mapping
 
 
-def test_default_invocation_qualifiers_use_fixed_origin_and_encoded_segments():
-    asset = Resource(id_short="Cell A/ß")
-    skill = extended_skill("Skill *~/A", MQTT_INTERFACE)
-    asset.control_component_instance.Skills.Skill["Skill *~/A"] = skill
-
-    finalize_invocation_addresses(asset)
-
-    qualifier = next(
-        q for q in skill.operation.qualifiers if q.type_ == "invocationDelegation"
-    )
-    assert qualifier.value == (
-        "http://dmp:8080/operations/Cell%20A%2F%C3%9F/Skill%20*%7E%2FA"
-    )
+def _delegation(skill):
+    return next(q for q in skill.operation.qualifiers if q.type_ == "invocationDelegation").value
 
 
-def test_default_skills_share_origin_and_keep_exact_owner_and_skill_names():
-    asset = Station(id_short="Line A")
+def _b64(identifier: str) -> str:
+    return base64.urlsafe_b64encode(identifier.encode()).decode().rstrip("=")
+
+
+def test_an_operation_is_invoked_at_its_aas_api_path():
+    assert operation_path("urn:x/sm", "Skills.Halt.operation") == \
+        f"/submodels/{_b64('urn:x/sm')}/submodel-elements/Skills.Halt.operation/invoke"
+    assert operation_path("urn:x/sm", "List[0].operation").endswith("/List%5B0%5D.operation/invoke")
+
+
+def test_default_skills_are_delegated_to_the_path_of_their_built_operation():
+    asset = Station(id_short="LineA")
+    built = {o.id_short: o for o in build_from_model(asset)}["ControlComponentInstance"]
     for skill_name, skill in asset.control_component_instance.Skills.Skill.items():
-        qualifier = next(
-            q for q in skill.operation.qualifiers if q.type_ == "invocationDelegation"
-        )
-        assert qualifier.value == f"http://dmp:8080/operations/Line%20A/{skill_name}"
+        assert _delegation(skill) == \
+            f"http://dmp:8080/submodels/{_b64(built.id)}/submodel-elements/Skills.{skill_name}.operation/invoke"
+
+
+def test_an_authored_aas_id_is_the_base_of_the_submodel_id():
+    asset = Station(id_short="LineA", id="urn:plant:line-a")
+    finalize_invocation_addresses(asset)
+    halt = asset.control_component_instance.Skills.Skill["Halt"]
+    assert _b64("urn:plant:line-a/submodels/ControlComponentInstance") in _delegation(halt)
+
+
+def test_skills_added_later_are_finalized_on_request():
+    asset = Station(id_short="LineA")
+    skill = extended_skill("Weigh", MQTT_INTERFACE)
+    asset.control_component_instance.Skills.Skill["Weigh"] = skill
+    finalize_invocation_addresses(asset)
+    assert _delegation(skill).endswith("/submodel-elements/Skills.Weigh.operation/invoke")
 
 
 def test_resource_authoring_does_not_accept_per_resource_origin():
     with pytest.raises(ValidationError, match="extra_forbidden"):
         Resource(id_short="Station", delegation_base="http://old:8080")
 
-    exported = Station(id_short="Cell A").model_dump(mode="json")
-    qualifiers = exported["control_component_instance"]["Skills"]["Skill"]["Halt"]["operation"]["qualifiers"]
-    delegation = next(q for q in qualifiers if q["type_"] == "invocationDelegation")
-    assert delegation["value"] == "http://dmp:8080/operations/Cell%20A/Halt"
-
 
 def test_finalizer_preserves_concrete_authored_invocation_urls():
     asset = Station(id_short="Station")
     qualifier = asset.control_component_instance.Skills.Skill["Halt"].operation.qualifiers[0]
-    qualifier.value = "http://dmp-station:8080/operations/Station/Halt"
+    qualifier.value = "http://dmp-station:8080/custom/Halt"
     finalize_invocation_addresses(asset)
 
-    assert qualifier.value == "http://dmp-station:8080/operations/Station/Halt"
+    assert qualifier.value == "http://dmp-station:8080/custom/Halt"
 
 
 @pytest.mark.parametrize("url", [
-    "http://dmp-station:8080/operations/Station/Halt",
+    "http://dmp-station:8080/custom/Halt",
     "https://example.test/custom/invocation",
 ])
 def test_pydantic_dict_and_json_import_preserve_authored_invocation_urls(url):
@@ -62,3 +73,12 @@ def test_pydantic_dict_and_json_import_preserve_authored_invocation_urls(url):
 
     for restored in (from_dict, from_json):
         assert restored.control_component_instance.Skills.Skill["Halt"].operation.qualifiers[0].value == url
+
+
+def test_an_invocation_timeout_is_a_positive_duration_of_at_most_fifteen_minutes():
+    mapping = aimc_mapping(sources=[], sinks=[], invocation_timeout="PT2M")
+    assert mapping.InvocationTimeout.value == "PT2M"
+    assert mapping.InvocationTimeout.semantic_id == "https://smartproductionlab.aau.dk/aimc/InvocationTimeout/1/0"
+    for invalid in ("PT0S", "PT16M", "PT1.5S", "30", "P1D"):
+        with pytest.raises(ValidationError):
+            aimc_mapping(sources=[], sinks=[], invocation_timeout=invalid)

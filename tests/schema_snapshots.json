@@ -197,6 +197,75 @@
         "title": "DmpEvaluationMode",
         "type": "object"
       },
+      "DmpInvocationTimeout": {
+        "additionalProperties": false,
+        "description": "How long the DMP waits for the device's terminal reply to the action an Operation invokes (default PT30S).\nA caller invoking through BaSyx Go must allow at least as long (its clientTimeoutDuration).",
+        "properties": {
+          "description": {
+            "default": "",
+            "title": "Description",
+            "type": "string"
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Display Name"
+          },
+          "id_short": {
+            "default": "InvocationTimeout",
+            "title": "Id Short",
+            "type": "string"
+          },
+          "qualifiers": {
+            "default": [],
+            "items": {
+              "$ref": "#/$defs/Qualifier"
+            },
+            "title": "Qualifiers",
+            "type": "array"
+          },
+          "semantic_id": {
+            "default": "https://smartproductionlab.aau.dk/aimc/InvocationTimeout/1/0",
+            "title": "Semantic Id",
+            "type": "string"
+          },
+          "supplemental_semantic_ids": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Supplemental Semantic Ids",
+            "type": "array"
+          },
+          "value": {
+            "default": "",
+            "title": "Value",
+            "type": "string"
+          },
+          "value_id": {
+            "default": "",
+            "title": "Value Id",
+            "type": "string"
+          },
+          "value_type": {
+            "default": "xs:duration",
+            "title": "Value Type",
+            "type": "string"
+          }
+        },
+        "title": "DmpInvocationTimeout",
+        "type": "object"
+      },
       "DmpMappingConfiguration": {
         "additionalProperties": false,
         "description": "IDTA MappingConfiguration + optional correlated response mapping; its Sources may carry an Evaluation.",
@@ -205,6 +274,17 @@
             "anyOf": [
               {
                 "$ref": "#/$defs/DefaultPollingInterval"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "InvocationTimeout": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/DmpInvocationTimeout"
               },
               {
                 "type": "null"

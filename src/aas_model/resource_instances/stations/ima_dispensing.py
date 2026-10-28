@@ -2,7 +2,7 @@
 with a configurable volume and the scale's live weight, all over OPC UA."""
 
 from aas_pydantic import Property
-from aas_model.constants import BASE_URL, CSSX, INVOCATION_ORIGIN, SCHEMA_BASE
+from aas_model.constants import BASE_URL, CSSX, INVOCATION_URL_TEMPLATE, SCHEMA_BASE
 from aas_model.resource_instances.site import SITE_ADDRESS
 from aas_pydantic.submodel_templates.nameplate import (
     Nameplate, URIOfTheProduct, ManufacturerName, ManufacturerProductDesignation,
@@ -106,7 +106,7 @@ def ima_dispensing() -> DispensingStation:
         ),
         operation=SkillOperation(
             id_short="operation", qualifiers=[
-                Qualifier(type_="invocationDelegation", value=f"{INVOCATION_ORIGIN}/operations/{{aas_id_short}}/{{skill}}", value_type="xs:string", kind="ConceptQualifier"),
+                Qualifier(type_="invocationDelegation", value=INVOCATION_URL_TEMPLATE, value_type="xs:string", kind="ConceptQualifier"),
                 Qualifier(type_="Synchronous", value="true", value_type="xs:string", kind="ConceptQualifier"),
             ],
             input_variable=[Property(id_short="Volume", value="1.0", value_type="xs:double", description="The volume to dispense in ml")],

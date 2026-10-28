@@ -34,6 +34,7 @@ from aas_model.submodel_templates import (
     DmpResponseSink, DmpResponseSinks, DmpResponseSource, DmpResponseSources,
     DmpResponseTransformation, DmpEvaluation, DmpEvaluationMode, DmpSource,
 )
+from aas_model.submodel_templates.aimc import DmpInvocationTimeout
 from aas_pydantic.submodel_templates.asset_interfaces_mapping_configuration import (
     SourcesItem as Source, Sources, SinksItem as Sink, Sinks, SourceId, SinkId,
     Source as SourceReference, Sink as SinkReference,
@@ -311,6 +312,7 @@ def aimc_mapping(*, sources: list[Source], sinks: list[Sink],
                  response_sinks: list[DmpResponseSink] | None = None,
                  qualifiers: list | None = None,
                  default_polling_interval: float | None = None,
+                 invocation_timeout: str | None = None,
                  id_short: str = "mapping") -> AimcMappingConfiguration:
     kwargs = dict(
         id_short=id_short,
@@ -332,6 +334,8 @@ def aimc_mapping(*, sources: list[Source], sinks: list[Sink],
         kwargs["ResponseSources"] = DmpResponseSources(value=response_sources)
     if response_sinks is not None:
         kwargs["ResponseSinks"] = DmpResponseSinks(value=response_sinks)
+    if invocation_timeout is not None:
+        kwargs["InvocationTimeout"] = DmpInvocationTimeout(value=invocation_timeout)
     if qualifiers is not None:
         kwargs["qualifiers"] = qualifiers
     return AimcMappingConfiguration(**kwargs)

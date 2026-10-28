@@ -36,7 +36,7 @@ from aas_pydantic.submodel_templates.asset_interfaces_mapping_configuration impo
     Sink, SinkId, Sinks, SinksItem,
 )
 
-from aas_model.constants import BROKER, INVOCATION_ORIGIN, SCHEMA_BASE, SITE
+from aas_model.constants import BROKER, INVOCATION_URL_TEMPLATE, SCHEMA_BASE, SITE
 from aas_model.json_schema_aid import load_schema
 from aas_model.submodel_templates import (
     Aimc, AimcMappingConfiguration, AimcMappingConfigurations, DmpResponseSinks, DmpResponseSources,
@@ -134,7 +134,7 @@ def _packml_skills(interface: str) -> ExtendedSkills:
                 qualifiers=[
                     Qualifier(
                         type_="invocationDelegation", value_type="xs:string", kind="ConceptQualifier",
-                        value=f"{INVOCATION_ORIGIN}/operations/{{aas_id_short}}/{{skill}}",
+                        value=INVOCATION_URL_TEMPLATE,
                     ),
                     Qualifier(type_="Synchronous", value="true", value_type="xs:string", kind="ConceptQualifier"),
                 ],

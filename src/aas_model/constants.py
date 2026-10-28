@@ -23,6 +23,9 @@ SITE = "NN/Nybrovej/InnoLab"
 # Shared invocation service origin. Resource-specific identity belongs in
 # authored URL path segments, never in a per-resource host/config setting.
 INVOCATION_ORIGIN = "http://dmp:8080"
+# An Operation's invocationDelegation URL: the origin and the path the Operation is invoked at in the AAS API,
+# filled in once the Operation's submodel id and idShortPath are known (invocation_authoring).
+INVOCATION_URL_TEMPLATE = f"{INVOCATION_ORIGIN}{{operation_path}}"
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Ontology
@@ -121,6 +124,9 @@ AIMC_RESPONSE_SINK_ID = f"{BASE_URL}/aimc/ResponseSink/SinkId/1/0"
 AIMC_EVALUATION = f"{BASE_URL}/aimc/Evaluation/1/0"
 AIMC_EVALUATION_MODE = f"{BASE_URL}/aimc/Evaluation/Mode/1/0"
 
+# How long a mapping an Operation triggers waits for the device's terminal reply.
+AIMC_INVOCATION_TIMEOUT = f"{BASE_URL}/aimc/InvocationTimeout/1/0"
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # TimeSeries — DMP profile of IDTA 02008 (TimeSeries SMCs in Variables)
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -145,3 +151,4 @@ TS_INFLUX_TARGET_BUCKET = f"{BASE_URL}/timeseries/InfluxDb2Target/Bucket/1/0"
 TS_INFLUX_TARGET_MEASUREMENT = f"{BASE_URL}/timeseries/InfluxDb2Target/Measurement/1/0"
 TS_INFLUX_TARGET_TAGS = f"{BASE_URL}/timeseries/InfluxDb2Target/Tags/1/0"
 TS_INFLUX_TARGET_TAG = f"{BASE_URL}/timeseries/InfluxDb2Target/Tag/1/0"
+TS_INFLUX_TARGET_WRITE_MODE = f"{BASE_URL}/timeseries/InfluxDb2Target/WriteMode/1/0"

@@ -29,6 +29,8 @@ them through ordinary mappings.
 
 from __future__ import annotations
 
+import re
+
 from typing import ClassVar, List, Optional
 
 from pydantic import field_validator
@@ -56,6 +58,7 @@ from aas_model.constants import (
     AIMC_RESPONSE_TRANSFORMATION,
     AIMC_EVALUATION,
     AIMC_EVALUATION_MODE,
+    AIMC_INVOCATION_TIMEOUT,
 )
 from aas_pydantic.submodel_templates.asset_interfaces_mapping_configuration import (
     SourcesItem as _SourcesItem,
@@ -142,6 +145,39 @@ class DmpEvaluation(SubmodelElementCollection):
     Mode: DmpEvaluationMode
 
 
+# BaSyx Go waits at most 15 minutes for a delegated Operation.
+MAX_INVOCATION_TIMEOUT_SECONDS = 15 * 60
+_DURATION = re.compile(r"^PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?$")
+
+
+def invocation_timeout_seconds(value: str) -> int:
+    """The seconds of an InvocationTimeout: an xs:duration of whole hours, minutes and seconds (``PT2M``), above
+    zero and at most 15 minutes."""
+    match = _DURATION.match(value or "")
+    if not match or not any(match.groups()):
+        raise ValueError(f"InvocationTimeout {value!r} must be an xs:duration such as PT30S or PT2M")
+    hours, minutes, seconds = match.groups()
+    total = int(hours or 0) * 3600 + int(minutes or 0) * 60 + int(seconds or 0)
+    if not 0 < total <= MAX_INVOCATION_TIMEOUT_SECONDS:
+        raise ValueError(f"InvocationTimeout {value!r} must lie above zero and at most PT15M")
+    return total
+
+
+class DmpInvocationTimeout(Property):
+    """How long the DMP waits for the device's terminal reply to the action an Operation invokes (default PT30S).
+    A caller invoking through BaSyx Go must allow at least as long (its clientTimeoutDuration)."""
+    id_short: str = "InvocationTimeout"
+    semantic_id: str = AIMC_INVOCATION_TIMEOUT
+    value_type: str = "xs:duration"
+
+    @field_validator("value")
+    @classmethod
+    def _is_a_timeout(cls, value):
+        if value is not None:
+            invocation_timeout_seconds(value)
+        return value
+
+
 class DmpSource(_SourcesItem):
     """IDTA Source + the optional Evaluation."""
     Evaluation: Optional[DmpEvaluation] = None
@@ -181,6 +217,7 @@ class DmpMappingConfiguration(_BaseMappingConfiguration):
     ResponseTransformation: Optional[DmpResponseTransformation] = None
     ResponseSources: Optional[DmpResponseSources] = None
     ResponseSinks: Optional[DmpResponseSinks] = None
+    InvocationTimeout: Optional[DmpInvocationTimeout] = None
 
 
 class DmpMappingConfigurations(_BaseMappingConfigurations):

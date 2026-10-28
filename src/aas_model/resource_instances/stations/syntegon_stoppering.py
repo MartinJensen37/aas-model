@@ -2,7 +2,7 @@
 Stoppering skill, all over MQTT."""
 
 from aas_pydantic import Property
-from aas_model.constants import BASE_URL, BROKER, INVOCATION_ORIGIN, SITE
+from aas_model.constants import BASE_URL, BROKER, INVOCATION_URL_TEMPLATE, SITE
 from aas_model.resource_instances.site import SITE_ADDRESS
 from aas_pydantic.submodel_templates.nameplate import (
     Nameplate, URIOfTheProduct, ManufacturerName, ManufacturerProductDesignation,
@@ -82,7 +82,7 @@ def syntegon_stoppering() -> StopperingStation:
         ),
         operation=SkillOperation(
             id_short="operation", qualifiers=[
-                Qualifier(type_="invocationDelegation", value=f"{INVOCATION_ORIGIN}/operations/{{aas_id_short}}/{{skill}}", value_type="xs:string", kind="ConceptQualifier"),
+                Qualifier(type_="invocationDelegation", value=INVOCATION_URL_TEMPLATE, value_type="xs:string", kind="ConceptQualifier"),
                 Qualifier(type_="Asynchronous", value="false", value_type="xs:string", kind="ConceptQualifier"),
             ],
             in_output_variable=[Property(id_short="Uuid", description="The UUID of the command")],

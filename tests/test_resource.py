@@ -19,6 +19,8 @@ from aas_pydantic.submodel_templates.capability_description import (
     CapabilityContainer, CapabilityDescription, CapabilitySet,
 )
 from aas_pydantic.convert_util import strip_temp_id_short_attributes
+from aas_model.constants import BASE_URL
+from aas_model.invocation_authoring import operation_path
 
 
 def _document(store):
@@ -71,7 +73,8 @@ def test_resource_defaults_are_independent_and_have_authored_invocation_urls():
     for resource in (first, second):
         for name, skill in resource.control_component_instance.Skills.Skill.items():
             invocation = next(q for q in skill.operation.qualifiers if q.type_ == "invocationDelegation")
-            assert invocation.value == f"http://dmp:8080/operations/{resource.id_short}/{name}"
+            assert invocation.value == "http://dmp:8080" + operation_path(
+                f"{BASE_URL}/aas/{resource.id_short}/submodels/ControlComponentInstance", f"Skills.{name}.operation")
 
 
 def test_resource_aid_defaults_populate_optional_mqtt_containers_and_round_trip():

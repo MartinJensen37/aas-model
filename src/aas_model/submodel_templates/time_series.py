@@ -24,7 +24,7 @@ Structure::
         └── LinkedSegment[]
             ├── Endpoint         InfluxDB 2 query URL (IDTA)
             ├── Query            Flux for the web UI (IDTA)
-            └── InfluxDb2Target  Bucket, Measurement, Tags (DMP extension, InfluxDB 2)
+            └── InfluxDb2Target  Bucket, Measurement, Tags, WriteMode (DMP extension, InfluxDB 2)
 
 A series groups what is sampled together, never one variable each. The DMP
 addresses the LinkedSegment; it reads the Record as the row shape and writes or
@@ -34,14 +34,17 @@ new InfluxDB field. A RecordReference counts exactly as if the referenced
 element were declared at its place: a Property is one field, an SMC or SML a
 group, an Operation a group of its input, InOut and output variables. The tags
 name the AAS that owns the series (``{aas_id_short}``, resolved when the
-resource is built).
+resource is built). The WriteMode says how the DMP writes a row: Synchronous
+(the default) waits for InfluxDB to acknowledge each point, so a failed write
+fails the evaluation; Asynchronous hands the point to a batching buffer and
+goes on, for logs and other rows whose loss must not stop the data flow.
 """
 
 from __future__ import annotations
 
 import re
 from datetime import datetime
-from typing import ClassVar, Dict, List, Optional, Union
+from typing import ClassVar, Dict, List, Literal, Optional, Union
 
 from pydantic import model_validator
 
@@ -57,7 +60,7 @@ from aas_pydantic.submodel_templates.time_series import (
 from aas_model.constants import (
     INFLUX_BUCKET, INFLUX_ORG, INFLUX_ORIGIN,
     TS_COLLECTION, TS_INFLUX_TARGET, TS_INFLUX_TARGET_BUCKET,
-    TS_INFLUX_TARGET_MEASUREMENT, TS_INFLUX_TARGET_TAG, TS_INFLUX_TARGET_TAGS,
+    TS_INFLUX_TARGET_MEASUREMENT, TS_INFLUX_TARGET_TAG, TS_INFLUX_TARGET_TAGS, TS_INFLUX_TARGET_WRITE_MODE,
     TS_RECORD_FIELD, TS_RECORD_FILE, TS_RECORD_GROUP, TS_RECORD_RANGE, TS_RECORD_REFERENCE,
     TS_RECORD_TEXT,
 )
@@ -161,6 +164,18 @@ class Tags(SubmodelElementCollection):
     tag: Dict[str, Tag] = {}
 
 
+WriteModeValue = Literal["Synchronous", "Asynchronous"]
+
+
+class TargetWriteMode(Property):
+    """How the DMP writes a row: ``Synchronous`` waits for InfluxDB's
+    acknowledgement of each point; ``Asynchronous`` batches points and does
+    not wait. Absent means Synchronous."""
+    id_short: AasIdString = "WriteMode"
+    semantic_id: str = TS_INFLUX_TARGET_WRITE_MODE
+    value: WriteModeValue = "Synchronous"
+
+
 class InfluxDb2Target(SubmodelElementCollection):
     """Where the DMP writes and reads the segment's points on InfluxDB 2. Each
     database has its own target, told apart by semanticId; a segment carries
@@ -171,6 +186,7 @@ class InfluxDb2Target(SubmodelElementCollection):
     Bucket: Bucket
     Measurement: Measurement
     Tags: Tags
+    WriteMode: Optional[TargetWriteMode] = None
 
 
 class DmpLinkedSegment(_LinkedSegment):
@@ -266,10 +282,12 @@ def _check_time(kind: str, value: Optional[str]) -> Optional[str]:
 
 def linked_segment(*, measurement: str, tags: Dict[str, str],
                    bucket: str = INFLUX_BUCKET, description: str = "",
-                   start_time: Optional[str] = None, end_time: Optional[str] = None) -> DmpLinkedSegment:
+                   start_time: Optional[str] = None, end_time: Optional[str] = None,
+                   write_mode: Optional[WriteModeValue] = None) -> DmpLinkedSegment:
     """A segment on the workspace's InfluxDB. Its *start_time* and *end_time*
     bound what the DMP reads; a segment with an *end_time* is ``Completed`` and
-    read-only, one without is ``InProgress`` and open for writes."""
+    read-only, one without is ``InProgress`` and open for writes. *write_mode*
+    is authored only when given; absent, the DMP writes synchronously."""
     _check_time("start_time", start_time)
     _check_time("end_time", end_time)
     if start_time and end_time and datetime.fromisoformat(end_time) <= datetime.fromisoformat(start_time):
@@ -290,6 +308,7 @@ def linked_segment(*, measurement: str, tags: Dict[str, str],
             Bucket=Bucket(value=bucket),
             Measurement=Measurement(value=measurement),
             Tags=Tags(tag={key: Tag(value=value) for key, value in tags.items()}),
+            WriteMode=TargetWriteMode(value=write_mode) if write_mode else None,
         ),
     )
 
@@ -297,7 +316,8 @@ def linked_segment(*, measurement: str, tags: Dict[str, str],
 def time_series(*, name: str, measurement: str, fields: Dict[str, RecordEntry],
                 tags: Optional[Dict[str, str]] = None, description: str = "",
                 segment: str = "Live", start_time: Optional[str] = None,
-                end_time: Optional[str] = None) -> TimeSeriesCollection:
+                end_time: Optional[str] = None,
+                write_mode: Optional[WriteModeValue] = None) -> TimeSeriesCollection:
     """A series with one LinkedSegment. *tags* default to the owning AAS."""
     tags = {"asset": "{aas_id_short}"} if tags is None else tags
     return TimeSeriesCollection(
@@ -308,7 +328,8 @@ def time_series(*, name: str, measurement: str, fields: Dict[str, RecordEntry],
         ),
         Segments=TimeSeriesSegments(LinkedSegment={
             segment: linked_segment(measurement=measurement, tags=tags,
-                                    start_time=start_time, end_time=end_time),
+                                    start_time=start_time, end_time=end_time,
+                                    write_mode=write_mode),
         }),
     )
 

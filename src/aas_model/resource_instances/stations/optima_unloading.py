@@ -17,7 +17,7 @@ from aas_model.resource_template.operational import (
     OperationalMqttMappings, operational_variables, command_reply,
 )
 from aas_model.resource_template.stations import UnloadingStation
-from aas_model.constants import INVOCATION_ORIGIN, SCHEMA_BASE
+from aas_model.constants import INVOCATION_URL_TEMPLATE, SCHEMA_BASE
 from aas_model.json_schema_aid import load_schema
 from aas_pydantic import ExternalReference, Key, ModelReference, Qualifier, ReferenceElement
 from aas_model.submodel_templates import AimcMappingConfiguration, Transformation
@@ -90,7 +90,7 @@ def optima_unloading() -> UnloadingStation:
             output_schema=load_schema(output_url), output_schema_url=output_url,
         )
         operation = SkillOperation(id_short="operation", qualifiers=[
-            Qualifier(type_="invocationDelegation", value=f"{INVOCATION_ORIGIN}/operations/{{aas_id_short}}/{{skill}}", value_type="xs:string", kind="ConceptQualifier"),
+            Qualifier(type_="invocationDelegation", value=INVOCATION_URL_TEMPLATE, value_type="xs:string", kind="ConceptQualifier"),
             Qualifier(type_="Synchronous", value="true", value_type="xs:string", kind="ConceptQualifier"),
         ], in_output_variable=[Property(id_short="Uuid", description="The UUID of the command")], output_variable=[
             Property(id_short="State", description="The state of the command being executed"),

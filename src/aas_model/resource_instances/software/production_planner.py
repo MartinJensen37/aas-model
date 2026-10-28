@@ -22,7 +22,7 @@ from aas_pydantic.submodel_templates.asset_interfaces_description import Key as 
 from aas_pydantic.submodel_templates.asset_interfaces_mapping_configuration import Source as SourceReference, Sink as SinkReference, SourcesItem, SinksItem, Sources, Sinks, SourceId, SinkId, DefaultPollingInterval
 from aas_pydantic.submodel_templates.capability_description import CapabilityContainer, CapabilitySet, CapabilityRelations, CapabilityRealizedBy
 from aas_model.json_schema_aid import load_schema, datapoint_from_schema, without
-from aas_model.constants import INVOCATION_ORIGIN
+from aas_model.constants import INVOCATION_URL_TEMPLATE
 from aas_model.invocation_authoring import finalize_invocation_addresses
 from aas_model.resource_template.control_component_instance import skill_ref
 from aas_model.resource_template.operational import action_member_ref, command_reply
@@ -65,7 +65,7 @@ def production_planner() -> MqttSoftwareResource:
     plan = ExtendedSkill(id_short="Plan")
     plan.Disabled.value = "false"
     plan.interface_reference.value = ModelReference(key=(Key(type_="Submodel", value="{aas_id}/submodels/AssetInterfacesDescription"), Key(type_="SubmodelElementCollection", value="interface_mqtt"), Key(type_="SubmodelElementCollection", value="InteractionMetadata"), Key(type_="SubmodelElementCollection", value="actions"), Key(type_="SubmodelElementCollection", value="Plan")))
-    plan.operation = SkillOperation(id_short="operation", qualifiers=[Qualifier(type_="invocationDelegation", value=f"{INVOCATION_ORIGIN}/operations/{{aas_id_short}}/{{skill}}", value_type="xs:string", kind="ConceptQualifier"), Qualifier(type_="Synchronous", value="true", value_type="xs:string", kind="ConceptQualifier")], in_output_variable=[Property(id_short="Uuid", description="The UUID of the command")], output_variable=[Property(id_short="State", description="The state of the command being executed")])
+    plan.operation = SkillOperation(id_short="operation", qualifiers=[Qualifier(type_="invocationDelegation", value=INVOCATION_URL_TEMPLATE, value_type="xs:string", kind="ConceptQualifier"), Qualifier(type_="Synchronous", value="true", value_type="xs:string", kind="ConceptQualifier")], in_output_variable=[Property(id_short="Uuid", description="The UUID of the command")], output_variable=[Property(id_short="State", description="The state of the command being executed")])
     plan.operation.input_variable = [
         Property(id_short="Assets", value="[]", description="JSON array of resource AAS identifiers."),
         Property(id_short="Order"),

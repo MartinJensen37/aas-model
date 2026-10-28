@@ -7,7 +7,7 @@ from aas_pydantic.submodel_templates.capability_description import (
     CapabilityRelations, CapabilitySet,
 )
 
-from aas_model.constants import CSSX, INVOCATION_ORIGIN, SCHEMA_BASE
+from aas_model.constants import CSSX, INVOCATION_URL_TEMPLATE, SCHEMA_BASE
 from aas_model.json_schema_aid import load_schema
 from aas_model.resource_template.asset_interfaces_description import (
     MQTT_INTERFACE, affordance_ref, mqtt_action, mqtt_property,
@@ -55,7 +55,7 @@ planar_control.Skills.Skill["MoveToPosition"] = ExtendedSkill(
         qualifiers=[
             Qualifier(
                 type_="invocationDelegation", kind="ConceptQualifier", value_type="xs:string",
-                value=f"{INVOCATION_ORIGIN}/operations/{{aas_id_short}}/{{skill}}",
+                value=INVOCATION_URL_TEMPLATE,
             ),
             Qualifier(
                 type_="Asynchronous", kind="ConceptQualifier", value_type="xs:string", value="false",

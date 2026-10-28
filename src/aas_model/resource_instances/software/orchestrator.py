@@ -50,7 +50,7 @@ except ImportError:
     )
     ReadOnly = None
     Synchronous = Property
-from aas_model.constants import INVOCATION_ORIGIN
+from aas_model.constants import INVOCATION_URL_TEMPLATE
 
 
 def orchestrator() -> MqttSoftwareResource:
@@ -93,7 +93,7 @@ def orchestrator() -> MqttSoftwareResource:
             Key(type_="SubmodelElementCollection", value=name),
         ))
         skill.operation = SkillOperation(id_short="operation", qualifiers=[
-            Qualifier(type_="invocationDelegation", value=f"{INVOCATION_ORIGIN}/operations/{{aas_id_short}}/{{skill}}", value_type="xs:string", kind="ConceptQualifier"),
+            Qualifier(type_="invocationDelegation", value=INVOCATION_URL_TEMPLATE, value_type="xs:string", kind="ConceptQualifier"),
             Qualifier(type_="Synchronous", value="true", value_type="xs:string", kind="ConceptQualifier"),
         ], in_output_variable=[Property(id_short="Uuid", description="The UUID of the command")], output_variable=[Property(id_short="State", description="The state of the command being executed")])
         mapping = DmpMappingConfiguration(

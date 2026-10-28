@@ -9,7 +9,8 @@ from pydantic import BaseModel
 from pydantic import ValidationError
 
 from aas_model import Resource, build_from_model, inject_ids
-from aas_model.constants import SCHEMA_BASE
+from aas_model.constants import BASE_URL, SCHEMA_BASE
+from aas_model.invocation_authoring import operation_path
 from aas_model.resource_instances import RESOURCE_FACTORIES
 from aas_pydantic.submodel_templates.hierarchical_structures import (
     ArcheType, EntryNode, HierarchicalStructures,
@@ -97,7 +98,8 @@ def test_resource_types_have_coherent_defaults_and_preserve_empty_imports(resour
         assert (kind, action) == ("actions", name)
         assert name in _interfaces(resource)[interface].InteractionMetadata.actions.property_name
         invocation = next(q for q in skill.operation.qualifiers if q.type_ == "invocationDelegation")
-        assert invocation.value == f"http://dmp:8080/operations/Example/{name}"
+        assert invocation.value == "http://dmp:8080" + operation_path(
+            f"{BASE_URL}/aas/Example/submodels/ControlComponentInstance", f"Skills.{name}.operation")
     resource.control_component_instance.Skills.Skill.clear()
     resource.asset_interfaces_description.InterfaceTemplateForMQTT.clear()
     resource.asset_interfaces_description.InterfaceTemplateForOPCUA.clear()
@@ -370,7 +372,9 @@ def test_factory_authored_skills_have_finalized_invocations_and_empty_imports_st
     resource = RESOURCE_FACTORIES[name]()
     for skill_name, skill in resource.control_component_instance.Skills.Skill.items():
         invocation = next(q for q in skill.operation.qualifiers if q.type_ == "invocationDelegation")
-        assert invocation.value == f"http://dmp:8080/operations/{resource.id_short}/{skill_name}"
+        submodel = resource.control_component_instance
+        assert invocation.value == "http://dmp:8080" + operation_path(
+            f"{BASE_URL}/aas/{resource.id_short}/submodels/{submodel.id_short}", f"Skills.{skill_name}.operation")
     resource.control_component_instance.Skills.Skill.clear()
     resource.asset_interfaces_description.InterfaceTemplateForMQTT.clear()
     resource.asset_interfaces_description.InterfaceTemplateForOPCUA.clear()

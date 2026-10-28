@@ -120,6 +120,22 @@ def test_linked_segment_names_its_target_and_the_owning_aas():
     assert 'r["_measurement"] == "station_state"' in query
     assert 'r["asset"] == "seriesTestAAS"' in query
     assert '{{y-value}}' in query
+    assert "WriteMode" not in target, "absent, the DMP writes synchronously"
+
+
+def test_a_segment_can_be_written_asynchronously():
+    series = time_series(name="Log", measurement="log", fields={"Outcome": record_field("xs:string")},
+                         write_mode="Asynchronous")
+    variables = Variables(id_short="Variables", Log=LogGroup(value={"Calls": series}))
+    live = _children(_children(_children(_publish(variables)["Log"])["Calls"])["Segments"])["Live"]
+    mode = _children(_children(live)["InfluxDb2Target"])["WriteMode"]
+    assert mode.value == "Asynchronous"
+    assert _semantic_id(mode) == "https://smartproductionlab.aau.dk/timeseries/InfluxDb2Target/WriteMode/1/0"
+
+
+def test_a_write_mode_is_synchronous_or_asynchronous():
+    with pytest.raises(ValueError):
+        linked_segment(measurement="m", tags={}, write_mode="Batched")
 
 
 def test_a_segment_with_an_end_time_is_completed_and_without_one_in_progress():

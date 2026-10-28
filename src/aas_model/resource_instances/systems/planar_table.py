@@ -20,7 +20,7 @@ from aas_model.submodel_templates import Transformation
 from aas_pydantic import Key, ModelReference, Property, Qualifier
 from aas_pydantic.submodel_templates.asset_interfaces_mapping_configuration import Source as SourceReference, Sink as SinkReference, SourcesItem, SinksItem, Sources, Sinks, SourceId, SinkId, DefaultPollingInterval
 from aas_model.resource_template.asset_interfaces_mapping_configuration import operation_sources
-from aas_model.constants import INVOCATION_ORIGIN
+from aas_model.constants import INVOCATION_URL_TEMPLATE
 from aas_model.invocation_authoring import finalize_invocation_addresses
 
 
@@ -70,7 +70,7 @@ def planar_table() -> CompositeResource:
     skill = ExtendedSkill(id_short=name)
     skill.Disabled.value = "false"
     skill.interface_reference.value = ModelReference(key=(Key(type_="Submodel", value="{aas_id}/submodels/AssetInterfacesDescription"), Key(type_="SubmodelElementCollection", value="interface_mqtt"), Key(type_="SubmodelElementCollection", value="InteractionMetadata"), Key(type_="SubmodelElementCollection", value="actions"), Key(type_="SubmodelElementCollection", value=name)))
-    skill.operation = SkillOperation(id_short="operation", qualifiers=[Qualifier(type_="invocationDelegation", value=f"{INVOCATION_ORIGIN}/operations/{{aas_id_short}}/{{skill}}", value_type="xs:string", kind="ConceptQualifier"), Qualifier(type_="Synchronous", value="true", value_type="xs:string", kind="ConceptQualifier")], input_variable=[Property(id_short="Uuid", description="The UUID of the command")])
+    skill.operation = SkillOperation(id_short="operation", qualifiers=[Qualifier(type_="invocationDelegation", value=INVOCATION_URL_TEMPLATE, value_type="xs:string", kind="ConceptQualifier"), Qualifier(type_="Synchronous", value="true", value_type="xs:string", kind="ConceptQualifier")], input_variable=[Property(id_short="Uuid", description="The UUID of the command")])
     table.control_component_instance.Skills.Skill[name] = skill
     table.control_component_instance.Endpoints.Endpoint[name] = SkillInterfaceRelationship(id_short=name, first=ModelReference(key=(Key(type_="Submodel", value="{aas_id}/submodels/ControlComponentInstance"), Key(type_="SubmodelElementCollection", value="Skills"), Key(type_="SubmodelElementCollection", value=name))), second=ModelReference(key=(Key(type_="Submodel", value="{aas_id}/submodels/AssetInterfacesDescription"), Key(type_="SubmodelElementCollection", value="interface_mqtt"), Key(type_="SubmodelElementCollection", value="InteractionMetadata"), Key(type_="SubmodelElementCollection", value="actions"), Key(type_="SubmodelElementCollection", value=name))))
     table.asset_interfaces_mapping_configuration.MappingConfigurations.value.append(
