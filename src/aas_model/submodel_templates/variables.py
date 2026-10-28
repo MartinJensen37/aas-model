@@ -32,7 +32,9 @@ Both forms live in the same ``variable`` map, so a submodel can mix them::
 Time series live in the groups ``State`` (discrete status), ``Measurements``
 (continuous values) and ``Log`` (what is logged explicitly). A group holds
 TimeSeries SMCs (``time_series``), or plain elements for data that is not a
-time series. The flat ``variable`` map remains until the stations' mappings
+time series. ``Measurements`` also holds the asset's ``Coordinates``
+(``coordinates.py``): where it and its points are, each relative to another
+coordinate by reference. The flat ``variable`` map remains until the stations' mappings
 target LinkedSegments (aas-camel-dmp PLAN, item 2).
 """
 
@@ -46,6 +48,7 @@ from aas_pydantic import (
 from aas_pydantic.aas_model import AasIdString
 
 from aas_model.constants import BASE_URL
+from aas_model.submodel_templates.coordinates import Coordinates
 from aas_model.submodel_templates.time_series import TimeSeriesCollection
 
 SM_VARIABLES = f"{BASE_URL}/submodels/Variables/1/0"
@@ -107,6 +110,9 @@ VariableEntry = Union[VariableProp, VariableItem]
 # A group entry is a time series, or a plain element for data that is not one.
 GroupEntry = Union[TimeSeriesCollection, VariableProp, VariableItem]
 
+# Measurements also hold where the asset and its points are.
+MeasurementsEntry = Union[TimeSeriesCollection, VariableProp, VariableItem, Coordinates]
+
 
 class StateGroup(SubmodelElementCollection):
     """Discrete status that changes on events (PackML state, occupation)."""
@@ -116,10 +122,10 @@ class StateGroup(SubmodelElementCollection):
 
 
 class MeasurementsGroup(SubmodelElementCollection):
-    """Continuous values sampled from the asset (weight, position)."""
+    """Continuous values sampled from the asset (weight, position), and its Coordinates."""
     id_short: AasIdString = "Measurements"
     semantic_id: str = VAR_MEASUREMENTS
-    value: Dict[str, GroupEntry] = {}
+    value: Dict[str, MeasurementsEntry] = {}
 
 
 class LogGroup(SubmodelElementCollection):
