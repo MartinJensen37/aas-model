@@ -76,8 +76,12 @@ of the package. A generated class named like another one with other fields gets 
 
 ## Variables and Coordinates
 
-A module's live values and where it is: aas-model's `Variables` submodel
-(`submodel_templates/variables.py`), used by the stations and the modules alike.
+A module's values and where it is: aas-model's `Variables` submodel
+(`submodel_templates/variables.py`), used by the stations and the modules alike. The lab's modules
+keep no live value in the AAS: their values are fields of time series (`State/Module`,
+`State/<Skill>`, `State/Procedures`, `Measurements/<Item>`), whose rows a mapping writes to the
+time series database and whose segment says where they are; a reader asks the database for the
+latest value or a span.
 
 ```
 Variables
