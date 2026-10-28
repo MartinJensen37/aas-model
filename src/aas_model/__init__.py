@@ -25,4 +25,11 @@ from aas_model.resource_template import (  # noqa: F401
     Resource,
     ResourceTypeAAS,
 )
+from aas_model.resource_template.modules import (  # noqa: F401
+    Component,
+    Module,
+    ProductionSystem,
+)
+from aas_model.product_template import Product  # noqa: F401
+from aas_model.process_template import Process  # noqa: F401
 from aas_model.submodel_templates import *  # noqa: F401,F403
