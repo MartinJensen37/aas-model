@@ -1,0 +1,215 @@
+{
+ "assetAdministrationShells": [],
+ "conceptDescriptions": [],
+ "submodels": [
+  {
+   "modelType": "Submodel",
+   "kind": "Template",
+   "idShort": "ProcessInformation",
+   "id": "https://smartproductionlab.aau.dk/ProcessInformation/1/0/Submodel",
+   "semanticId": {
+    "type": "ExternalReference",
+    "keys": [
+     {
+      "type": "GlobalReference",
+      "value": "https://smartproductionlab.aau.dk/ProcessInformation/1/0/Submodel"
+     }
+    ]
+   },
+   "administration": {
+    "version": "1",
+    "revision": "0"
+   },
+   "description": [
+    {
+     "language": "en",
+     "text": "What the process AAS binds: the product, the line and the recipe it binds, and the state of the binding."
+    }
+   ],
+   "submodelElements": [
+    {
+     "modelType": "ReferenceElement",
+     "idShort": "Product",
+     "semanticId": {
+      "type": "ExternalReference",
+      "keys": [
+       {
+        "type": "GlobalReference",
+        "value": "https://smartproductionlab.aau.dk/ProcessInformation/Product/1/0"
+       }
+      ]
+     },
+     "description": [
+      {
+       "language": "en",
+       "text": "The product whose recipe is bound (a model reference to its AAS)."
+      }
+     ],
+     "qualifiers": [
+      {
+       "type": "SMT/Cardinality",
+       "valueType": "xs:string",
+       "kind": "TemplateQualifier",
+       "value": "One",
+       "semanticId": {
+        "type": "ExternalReference",
+        "keys": [
+         {
+          "type": "GlobalReference",
+          "value": "https://admin-shell.io/SubmodelTemplates/Cardinality/1/0"
+         }
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "modelType": "ReferenceElement",
+     "idShort": "Line",
+     "semanticId": {
+      "type": "ExternalReference",
+      "keys": [
+       {
+        "type": "GlobalReference",
+        "value": "https://smartproductionlab.aau.dk/ProcessInformation/Line/1/0"
+       }
+      ]
+     },
+     "description": [
+      {
+       "language": "en",
+       "text": "The production system the recipe is bound to (a model reference to its AAS)."
+      }
+     ],
+     "qualifiers": [
+      {
+       "type": "SMT/Cardinality",
+       "valueType": "xs:string",
+       "kind": "TemplateQualifier",
+       "value": "One",
+       "semanticId": {
+        "type": "ExternalReference",
+        "keys": [
+         {
+          "type": "GlobalReference",
+          "value": "https://admin-shell.io/SubmodelTemplates/Cardinality/1/0"
+         }
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "modelType": "ReferenceElement",
+     "idShort": "Recipe",
+     "semanticId": {
+      "type": "ExternalReference",
+      "keys": [
+       {
+        "type": "GlobalReference",
+        "value": "https://smartproductionlab.aau.dk/ProcessInformation/Recipe/1/0"
+       }
+      ]
+     },
+     "description": [
+      {
+       "language": "en",
+       "text": "The recipe that is bound: the product's Production Sequence submodel."
+      }
+     ],
+     "qualifiers": [
+      {
+       "type": "SMT/Cardinality",
+       "valueType": "xs:string",
+       "kind": "TemplateQualifier",
+       "value": "One",
+       "semanticId": {
+        "type": "ExternalReference",
+        "keys": [
+         {
+          "type": "GlobalReference",
+          "value": "https://admin-shell.io/SubmodelTemplates/Cardinality/1/0"
+         }
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "modelType": "Property",
+     "idShort": "RecipeRevision",
+     "semanticId": {
+      "type": "ExternalReference",
+      "keys": [
+       {
+        "type": "GlobalReference",
+        "value": "https://smartproductionlab.aau.dk/ProcessInformation/RecipeRevision/1/0"
+       }
+      ]
+     },
+     "description": [
+      {
+       "language": "en",
+       "text": "The revision of the recipe the bindings were made for; a newer recipe needs binding again."
+      }
+     ],
+     "qualifiers": [
+      {
+       "type": "SMT/Cardinality",
+       "valueType": "xs:string",
+       "kind": "TemplateQualifier",
+       "value": "One",
+       "semanticId": {
+        "type": "ExternalReference",
+        "keys": [
+         {
+          "type": "GlobalReference",
+          "value": "https://admin-shell.io/SubmodelTemplates/Cardinality/1/0"
+         }
+        ]
+       }
+      }
+     ],
+     "valueType": "xs:nonNegativeInteger"
+    },
+    {
+     "modelType": "Property",
+     "idShort": "Status",
+     "semanticId": {
+      "type": "ExternalReference",
+      "keys": [
+       {
+        "type": "GlobalReference",
+        "value": "https://smartproductionlab.aau.dk/ProcessInformation/Status/1/0"
+       }
+      ]
+     },
+     "description": [
+      {
+       "language": "en",
+       "text": "Where the binding stands: Draft, Approved or Withdrawn."
+      }
+     ],
+     "qualifiers": [
+      {
+       "type": "SMT/Cardinality",
+       "valueType": "xs:string",
+       "kind": "TemplateQualifier",
+       "value": "One",
+       "semanticId": {
+        "type": "ExternalReference",
+        "keys": [
+         {
+          "type": "GlobalReference",
+          "value": "https://admin-shell.io/SubmodelTemplates/Cardinality/1/0"
+         }
+        ]
+       }
+      }
+     ],
+     "valueType": "xs:string"
+    }
+   ]
+  }
+ ]
+}

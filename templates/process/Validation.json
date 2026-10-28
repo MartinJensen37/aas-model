@@ -1,0 +1,185 @@
+{
+ "assetAdministrationShells": [],
+ "conceptDescriptions": [],
+ "submodels": [
+  {
+   "modelType": "Submodel",
+   "kind": "Template",
+   "idShort": "Validation",
+   "id": "https://smartproductionlab.aau.dk/ProcessValidation/1/0/Submodel",
+   "semanticId": {
+    "type": "ExternalReference",
+    "keys": [
+     {
+      "type": "GlobalReference",
+      "value": "https://smartproductionlab.aau.dk/ProcessValidation/1/0/Submodel"
+     }
+    ]
+   },
+   "administration": {
+    "version": "1",
+    "revision": "0"
+   },
+   "description": [
+    {
+     "language": "en",
+     "text": "Whether the bound recipe fits the line: the result of the plan check and what it found."
+    }
+   ],
+   "submodelElements": [
+    {
+     "modelType": "Property",
+     "idShort": "Result",
+     "semanticId": {
+      "type": "ExternalReference",
+      "keys": [
+       {
+        "type": "GlobalReference",
+        "value": "https://smartproductionlab.aau.dk/ProcessValidation/Result/1/0"
+       }
+      ]
+     },
+     "description": [
+      {
+       "language": "en",
+       "text": "Fits, or DoesNotFit."
+      }
+     ],
+     "qualifiers": [
+      {
+       "type": "SMT/Cardinality",
+       "valueType": "xs:string",
+       "kind": "TemplateQualifier",
+       "value": "One",
+       "semanticId": {
+        "type": "ExternalReference",
+        "keys": [
+         {
+          "type": "GlobalReference",
+          "value": "https://admin-shell.io/SubmodelTemplates/Cardinality/1/0"
+         }
+        ]
+       }
+      }
+     ],
+     "valueType": "xs:string"
+    },
+    {
+     "modelType": "Property",
+     "idShort": "CheckedBy",
+     "semanticId": {
+      "type": "ExternalReference",
+      "keys": [
+       {
+        "type": "GlobalReference",
+        "value": "https://smartproductionlab.aau.dk/ProcessValidation/CheckedBy/1/0"
+       }
+      ]
+     },
+     "description": [
+      {
+       "language": "en",
+       "text": "The check that gave the result."
+      }
+     ],
+     "qualifiers": [
+      {
+       "type": "SMT/Cardinality",
+       "valueType": "xs:string",
+       "kind": "TemplateQualifier",
+       "value": "One",
+       "semanticId": {
+        "type": "ExternalReference",
+        "keys": [
+         {
+          "type": "GlobalReference",
+          "value": "https://admin-shell.io/SubmodelTemplates/Cardinality/1/0"
+         }
+        ]
+       }
+      }
+     ],
+     "valueType": "xs:string"
+    },
+    {
+     "modelType": "SubmodelElementList",
+     "idShort": "Findings",
+     "semanticId": {
+      "type": "ExternalReference",
+      "keys": [
+       {
+        "type": "GlobalReference",
+        "value": "https://smartproductionlab.aau.dk/ProcessValidation/Findings/1/0"
+       }
+      ]
+     },
+     "description": [
+      {
+       "language": "en",
+       "text": "What the check found, one text per finding; empty when the recipe fits."
+      }
+     ],
+     "qualifiers": [
+      {
+       "type": "SMT/Cardinality",
+       "valueType": "xs:string",
+       "kind": "TemplateQualifier",
+       "value": "ZeroToOne",
+       "semanticId": {
+        "type": "ExternalReference",
+        "keys": [
+         {
+          "type": "GlobalReference",
+          "value": "https://admin-shell.io/SubmodelTemplates/Cardinality/1/0"
+         }
+        ]
+       }
+      }
+     ],
+     "value": [
+      {
+       "modelType": "Property",
+       "idShort": "Finding__00__",
+       "semanticId": {
+        "type": "ExternalReference",
+        "keys": [
+         {
+          "type": "GlobalReference",
+          "value": "https://smartproductionlab.aau.dk/ProcessValidation/Finding/1/0"
+         }
+        ]
+       },
+       "description": [
+        {
+         "language": "en",
+         "text": "One thing the check found."
+        }
+       ],
+       "qualifiers": [
+        {
+         "type": "SMT/Cardinality",
+         "valueType": "xs:string",
+         "kind": "TemplateQualifier",
+         "value": "ZeroToMany",
+         "semanticId": {
+          "type": "ExternalReference",
+          "keys": [
+           {
+            "type": "GlobalReference",
+            "value": "https://admin-shell.io/SubmodelTemplates/Cardinality/1/0"
+           }
+          ]
+         }
+        }
+       ],
+       "valueType": "xs:string"
+      }
+     ],
+     "orderRelevant": true,
+     "typeValueListElement": "Property",
+     "valueTypeListElement": "xs:string"
+    }
+   ]
+  }
+ ]
+}
