@@ -96,10 +96,13 @@ ontology by `modreg generate` in iec61499-mgmt-py), the product's Process Parame
 Sequence (`templates/product`) and the process AAS's Process Information, Bindings and Validation
 (`templates/process`). It runs `idta_generate.py` on each and writes the modules into
 `src/aas_model/submodel_templates/{arso,product,process}`, with three changes listed in the script.
-`docs/lab-submodels/` describes each submodel.
+`docs/lab-submodels/` describes each submodel: what it is for and why, written by hand, then a
+table of its elements that `lab_docs.py` writes from the template. `docs/lab-aas.md` is the overview.
 
 ```bash
 python scripts/lab_generate.py
+python scripts/lab_docs.py
 ```
 
-`tests/test_lab_templates.py` fails when the checked-in modules are not a regeneration.
+`tests/test_lab_templates.py` fails when the checked-in modules are not a regeneration, or a table
+is not that of its template.

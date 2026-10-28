@@ -54,3 +54,13 @@ def test_the_step_bindings_hold_the_inputs_of_the_skill():
     made = b.ProcessBindings(id_short="Bindings", StepBinding={"Filling": step})
     assert made.StepBinding["Filling"].Bindings.Binding["Binding_0000"].Name.value == "Volume"
     assert made.semantic_id == "https://smartproductionlab.aau.dk/ProcessBindings/1/0/Submodel"
+
+
+def test_every_template_is_described_with_its_current_elements(tmp_path):
+    import shutil
+    import lab_docs
+    copy = tmp_path / "lab-submodels"
+    shutil.copytree(lab_docs.DOCS, copy)
+    assert {path.name for path in copy.glob("*.md")} == {f"{Path(t).stem}.md" for t in lab_generate.TEMPLATES}
+    stale = [path.name for path in lab_docs.write(copy)]
+    assert stale == [], "run: python scripts/lab_docs.py"
