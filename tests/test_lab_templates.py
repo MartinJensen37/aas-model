@@ -46,11 +46,11 @@ def test_a_skill_operation_is_delegated():
 
 def test_the_step_bindings_hold_the_inputs_of_the_skill():
     from aas_model.submodel_templates.process import bindings as b
-    binding = b.Binding(id_short="Binding_0000", Name=b.Name(value="Volume"), InputReference=b.InputReference())
-    step = b.StepBinding(
-        id_short="Filling", NodeId=b.NodeId(value="Filling"), Step=b.Step(),
+    binding = b.InputBinding(id_short="Binding_0000", Name=b.Name(value="Volume"), InputReference=b.InputReference())
+    step = b.ProcessStepBinding(
+        id_short="Filling", NodeId=b.NodeId(value="Filling"), Step=b.BoundStep(),
         ExecutionMode=b.ExecutionMode(value="station"),
         Bindings=b.InputBindings(Binding={"Binding_0000": binding}))
-    made = b.Bindings(id_short="Bindings", StepBinding={"Filling": step})
+    made = b.ProcessBindings(id_short="Bindings", StepBinding={"Filling": step})
     assert made.StepBinding["Filling"].Bindings.Binding["Binding_0000"].Name.value == "Volume"
     assert made.semantic_id == "https://smartproductionlab.aau.dk/ProcessBindings/1/0/Submodel"

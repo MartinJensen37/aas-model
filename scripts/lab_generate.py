@@ -49,7 +49,10 @@ TEMPLATES = {
 # Classes the generator names like classes of another template that has other fields. aas_pydantic
 # reads an element back as the class its dump names, so these get names of their own (the idShort
 # stays): a skill's flow conditions are not the Production Sequence's.
-RENAMED = {"skills": {"Condition": "FlowCondition", "Conditions": "FlowConditions"}}
+RENAMED = {"skills": {"Condition": "FlowCondition", "Conditions": "FlowConditions"},
+           # The process AAS's bindings are named like the skills' and the recipe's elements.
+           "bindings": {"Bindings": "ProcessBindings", "StepBinding": "ProcessStepBinding",
+                        "Binding": "InputBinding", "Step": "BoundStep", "Skill": "BoundSkill"}}
 # Classes the generator names after their semantic id's namespace because the template has another
 # element of the same idShort: a readable name instead (these names occur nowhere else).
 READABLE = {"bindings": {"Bindings_production_sequence": "InputBindings"}}

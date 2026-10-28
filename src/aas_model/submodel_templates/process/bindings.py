@@ -17,7 +17,7 @@ class NodeId(Property):
     description: str = "The NodeId of the step in the recipe."
     value_type: str = "xs:string"
 
-class Step(ReferenceElement):
+class BoundStep(ReferenceElement):
     id_short: AasIdString = "Step"
     semantic_id: str = "https://smartproductionlab.aau.dk/ProcessBindings/Step/1/0"
     description: str = "The step in the product's recipe (Production Sequence)."
@@ -27,7 +27,7 @@ class Resource(ReferenceElement):
     semantic_id: str = "https://smartproductionlab.aau.dk/ProductionSequence/Resource/1/0"
     description: str = "The resource that carries the step out (a model reference to its AAS); none for a manual step."
 
-class Skill(ReferenceElement):
+class BoundSkill(ReferenceElement):
     id_short: AasIdString = "Skill"
     semantic_id: str = "https://smartproductionlab.aau.dk/ProductionSequence/Skill/1/0"
     description: str = "The skill of the resource that carries the step out; none for a manual step."
@@ -60,7 +60,7 @@ class InputReference(ReferenceElement):
     semantic_id: str = "https://smartproductionlab.aau.dk/ProductionSequence/InputReference/1/0"
     description: str = "The input itself: a variable of the Operation of the skill's Start command."
 
-class Binding(SubmodelElementCollection):
+class InputBinding(SubmodelElementCollection):
     semantic_id: str = "https://smartproductionlab.aau.dk/ProductionSequence/Binding/1/0"
     description: str = "What one input of the skill is handed: a process parameter of the product, or a constant."
     Name: Name_t
@@ -74,7 +74,7 @@ class InputBindings(SubmodelElementCollection):
     description: str = "What the skill's inputs are handed."
     Binding: Dict[str, Binding_t] = Field(default_factory=dict, json_schema_extra={"idta_min_cardinality": 1})
 
-class StepBinding(SubmodelElementCollection):
+class ProcessStepBinding(SubmodelElementCollection):
     semantic_id: str = "https://smartproductionlab.aau.dk/ProcessBindings/StepBinding/1/0"
     description: str = "The binding of one step of the recipe, named by the step's NodeId."
     NodeId: NodeId_t
@@ -84,7 +84,7 @@ class StepBinding(SubmodelElementCollection):
     ExecutionMode: ExecutionMode_t
     Bindings: Optional[InputBindings] = None
 
-class Bindings(Submodel):
+class ProcessBindings(Submodel):
     id_short: AasIdString = "Bindings"
     semantic_id: str = "https://smartproductionlab.aau.dk/ProcessBindings/1/0/Submodel"
     description: str = "The recipe bound to the line: per step of the product's recipe, the resource and the skill that carry it out and what each input of the skill is handed."
@@ -101,30 +101,30 @@ Value_t: TypeAlias = Value
 # alias so field ``InputReference_t`` can name a class of the same id_short
 InputReference_t: TypeAlias = InputReference
 # alias so field ``Binding_t`` can name a class of the same id_short
-Binding_t: TypeAlias = Binding
+Binding_t: TypeAlias = InputBinding
 # alias so field ``NodeId_t`` can name a class of the same id_short
 NodeId_t: TypeAlias = NodeId
 # alias so field ``Step_t`` can name a class of the same id_short
-Step_t: TypeAlias = Step
+Step_t: TypeAlias = BoundStep
 # alias so field ``Resource_t`` can name a class of the same id_short
 Resource_t: TypeAlias = Resource
 # alias so field ``Skill_t`` can name a class of the same id_short
-Skill_t: TypeAlias = Skill
+Skill_t: TypeAlias = BoundSkill
 # alias so field ``ExecutionMode_t`` can name a class of the same id_short
 ExecutionMode_t: TypeAlias = ExecutionMode
 # alias so field ``StepBinding_t`` can name a class of the same id_short
-StepBinding_t: TypeAlias = StepBinding
+StepBinding_t: TypeAlias = ProcessStepBinding
 # ── Resolve forward references (Pydantic circular refs) ──
 NodeId.model_rebuild()
-Step.model_rebuild()
+BoundStep.model_rebuild()
 Resource.model_rebuild()
-Skill.model_rebuild()
+BoundSkill.model_rebuild()
 ExecutionMode.model_rebuild()
 Name.model_rebuild()
 SourceElement.model_rebuild()
 Value.model_rebuild()
 InputReference.model_rebuild()
-Binding.model_rebuild()
+InputBinding.model_rebuild()
 InputBindings.model_rebuild()
-StepBinding.model_rebuild()
-Bindings.model_rebuild()
+ProcessStepBinding.model_rebuild()
+ProcessBindings.model_rebuild()
