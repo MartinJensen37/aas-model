@@ -50,7 +50,7 @@ class PartQuantityUnit(Property):
     semantic_id: str = QUANTITY_UNIT
 
 
-class Part(Node):
+class ProductPart(Node):
     """A part of the product. IDTA 02011 counts parts (BulkCount); a product also holds amounts
     (2 mL of liquid), so a part states its quantity and the unit of it, as the planner writes them.
     A part made by a recipe of its own is a self-managed entity naming its asset."""
@@ -59,13 +59,13 @@ class Part(Node):
     global_asset_id: str = ""
     Quantity: Optional[PartQuantity] = None
     QuantityUnit: Optional[PartQuantityUnit] = None
-    Node: Dict[str, "Part"] = {}
+    Node: Dict[str, "ProductPart"] = {}
 
 
 class ProductEntry(EntryNode):
     """The product itself, the entry node of its bill of material."""
     description: str = ""
-    Node: Dict[str, Part] = {}
+    Node: Dict[str, ProductPart] = {}
 
 
 class BillOfMaterial(HierarchicalStructures):
@@ -103,7 +103,7 @@ class Product(AAS):
         return self
 
 
-Part.model_rebuild()
+ProductPart.model_rebuild()
 ProductEntry.model_rebuild()
 BillOfMaterial.model_rebuild()
 Product.model_rebuild()

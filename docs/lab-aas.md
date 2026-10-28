@@ -72,7 +72,7 @@ those of the templates.
 **Class names:** aas_pydantic reads an element back as the class its dump names, among all classes
 of the package. A generated class named like another one with other fields gets a name of its own
 (`lab_generate.RENAMED`, `READABLE`): `FlowCondition`, `ProcessStepBinding`, `InputBinding`,
-`ProcessParameterGroup`; the coordinates' classes are `RelativeCoordinate`, `CoordinateX`, ...
+`ProcessParameterGroup`; the product's part is a `ProductPart`; the coordinates' classes are `RelativeCoordinate`, `CoordinateX`, ...
 
 ## Variables and Coordinates
 

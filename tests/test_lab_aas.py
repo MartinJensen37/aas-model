@@ -12,7 +12,7 @@ from aas_pydantic.convert_util import strip_temp_id_short_attributes
 from aas_model import Resource, build_from_model
 from aas_model.constants import BASE_URL
 from aas_model.process_template import Process
-from aas_model.product_template import Part, PartQuantity, PartQuantityUnit, Product, plan_id
+from aas_model.product_template import ProductPart, PartQuantity, PartQuantityUnit, Product, plan_id
 from aas_model.resource_template.modules import Component, Module, ModuleSkill, ProductionSystem
 from aas_model.submodel_templates.arso import skills as s
 from aas_model.submodel_templates.process import bindings as b, process_information as pi, validation as v
@@ -110,7 +110,7 @@ def product() -> Product:
         Revision=ps.Revision(value="1"), SequenceId=ps.SequenceId(value="vial"), Name=ps.Name(value="Vial"),
         Role=ps.Role(value="Primary"), Subject=ps.Subject(value=reference(("AssetAdministrationShell", PRODUCT_ID))),
         Steps=ps.Steps()))
-    made.hierarchical_structures.EntryNode.Node["Liquid"] = Part(
+    made.hierarchical_structures.EntryNode.Node["Liquid"] = ProductPart(
         id_short="Liquid", Quantity=PartQuantity(value="2.0"), QuantityUnit=PartQuantityUnit(value="mL"))
     return made
 
