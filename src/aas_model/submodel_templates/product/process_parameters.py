@@ -43,7 +43,7 @@ class ProductParameters(SubmodelElementCollection):
     description: str = "Mandatory product parameters for process execution"
     Parameter: Dict[str, Parameter_t] = {}
 
-class ProcessParameters_process_parameters(SubmodelElementCollection):
+class ProcessParameterGroup(SubmodelElementCollection):
     id_short: AasIdString = "ProcessParameters"
     semantic_id: str = "https://admin-shell.io/idta/ProcessParameters/ProcessParameters/1/0"
     description: str = "Mandatory process parameters for process execution"
@@ -111,7 +111,7 @@ class Process(SubmodelElementCollection):
     ProcessDescription: ProcessDescription_t
     PlannedProcessTime: PlannedProcessTime_t
     ProductParameters: ProductParameters_t
-    ProcessParameters: ProcessParameters_process_parameters
+    ProcessParameters: ProcessParameterGroup
     ResourceParameters: ResourceParameters_t
     ProcessBoM: ProcessBoM_t
     RequiredCapability: Optional[RequiredCapability_t] = None
@@ -171,7 +171,7 @@ ProcessDescription.model_rebuild()
 PlannedProcessTime.model_rebuild()
 Parameter.model_rebuild()
 ProductParameters.model_rebuild()
-ProcessParameters_process_parameters.model_rebuild()
+ProcessParameterGroup.model_rebuild()
 ResourceParameters.model_rebuild()
 MaterialReference.model_rebuild()
 Role.model_rebuild()
